@@ -3,18 +3,14 @@
 
 statclass Main {
 
-	/* TODO rethink fields in static classes - if we use "field" and mean "statfield",
-		we can ditch "statfield", "statinit" and "self" at the cost of not having
-		static content in non-static classes... */
-
-	statfield hello;
+	field hello;
 	
-	statinit {
+	init {
 		hello = "Hello";
 	}
 
 	fun Main(args) {
-		System.out->writeLine(self.hello);
+		System.out->writeLine(this.hello);
 		try {
 			var f = System.out->openFile("foo");
 			do {
