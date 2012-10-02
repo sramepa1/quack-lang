@@ -44,7 +44,8 @@ class Adder {
 	}
 }
 
-class subAdder extends Adder {
+
+class subAdder extends Adder {	// valid inheritance syntax
 
 	field toAdd; 		// TODO what to do with this? Redeclaration is not altering the field table at all...
 
@@ -56,10 +57,10 @@ class subAdder extends Adder {
 			i < num;	/* expression that should yield a boolValue*/
 			i = i+1)	/* same as first */
 		{
-			g = g + i*i
+			g = g + i*i;
 		}
 
-		useless()		// allowed; all fields pre-initialized to null
+		useless();		// allowed; all fields pre-initialized to null
 
 		this.toAdd = -g;	// unary minus
 	}
@@ -69,7 +70,7 @@ class subAdder extends Adder {
 		if( c == null ) { // actually compiles as "isnull(c)", special bytecode instruction, to avoid calling operator== on a null reference
 			b = 3;
 		}
-		// a and c stay null here
+		// a and c stay null here	
 	}
 }
 
