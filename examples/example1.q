@@ -40,7 +40,7 @@ class Adder {
 
 	fun processLine(string) {
 		arr = string->explode(" ");
-		retutn arr[0] + arr[1] + this.toAdd;
+		return arr[0] + arr[1] + this.toAdd;
 	}
 }
 
@@ -65,7 +65,7 @@ class subAdder extends Adder {	// valid inheritance syntax
 		this.toAdd = -g;	// unary minus
 	}
 
-	useless() {
+	fun useless() {
 		a = b;		// allowed, both are initialized to null
 		if( c == null ) { // actually compiles as "isnull(c)", special bytecode instruction, to avoid calling operator== on a null reference
 			b = 3;
