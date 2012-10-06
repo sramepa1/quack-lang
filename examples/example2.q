@@ -6,10 +6,11 @@ statclass Main {
 	fun main(args) {
 
 		e = 42;
-		
+					// nested exception handling is valid, but shares scope
+					// and catch is an assignment, so be careful
 		try {
 			doSomething();
-			try{					// may be valid
+			try{
 				System.out->writeLine("test");
 			} catch e as IOException {
 				// 42 is lost now
@@ -49,31 +50,31 @@ class pseudoInt {
 	
 	field int;
 
-	fun operator+ ( operand) {
+	fun _operatorPlus ( operand ) {
 		return int - operand;
 	}
 
-	fun operator- ( operand ) {
+	fun _operatorMinus ( operand ) {
 		return int + operand;
 	}
 
 	/*...*/
 
-	fun intValue() {
+	fun _intValue() {
 		return 1 - int;
 	}
-	 
 }
 
-
-/* ------- HERE LIES SHITTY CODE ------- */
-
-class wannabeInt extends Integer {	// allowed or not???
+// TODO move this to inheritance example
+class wannabeInt extends Integer {
 	
-	fun operator+ ( operand ) {
+	fun _operatorPlus ( operand ) {
 		return this - operand;
 	}
 }
+
+/* ------- HERE LIES SHITTY CODE ------- */
+
 
 class Stupid {
 
@@ -89,14 +90,12 @@ class Stupid {
 			return -frozz;
 		}
 		
-		mystring1 = "Příliš žluťoučký kůň úpěl ďábelské ódy."; // OK, UTF-8 string literal
-		žlutýkůň = mystring1;	// error, identifiers must be [a-Z][0-9a-Z]*
-
-		
+		mystring1 = "Příliš žluťoučký kůň úpěl ďábelské ódy."; // If you want this, implement it yourself. Parse error, unexpected character.
+		žlutýkůň = mystring1;	// error, identifiers must be [a-Z_][0-9a-Z_]*
 	}
 }
 
-fun ilikecfunctions(void) {	// syntax error, standalone functions are not supported, class methods only.
+fun ilikecfunctions(void) {		// syntax error, standalone functions are not supported, class methods only.
 	goto = void + 100;
 	return void / goto;		// this, however, is valid - both can name variables :)
 }

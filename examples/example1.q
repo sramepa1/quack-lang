@@ -8,7 +8,7 @@ statclass Main {
 	field hello;
 	
 	init {
-		hello = "\n\tHello!\n\n";	// TODO allow common escaped characters like this?
+		hello = "\nHello!\n\n";		// a very small subset of C escapes will be available
 	}
 
 	fun main(args) {
@@ -47,8 +47,6 @@ class Adder {
 
 class subAdder extends Adder {	// valid inheritance syntax
 
-	field toAdd; 		// TODO what to do with this? Redeclaration is not altering the field table at all...
-
 	init(num) {		// overriden constructor
 		
 		g = 0;
@@ -77,7 +75,12 @@ class subAdder extends Adder {	// valid inheritance syntax
 
 /* ------- HERE LIES SHITTY CODE ------- */
 
+#include "stdio.q"	// If you want directives, implement them yourself. Unexpected character '#'.
+
 statclass Stupid extends Main {	// syntax error, static classes can't inherit anything
+
+	field hello; 			// Error, redeclaration of field "hello"
+
 	field whoCares;
 
 	foo (bar) {			// another syntax error, fun is required ;)
