@@ -11,15 +11,15 @@ statclass Main {
 			doSomething();
 			try{					// may be valid
 				System.out->writeLine("test");
-			catch e as IOException {
+			} catch e as IOException {
 				// 42 is lost now
 				doSomething();
 			}
 		} catch e {
-			// both 42 and IOException
+			// both 42 and IOException are lost
 			try{
 				System.err->writeLine("WELCOME TO MY REALM OF ERROAR!");
-			catch e as IOException {
+			} catch e as IOException {
 				// outer exception is lost now
 				doSomething();
 			}
@@ -29,14 +29,18 @@ statclass Main {
 	field a;
 	field b;
 
-	fun doSomething(a) {
+	// Field shadowing example, with explicit local variable declaration:
+
+	fun doSomething(a) : local(b, c) {	
+		c = this.a + this.b;	// initialize local variable
 		this.a = a/2;		// assignment to field
-		local a = a - 1;	// assignment to function parameter
-		b = a + this.a;	// assignment to field
-		local b = 10;		// new local variable
+		a = a - 1;		// assignment to function parameter
+		this.b = a + this.a;	// assignment to field
+		b = 10;			// initialize local variable
 		b = b + this.b + a;	// assignment to local
 		this.b = b;		// assignment to field
-		return a;
+		a = c * 10;		// redefine local
+		return a;		// return local
 	}
 }
 
