@@ -3,29 +3,41 @@
 
 statclass Main {
 
-	field hello;
+	fun main(args) {
 
-	fun Main(args) {
+		e = 42;
 		
 		try {
 			doSomething();
-			try{
+			try{					// may be valid
 				System.out->writeLine("test");
 			catch e as IOException {
+				// 42 is lost now
 				doSomething();
 			}
-
-		catch e {
-
+		} catch e {
+			// both 42 and IOException
 			try{
 				System.err->writeLine("WELCOME TO MY REALM OF ERROAR!");
 			catch e as IOException {
+				// outer exception is lost now
 				doSomething();
 			}
 		}
 	}
 
-	fun doSomething() {}
+	field a;
+	field b;
+
+	fun doSomething(a) {
+		this.a = a/2;		// assignment to field
+		local a = a - 1;	// assignment to function parameter
+		b = a + this.a;	// assignment to field
+		local b = 10;		// new local variable
+		b = b + this.b + a;	// assignment to local
+		this.b = b;		// assignment to field
+		return a;
+	}
 }
 
 

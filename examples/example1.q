@@ -8,11 +8,11 @@ statclass Main {
 	field hello;
 	
 	init {
-		hello = "Hello";
+		hello = "\n\tHello!\n\n";	// TODO allow common escaped characters like this?
 	}
 
-	fun Main(args) {
-		System.out->writeLine(this.hello);
+	fun main(args) {
+		System.out->writeLine(this.hello); // voluntary this
 		try {
 			f = System.out->openFile("foo");
 			do {
@@ -35,12 +35,12 @@ class Adder {
 	field toAdd;
 
 	init(number) {
-		this.toAdd = number;
+		toAdd = number;
 	}
 
 	fun processLine(string) {
 		arr = string->explode(" ");
-		return arr[0] + arr[1] + this.toAdd;
+		return arr[0] + arr[1] + toAdd;
 	}
 }
 
@@ -60,7 +60,7 @@ class subAdder extends Adder {	// valid inheritance syntax
 			g = g + i*i;
 		}
 
-		useless();		// allowed; all fields pre-initialized to null
+		useless();		// calling a method from a constructor is allowed; all fields pre-initialized to null
 
 		this.toAdd = -g;	// unary minus
 	}
