@@ -79,11 +79,11 @@ class subAdder extends Adder {	// valid inheritance syntax
 
 statclass Stupid extends Main {	// syntax error, static classes can't inherit anything
 
-	field hello; 			// Error, redeclaration of field "hello"
+	field hello; 		         	// Error, redeclaration of field "hello"
 
-	field whoCares;
+	field whoCares = "Compiler does!";      // Error, initializing fieds this way is not allowed 
 
-	foo (bar) {			// another syntax error, fun is required ;)
+	foo (bar) {			        // another syntax error, fun is required ;)
 		if(a = bar - 42) {	// and another one, assignment is a statement
 
 			System.out->writeLine("This code was executed by Chuck Norris");
