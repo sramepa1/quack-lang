@@ -8,8 +8,17 @@ extern "C" int yywrap() { return 1; }
 
 %option yylineno
 
+%x C_COMMENT
+
 %%
-[ \t\n]                                 ;
+[ \t\n]                                                 ; /* ignore whitespaces */
+\/\/.*\n                                                  ;
+
+
+"/*"            { BEGIN(C_COMMENT); }
+<C_COMMENT>"*/" { BEGIN(INITIAL); }
+<C_COMMENT>.    { }
+
 
 "class"                                 return TOKEN(K_CLASS);
 "statclass"                             return TOKEN(K_STATCLASS);
@@ -17,6 +26,9 @@ extern "C" int yywrap() { return 1; }
 "field"                                 return TOKEN(K_FIELD);
 "init"                                  return TOKEN(K_INIT);
 "fun"                                   return TOKEN(K_METHOD);
+"if"                                    return TOKEN(K_IF);
+"else"                                  return TOKEN(K_ELSE);
+"for"                                   return TOKEN(K_FOR);
 
 ";"                                     return TOKEN(T_SEMICOLON);
 "("                                     return TOKEN(T_LBRACKET);

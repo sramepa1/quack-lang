@@ -1,7 +1,11 @@
+/* ******************** */
+/*
+ * **** **** **** / 
+ */
 
-statclass Main {
+statclass Main{
 
-	field hello;
+	field hello; // **/**
 	
 	init {
 		;
@@ -13,3 +17,5 @@ statclass Main {
                 ;
 	}
 }
+
+
