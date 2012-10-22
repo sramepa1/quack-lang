@@ -12,11 +12,11 @@ extern "C" int yywrap() { return 1; }
 
 %%
 [ \t\n]                                                 ; /* ignore whitespaces */
-\/\/.*\n                                                  ;
+\/\/.*\n                                                ; /* ignore comments */
 
-
-"/*"            { BEGIN(C_COMMENT); }
+"/*"            { BEGIN(C_COMMENT); }                     /* ignore comments */
 <C_COMMENT>"*/" { BEGIN(INITIAL); }
+<C_COMMENT>\n   { }
 <C_COMMENT>.    { }
 
 

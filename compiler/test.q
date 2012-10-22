@@ -1,6 +1,15 @@
 /* ******************** */
 /*
  * **** **** **** / 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * // asdasdasda///////////////////////
+ * 
+ * 
  */
 
 statclass Main{
@@ -12,10 +21,16 @@ statclass Main{
                 ;
 	}
 
-	fun main(args) {
+	fun main(args) { // **/**
 		;
                 ;
 	}
 }
 
+class foo {
+    //TODO má projít
+}
 
+class bar extends foo {
+    field hello;
+}
