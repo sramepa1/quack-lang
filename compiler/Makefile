@@ -24,17 +24,17 @@ build/parser.o: build/parser.cpp
 build/%.o: %.cpp 
 	g++ $(CFLAGS) -c -o $@ $<
 
-program: build $(OBJECTS) build/tokens.o build/parser.o
+donald: build $(OBJECTS) build/tokens.o build/parser.o
 	g++ -o $@ $(OBJECTS) build/tokens.o build/parser.o
 
 .PHONY: clean
 
 clean:
 	rm -rf build
-	rm -f program
+	rm -f donald
 	
 
-run: program
+run: donald
 	@echo "\n--------------------------------------------"
 
 

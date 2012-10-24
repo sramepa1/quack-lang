@@ -32,6 +32,7 @@
    they represent.
  */
 %token <token> K_STATCLASS K_CLASS K_EXTENDS K_FIELD K_INIT K_METHOD
+%token <token> K_IF K_ELSE K_FOR
 
 %token <string> T_IDENTIFIER 
 
@@ -149,3 +150,13 @@ statement:
 ;   
 
 %%
+
+
+/*
+
+    assignment T_SEMICOLON
+    if
+    for
+  | T_SEMICOLON
+
+*/

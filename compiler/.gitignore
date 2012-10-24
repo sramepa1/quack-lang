@@ -1,4 +1,7 @@
 build
 build/*
-program
+nbproject
+nbproject/*
+donald
+*.*~
 
