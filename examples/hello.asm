@@ -138,7 +138,7 @@ alignb 8, db 0
 	
 	; PUSHC 2, 6
 	
-	db 0x14	; PUSHC
+	db 0x12	; PUSHC
 	db 0
 	dw 2	; CT index 2 = String
 	dw 6	; CP index 6 = "Hello, world!"
@@ -156,7 +156,7 @@ alignb 8, db 0
 	
 	; RETNULL
 	
-	db 0x56	; RETNULL
+	db 0x57	; RETNULL
 	times 7 db 0
 
 ;; ================================ ;;

@@ -11,13 +11,8 @@ extern "C" {
 #define ARG1 args.triword.arg1
 #define ARG2 args.triword.arg2
 
-#define REG0 args.regimm.reg0
-#define IMM1 args.regimm.imm1
-
-#define WORD0 args.twotwo.word0;
-#define WORD1 args.twotwo.word1;
-#define BYTE0 args.twotwo.byte0;
-#define BYTE1 args.twotwo.byte1;
+#define REG args.regimm.reg
+#define IMM args.regimm.imm
 
 
 struct Instruction {
@@ -38,20 +33,36 @@ struct Instruction {
         // Big immediate format. For instructions using a large constant, like reg + tagged immediate ops.
         // Leave reg operand uninitialized if there is only the immediate (JMP, RET<T> etc.)
         struct {
-            uint16_t reg0;
-            uint32_t imm1;
+            uint16_t reg;
+            uint32_t imm;
         } regimm;
 
-        // Special format with 8-bit operands
-        // Currently only used by NEW, which leaves byte1 uninitialized
-        struct {
-            uint16_t word0;
-            uint16_t word1;
-            unsigned char byte0;
-            unsigned char byte1;
-        } twotwo;
-
     } args;
+
+
+
+    // Creates a 0/1/2/3 - word Instruction
+    Instruction(unsigned char op,
+                unsigned char subop,
+                uint16_t _arg0 = 0,
+                uint16_t _arg1 = 0,
+                uint16_t _arg2 = 0) : op(op), subop(subop) {
+
+        ARG0 = _arg0;
+        ARG1 = _arg1;
+        ARG2 = _arg2;
+    }
+
+
+    // Creates a big-immediate Instruction
+    Instruction(unsigned char op,
+                unsigned char subop,
+                uint32_t _imm,
+                uint16_t _reg = 0) : op(op), subop(subop) {
+
+        IMM = _imm;
+        REG = _reg;
+    }
 };
 
 

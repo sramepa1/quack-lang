@@ -35,16 +35,16 @@
 #define OP_XCHG 0xE
 
 
-// STACK ACCESS
+// VALUE STACK ACCESS
 
 #define OP_PUSH 0x10
 #define OP_POP 0x11
-// sub-opcode differentiates PUSH2, PUSH3, PUSHA...
-#define OP_LD 0x12
-#define OP_ST 0x13
-#define OP_PUSHC 0x14
-#define OP_PUSHCT 0x15
+#define OP_PUSHC 0x12
+#define OP_PUSHCT 0x13
+#define OP_LDS 0x14
+#define OP_STS 0x15
 
+// these sub-opcodes differentiate PUSH2, PUSH3, POP2, POP3, ...
 #define SOP_STACK_1 0x0
 #define SOP_STACK_2 0x1
 #define SOP_STACK_3 0x2
@@ -112,23 +112,21 @@
 #define SOP_CC_GT PART_GT
 #define SOP_CC_GE PART_GE
 #define SOP_CC_LT PART_LT
-#define SOP_CC_GE PART_LE
+#define SOP_CC_LE PART_LE
 
 #define OP_CALL 0x52
 #define OP_CALLMY 0x53
-// tail-call variants may be added via sub-ops
+#define OP_NEW 0x54
 
-#define OP_RET 0x54
-#define OP_RETT 0x55
-#define OP_RETNULL 0x56
+#define OP_RET 0x55
+#define OP_RETT 0x56
+#define OP_RETNULL 0x57
 
-#define OP_TRY 0x57
-#define OP_CATCH 0x58
-#define OP_THROW 0x59
-#define OP_THROWT 0x5A
-#define OP_FIN 0x5B
-
-#define OP_NEW 0x60
+#define OP_TRY 0x58
+#define OP_CATCH 0x59
+#define OP_THROW 0x5A
+#define OP_THROWT 0x5B
+#define OP_FIN 0x5C
 
 
 // And that's all, folks.
