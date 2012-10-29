@@ -1,13 +1,24 @@
-; Example Quack class file
-; Commented binary source for a hand-assembled "Hello, world" program.
-
+;
+; ==== EXAMPLE QUACK CLASS FILE ====
+;
+;
+; Assemble with "nasm -f bin -o hello.qc hello.asm"
+;
+; Set your editor's TAB to 4 spaces for optimal viewing
+;
+;
+; This is a commented binary source for a hand-assembled "Hello, world" program:
+;
 ;	statclass Main {
 ;		fun main(args) {
 ;			System.out->writeLine("Hello, world!");
 ;		}
 ;	}
-
+;
 ; Everything is little-endian and, where meaningful, aligned to QWORDs
+
+
+
 
 org 0x0							; File offsets start from zero and are NOT counted from magic
 
@@ -33,8 +44,8 @@ dd constantpool;				; Constant pool offset in file
 classtable:
 .cls0:
 	dw 0						; CP index 0 = "Main"
-	dw .endmain-.mainclass
-	dd .mainclass
+	dw .endmain-.mainclass		; Size of Main's definition
+	dd .mainclass				; Main definition's offset in the file
 .cls1:
 	dw 2						; CP index 2 = "System"
 	dw 0						; external
@@ -127,7 +138,7 @@ alignb 8, db 0
 	
 	; PUSHC 2, 6
 	
-	db 0x15	; PUSHC
+	db 0x14	; PUSHC
 	db 0
 	dw 2	; CT index 2 = String
 	dw 6	; CP index 6 = "Hello, world!"
@@ -136,7 +147,7 @@ alignb 8, db 0
 	
 	; CALL r1, r0, 4
 	
-	db 0x60	; CALL
+	db 0x52	; CALL
 	db 0
 	dw 1	; Destination r1
 	dw 0	; 'That' is in r0
@@ -145,7 +156,7 @@ alignb 8, db 0
 	
 	; RETNULL
 	
-	db 0x69	; RETNULL
+	db 0x56	; RETNULL
 	times 7 db 0
 
 ;; ================================ ;;
