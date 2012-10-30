@@ -17,13 +17,13 @@ extern "C" {
 
 struct Instruction {
 
-    unsigned char op;
-    unsigned char subop;
+    unsigned char op;       // main operation code (OP_)
+    unsigned char subop;    // sub-operation code (SOP_, only for some instructions)
 
     union {
 
         // Most common format - 3AC. Register arithmetics, comparison jumps, LDF, CALL etc.
-        // Leave operands uninitialized if instruction uses less than 3
+        // Leave operands uninitialized or zero if instruction uses less than 3
         struct {
             uint16_t arg0;
             uint16_t arg1;

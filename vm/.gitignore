@@ -1,0 +1,11 @@
+*.config
+*.files
+*.creator
+*.user
+*.includes
+*.pro
+nbproject
+nbproject/*
+daisy
+build
+build/*
