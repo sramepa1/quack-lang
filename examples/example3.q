@@ -74,8 +74,8 @@ class BetterClass extends GoodClass {
         }
 
         init(someValue) : super(someValue, 72) {
-                System.out->writeInt(one);    // prints the _intValue of param someValue
-                System.out->writeInt(two);    // prints the number 72
+                @System.out->writeInt(one);    // prints the _intValue of param someValue
+                @System.out->writeInt(two);    // prints the number 72
         }
 
         // Overrided someUsefulMethod(param) from GoodClass, no matter that its param has different name
@@ -125,7 +125,7 @@ class UglyClass extends BetterClass {
         fun uglyMethod() {
                 // The method someUsefulMethod(param) from GoodClass cannot be accesed from this class
                 // because it is overriden in direct super class
-                super->super->someUsefulMethod(11)
+                super->super->someUsefulMethod(11);
         }
 }
 

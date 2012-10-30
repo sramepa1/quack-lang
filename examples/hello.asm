@@ -11,7 +11,7 @@
 ;
 ;	statclass Main {
 ;		fun main(args) {
-;			System.out->writeLine("Hello, world!");
+;			@System.out->writeLine("Hello, world!");
 ;		}
 ;	}
 ;

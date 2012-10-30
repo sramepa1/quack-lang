@@ -14,17 +14,17 @@ statclass Main {
 	fun main(args) {
 		System.out->writeLine(this.hello); // voluntary this
 		try {
-			f = System.out->openFile("foo");
+			f = @System.out->openFile("foo");
 			do {
 				l = f->readLine();
 				a = new Adder(42);
 				a->processLine(l);
 			} while(!f->eof());
 		} catch e as IOException {
-			System.err->writeLine("EPIC FAIL! " + e->message());
+			@System.err->writeLine("EPIC FAIL! " + e->message());
 		} catch e {
-			System.err->writeLine("fail " + e->message());
-			e->printStackTrace(System.err);
+			@System.err->writeLine("fail " + e->message());
+			e->printStackTrace(@System.err);
 			f->close();
 		}
 	}
@@ -86,11 +86,11 @@ statclass Stupid extends Main {	// syntax error, static classes can't inherit an
 	foo (bar) {			        // another syntax error, fun is required ;)
 		if(a = bar - 42) {	// and another one, assignment is a statement
 
-			System.out->writeLine("This code was executed by Chuck Norris");
+			@System.out->writeLine("This code was executed by Chuck Norris");
 		}
 
 		for( for ( for(i=0;i<42;i=i+1) {} ; i > 42; for(j=0;j<7;i=i-1) {});false;) {
-			System.out->writeLine("This is completely terrible, but valid");
+			@System.out->writeLine("This is completely terrible, but valid");
 		}
 	}
 }

@@ -11,7 +11,7 @@ statclass Main {
 		try {
 			doSomething();
 			try{
-				System.out->writeLine("test");
+				@System.out->writeLine("test");
 			} catch e as IOException {
 				// 42 is lost now
 				doSomething();
@@ -19,7 +19,7 @@ statclass Main {
 		} catch e {
 			// both 42 and IOException are lost
 			try{
-				System.err->writeLine("WELCOME TO MY REALM OF ERROAR!");
+				@System.err->writeLine("WELCOME TO MY REALM OF ERROAR!");
 			} catch e as IOException {
 				// outer exception is lost now
 				doSomething();
