@@ -122,8 +122,8 @@ alignb 8, db 0
 	
 	db 0xA	; LDSTAT
 	db 0
-	dw 0	; Destination r0
-	dw 1	; CT index 1 = System
+	dw 0			; Destination r0
+	dw 1 | 0x8000	; CT index 1 = System. High bit = unresolved
 	dw 0
 	
 	
@@ -140,8 +140,8 @@ alignb 8, db 0
 	
 	db 0x12	; PUSHC
 	db 0
-	dw 2	; CT index 2 = String
-	dw 6	; CP index 6 = "Hello, world!"
+	dw 2 | 0x8000	; CT index 2 = String. High bit = unresolved
+	dw 6			; CP index 6 = "Hello, world!"
 	dw 0
 	
 	

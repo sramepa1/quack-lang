@@ -1,4 +1,4 @@
-CFLAGS = -pedantic -Wall -Wwrite-strings -O0 -g3
+CFLAGS = -pedantic -Wall -O0 -g3
 INCLUDE = ../common/include
 
 OBJECTS = $(patsubst src/%.cpp,build/%.o,$(wildcard src/*.cpp))
@@ -13,6 +13,9 @@ build/%.o: src/%.cpp
 
 daisy: build $(OBJECTS)
 	g++ $(CFLAGS) -o $@ $(OBJECTS)
+
+run: daisy
+	./daisy ../examples/hello.qc
 
 install: daisy
 	cp daisy /usr/bin/
