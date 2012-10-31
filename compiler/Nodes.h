@@ -25,10 +25,7 @@ public:
     virtual ~NExpression() {}
 };
 
-class NBlock : public Node {
-public:
-    virtual ~NBlock() {}
-};
+
 
 #endif	/* NODES_H */
 

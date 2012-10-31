@@ -33,3 +33,7 @@ void NInit::generateCode() {
 void NMethod::generateCode() {
     cout << "NMethod::generateCode()" << endl;
 }
+
+void NBlock::generateCode() {
+    cout << "NMethod::generateCode()" << endl;
+}

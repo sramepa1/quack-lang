@@ -18,11 +18,20 @@
 %union {
     Node* node;
     NProgram* nprogram;
+
     NClass* nclass;
     std::list<ClassEntry*>* classEntries;
     ClassEntry* classEntry;
+
     NMethod* nmethod;
-    std::list<std::string*>* methodParameters;
+    std::list<std::string*>* parameters;
+
+    NBlock* nblock;
+    std::list<NStatement*>* statements;
+    NStatement* nstatement;
+
+    NExpression* nexpression;
+
     std::string* string;
     int token;
 }
@@ -32,11 +41,13 @@
    they represent.
  */
 %token <token> K_STATCLASS K_CLASS K_EXTENDS K_FIELD K_INIT K_METHOD
-%token <token> K_IF K_ELSE K_FOR
+%token <token> T_ASSIGN K_IF K_ELSE K_FOR
+
+%token <token> T_AND T_OR T_NOT
 
 %token <string> T_IDENTIFIER 
 
-%token <token> T_LBRACKET T_RBRACKET T_COMMA
+%token <token> T_LPAREN T_RPAREN T_COMMA
 %token <token> T_LBLOCK T_RBLOCK T_SEMICOLON
 
 
@@ -47,20 +58,29 @@
  */
 
 %type <nprogram> program classes
+
 %type <nclass> class class_inheritance
 %type <classEntries> stat_class_entries dyn_class_entries
 %type <classEntry> stat_class_entry dyn_class_entry 
+
 %type <nmethod> method stat_init dyn_init
-%type <methodParameters> parameters parameter_list
+%type <parameters> parameters parameter_list
 
-%type <string> field parameter
+%type <nblock> block
+
+%type <statements> statement_list
+%type <nstatement> statement
+
+%type <nexpression> parameter expression
+
+%type <string> field
 
 
-/* Operator precedence for mathematical operators 
-%left TPLUS TMINUS
-%left TMUL TDIV
-*/
+/* Operator precedence for mathematical operators */
+%left T_PLUS T_MINUS
+%left T_MUL T_DIV T_MOD
 
+/* Starting expression of the grammar */
 %start program
 
 %%
@@ -98,20 +118,22 @@ stat_class_entry:
     field {$$ = new ClassEntry(FIELD, $1);}
   | stat_init {$$ = new ClassEntry(INIT, $1);}
   | method {$$ = new ClassEntry(METHOD, $1);}
+  | /* epsilon */
 ;
 
 dyn_class_entry: 
     field {$$ = new ClassEntry(FIELD, $1);}
   | dyn_init {$$ = new ClassEntry(INIT, $1);}
   | method {$$ = new ClassEntry(METHOD, $1);}
+  | /* epsilon */
 ;
 
 stat_init:
-    K_INIT block {$$ = NULL;}
+    K_INIT block {$$ = new NMethod(); $$->parameters = NULL; $$->block = $2;}
 ;
 
 dyn_init:
-    K_INIT parameters block {$$ = NULL;}
+    K_INIT parameters block {$$ = new NMethod(); $$->parameters = $2; $$->block = $3;}
 ;
 
 field:
@@ -119,12 +141,12 @@ field:
 ;
 
 method: 
-    K_METHOD T_IDENTIFIER parameters block {$$ = new NMethod(); $$->parameters = $3;}
+    K_METHOD T_IDENTIFIER parameters block {$$ = new NMethod(); $$->parameters = $3; $$->block = $4;}
 ;
 
 parameters:
-    T_LBRACKET parameter_list T_RBRACKET {$$ = $2;}
-  | T_LBRACKET T_RBRACKET {$$ = NULL;}
+    T_LPAREN parameter_list T_RPAREN {$$ = $2;}
+  | T_LPAREN T_RPAREN {$$ = NULL;}
 ;
 
 parameter_list:
@@ -133,21 +155,131 @@ parameter_list:
 ;
 
 parameter:
-    T_IDENTIFIER {$$ = $1;}
+    expression {$$ = $1;}
 ;
 
 block:
-    T_LBLOCK statement_list T_RBLOCK
+    T_LBLOCK statement_list T_RBLOCK {$$ = new NBlock(); $$->statements = $2}
+  | T_LBLOCK T_RBLOCK {$$ = NULL}
 ;
 
 statement_list:
-    statement 
-  | statement_list statement
+    statement T_SEMICOLON {$$ = new std::list<NStatement*>(); $$->push_back($1);}
+  | statement_list statement T_SEMICOLON {$$->push_back($2)}
 ;
 
 statement:
-    T_SEMICOLON
+    assignment {$$ = $1;}
+  | call {$$ = $1;}
+  | if {$$ = $1;}
+  | for {$$ = $1;}
+  | /* epsilon */
 ;   
+
+assignment:
+    variable T_ASSIGN expression {$$ = }
+;
+
+call:
+    T_IDENTIFIER parameters
+
+if:
+    K_IF T_LPAREN expression T_RPAREN block
+  | K_IF T_LPAREN expression T_RPAREN block K_ELSE block
+;
+
+for:
+   K_FOR T_LPAREN statement T_SEMICOLON expression T_SEMICOLON statement T_RPAREN block
+; 
+
+expression:
+    T_LPAREN expression T_RPAREN {$$ = $2;}
+  | logic_expr
+;
+
+logic_expr:
+  | T_LPAREN logic_expr T_RPAREN
+  | logic_expr T_AND logic_expr
+  | logic_expr T_OR logic_expr
+  | T_NEG logic_expr
+  | compare_expr
+;
+
+compare_expr:
+    T_LPAREN compare_expr T_RPAREN
+  | compare_expr T_EQ compare_expr
+  | compare_expr T_NE compare_expr
+  | boolean_const
+  | string_expr
+  | relation_expr
+;
+
+string_expr:
+    string_expr T_PLUS string_expr
+  | string_const
+;
+
+relation_expr:
+  | T_LPAREN relation_expr T_RPAREN
+  | artim_expr T_LT artim_expr
+  | artim_expr T_LE artim_expr
+  | artim_expr T_GT artim_expr
+  | artim_expr T_GE artim_expr
+  | artim_expr
+;
+
+artim_expr:
+    artim_expr T_PLUS artim_expr2
+  | artim_expr T_MINUS artim_expr2
+  | artim_expr2
+;
+
+artim_expr2:
+    artim_expr2 T_MUL artim_expr3
+  | artim_expr2 T_DIV artim_expr3
+  | artim_expr2 T_MOD artim_expr3
+  | artim_expr3
+;
+
+artim_expr3:
+    T_LPAREN artim_expr T_RPAREN
+  | artim_const
+  | value
+;    
+
+
+artim_const:
+    C_INTEGER
+  | C_FLOAT
+;
+
+boolean_const:
+    K_TRUE
+  | K_FALSE
+;
+
+string_const:
+    T_STRING
+;
+
+variable:
+    indentifier 
+    indentifier T_FACCESS indentifier
+;
+
+value: 
+    temp_var
+    variable
+;
+
+temp_var:
+    indentifier
+    indentifier T_MACCESS indentifier
+;
+
+indentifier:
+    T_IDENTIFIER
+;
 
 %%
 

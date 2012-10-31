@@ -68,22 +68,38 @@ public:
 };
 
 
-class NInit : public Node {
-public:
-    virtual ~NInit() {}
-    
-    virtual void generateCode();
-};
-
-
 class NMethod : public Node {
 public:
     virtual ~NMethod() {}
     
     std::list<std::string*>* parameters;
+    NBlock* block;
     
     virtual void generateCode();
 };
+
+class NBlock : public Node {
+public:
+    virtual ~NBlock() {}
+    
+    std::list<NStatement*>* statements;
+    
+    virtual void generateCode();
+};
+
+
+////////////////////////////////////////
+
+class SAssignment : public NStatement {
+public:
+    virtual ~SAssignment() {}
+    
+    std::string* variable;
+    void* value; //TODO vyřešít
+    
+};
+
+
 
 
 #endif	/* AST_H */
