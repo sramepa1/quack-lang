@@ -14,9 +14,22 @@ extern "C" {
 
 using namespace std;
 
+bool testPointer(void* ptr, void* low, void* high, const char* message) {
+    if(ptr >= low && ptr < high) {
+        cerr << message << endl;
+        return true;
+    }
+    return false;
+}
+
 void handler(int sig, siginfo_t *si, void *unused)
 {
-    cerr << "SIGSEGV at address: " << si->si_addr << endl;
+    cerr << "SIGSEGV - attempted to access protected address: " << si->si_addr << endl;
+    if( !(  testPointer(si->si_addr, valStackLow, valStackHigh, "That is on the VM value stack!")
+        ||  testPointer(si->si_addr, addrStackLow, addrStackHigh, "That is on the VM address stack!")
+        ||  testPointer(si->si_addr, heap->getBase(), heap->getEnd(), "That is on the VM heap!"))) {
+        cerr << "That is not in any mmapped region, must be a bug in the VM itself!" << endl;
+    }
     siglongjmp(jmpEnv, 1);
     // wheeeeeee!
 }

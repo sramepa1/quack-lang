@@ -21,3 +21,12 @@ QuaValue Heap::allocateNew(uint16_t type, uint32_t size) {
     //TODO
     return QuaValue(0,0,0);
 }
+
+
+void* Heap::getBase() {
+    return heapBase;
+}
+
+void* Heap::getEnd() {
+    return (void*)((char*)heapBase + heapSize);
+}

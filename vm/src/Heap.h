@@ -25,6 +25,9 @@ class Heap
 public:
     Heap(size_t size);
 
+    void* getBase();
+    void* getEnd();
+
 
 private:
     void* heapBase;

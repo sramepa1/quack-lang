@@ -43,9 +43,6 @@ void initGlobals(size_t valStackSize, size_t addrStackSize, size_t heapSize) {
     // guard page
     mprotect(valStackLow, getpagesize(), PROT_NONE);
 
-    // SIGSEGV test
-    *((char*)valStackLow + getpagesize() - 1) = 'a';
-
     addrStackLow = mmap(NULL, addrStackSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_GROWSDOWN, -1, 0);
     checkMmap(valStackLow, "Could not allocate address stack." );
     addrStackHigh = (void*)((char*)addrStackLow + addrStackSize); // sigh again...
@@ -58,6 +55,12 @@ void initGlobals(size_t valStackSize, size_t addrStackSize, size_t heapSize) {
 
     heap = new Heap(heapSize);
     loader = new Loader();
+
+    // SIGSEGV tests
+    //*((char*)valStackLow + getpagesize() - 1) = 'a';
+    *((char*)addrStackLow + getpagesize() - 1) = 'a';
+    //*((char*)heap->getEnd() - 1) = 'a';
+    //*((char*)NULL) = 'a';
 }
 
 
