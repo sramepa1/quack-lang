@@ -5,6 +5,7 @@ extern "C" {
     #include <stdint.h>
 }
 
+#include <cstdlib>
 #include <vector>
 
 #include "QuaObject.h"
@@ -22,7 +23,7 @@ struct ObjRecord
 class Heap
 {
 public:
-    Heap();
+    Heap(size_t size);
 
 
 private:

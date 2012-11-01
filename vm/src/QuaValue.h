@@ -1,6 +1,10 @@
 #ifndef _QUA_VALUE_H_
 #define _QUA_VALUE_H_
 
+extern "C" {
+    #include <stdint.h>
+}
+
 #pragma pack(1)
 
 struct QuaValue {

@@ -7,35 +7,43 @@
 
 #include <map>
 #include <string>
+#include <csetjmp>
 
+#include "QuaValue.h"
 #include "QuaClass.h"
+#include "QuaFrame.h"
 #include "Heap.h"
 #include "Loader.h"
 
+
+// These symbols might be needed from assembly sources -> disable mangling
 
 extern "C" {
 
     #include <stdint.h>
 
-    extern void* valStackBase;
-    extern uint64_t SPoffset;
-    extern uint64_t BPoffset;
+    extern void* valStackLow;
+    extern void* valStackHigh;
+    extern QuaValue* SP;
+    extern QuaValue* BP;
 
-    extern void* addrStackBase;
-    extern uint64_t ASPoffset;
-
-}
+    extern void* addrStackLow;
+    extern void* addrStackHigh;
+    extern QuaFrame* ASP;
 
     extern QuaClass** typeArray;
     extern std::map<std::string, uint16_t>* linkedTypes;
 
-    extern Loader* loader;
     extern Heap* heap;
 
+}
 
-    void initGlobals();
+    extern Loader* loader;
 
-    // TODO signal handler?
+    void initGlobals(size_t valStackSize, size_t addrStackSize, size_t heapSize);
+    void checkMmap(void* ptr, const char* errMsg);
+
+    extern sigjmp_buf jmpEnv;
 
 
 #endif // GLOBALS_H

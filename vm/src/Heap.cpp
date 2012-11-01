@@ -2,13 +2,19 @@
 
 #include <cstdlib>
 #include <sys/mman.h>
+#include <unistd.h>
+
+#include "globals.h"
 
 using namespace std;
 
-Heap::Heap()
+Heap::Heap(size_t size)
 {
-    heapSize = 1024*1024; // initial, for testing
-    heapBase = mmap(NULL, heapSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    heapSize = size;
+    heapBase = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    checkMmap(heapBase, "Could not allocate the heap.");
+    // guard page
+    mprotect( (void*)((char*)heapBase + size - getpagesize()), getpagesize(), PROT_NONE);
 }
 
 QuaValue Heap::allocateNew(uint16_t type, uint32_t size) {
