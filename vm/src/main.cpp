@@ -34,11 +34,7 @@ void handler(int sig, siginfo_t *si, void *unused)
     // wheeeeeee!
 }
 
-
-int main(int argc, char* argv[]) {
-    cout << "This is Daisy version 0.0, a Quack virtual machine." << endl;
-
-    // Initialize SIGSEGV catching
+void initSigsegv() {
     struct sigaction sa;
     sa.sa_sigaction = handler;
     sa.sa_flags = SA_SIGINFO;
@@ -46,29 +42,31 @@ int main(int argc, char* argv[]) {
     if(sigaction(SIGSEGV, &sa, NULL) != 0) {
         cerr << "Warning: Unable to correctly install signal handler!" << endl;
     }
-    if(sigsetjmp(jmpEnv,1) == 0) {
+}
 
 
-        // This is the actual useful main() code
-        try {
-            initGlobals(2*getpagesize(), 2*getpagesize(), 2*getpagesize()); // super-tight for testing
+
+int main(int argc, char* argv[]) {
+    cout << "This is Daisy version 0.0, a Quack virtual machine." << endl;
+    try {
+        initGlobals(2*getpagesize(), 2*getpagesize(), 2*getpagesize()); // super-tight for testing
+        if(sigsetjmp(jmpEnv,1) == 0) {
+            initSigsegv();
             loader->loadClassFile(argv[1]);
-            //interpreter.start(loader->getEntryPoint());
-
-        } catch(runtime_error& e) {
-            cerr << "Something bad has happened: " << e.what() << endl;
-            return 1;
-
-        } catch(ExitException) {
-            // OK, terminate correctly
+            Interpreter interpreter;
+            interpreter.start(loader->getEntryPoint());
+        } else {
+            // SIGSEGV handler long jump landing
+            throw runtime_error("QUACK OVERFLOW!");
         }
-        cout << "Quack quack. Good bye." << endl;
-        return 0;
 
-
-    } else {
-        // SIGSEGV handler long jump landing:
-        cerr << "QUACK OVERFLOW!" << endl;
+    } catch(runtime_error& e) {
+        cerr << "Something bad has happened: " << e.what() << endl;
         return 1;
+
+    } catch(ExitException) {
+        // OK, terminate correctly
     }
+    cout << "Quack quack. Good bye." << endl;
+    return 0;
 }

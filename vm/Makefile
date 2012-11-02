@@ -1,5 +1,6 @@
 CFLAGS = -pedantic -Wall -O0 -g3
 INCLUDE = ../common/include
+DEFINE = DEBUG
 
 OBJECTS = $(patsubst src/%.cpp,build/%.o,$(wildcard src/*.cpp))
 
@@ -9,7 +10,7 @@ build:
 	mkdir build
 
 build/%.o: src/%.cpp
-	g++ $(CFLAGS) -I$(INCLUDE) -c -o $@ $<
+	g++ $(CFLAGS) -I$(INCLUDE) -D$(DEFINE) -c -o $@ $<
 
 daisy: build $(OBJECTS)
 	g++ $(CFLAGS) -o $@ $(OBJECTS)

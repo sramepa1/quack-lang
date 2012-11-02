@@ -8,6 +8,7 @@ extern "C" {
 #include <vector>
 
 #include "Instruction.h"
+#include "JITCompiler.h"
 
 class ExitException {};
 
@@ -20,6 +21,8 @@ public:
 
 private:
     std::vector<uint64_t> regs;
+
+    JITCompiler* compiler;
 };
 
 #endif // INTERPRETER_H

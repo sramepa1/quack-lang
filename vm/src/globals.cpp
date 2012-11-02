@@ -55,12 +55,6 @@ void initGlobals(size_t valStackSize, size_t addrStackSize, size_t heapSize) {
 
     heap = new Heap(heapSize);
     loader = new Loader();
-
-    // SIGSEGV tests
-    //*((char*)valStackLow + getpagesize() - 1) = 'a';
-    *((char*)addrStackLow + getpagesize() - 1) = 'a';
-    //*((char*)heap->getEnd() - 1) = 'a';
-    //*((char*)NULL) = 'a';
 }
 
 
