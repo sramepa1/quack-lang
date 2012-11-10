@@ -42,9 +42,13 @@ dd constantpool;				; Constant pool offset in file
 ; === CLASS TABLE ===
 
 classtable:
+	dd .classdeftotalsize		; Class def blob size, including alignment bytes
+	dw 3						; Class table item count 
+								; (number of class references, not definitions)
+	alignb 8, db 0
 .cls0:
 	dw 0						; CP index 0 = "Main"
-	dw .endmain-.mainclass		; Size of Main's definition
+	dw .endmain-.mainclass		; Size of Main's definition (without alignment)
 	dd .mainclass				; Main definition's offset in the file
 .cls1:
 	dw 2						; CP index 2 = "System"
@@ -55,9 +59,9 @@ classtable:
 	dw 0						; external
 	dd 0
 
-
 ; === CLASS DEFINITIONS === 	(only one here)
 
+.classdefs:
 .mainclass:
 	dw 0						; Main is its own ancestor
 	dw 1						; Flags: CLS_STATIC
@@ -68,24 +72,26 @@ classtable:
 	dw 1						; CP index 1 = signature of main(args)
 	dw 7						; CP index 6 = bytecode of main(args)
 .endmain:
+	alignb 8, db 0
+.classdeftotalsize:	equ $-.classdefs	; classdef size calculation (nasm pseudoinstruction)
 
 
 ; === CONSTANT POOL ===
 
-alignb 8, db 0
 constantpool:
 	dd itemtotalsize			; Size of the constant pool data
 	dw 8						; Item count
-alignb 4, db 0
-.offsets:						; Offset array, relative to start of items
-	dd .item0-.items
-	dd .item1-.items
-	dd .item2-.items
-	dd .item3-.items
-	dd .item4-.items
-	dd .item5-.items
-	dd .item6-.items
-	dd .item7-.items	
+alignb 8, db 0
+
+.offsets:						; Offset array, CP offsets are relative to CP's start
+	dd .item0-constantpool
+	dd .item1-constantpool
+	dd .item2-constantpool
+	dd .item3-constantpool
+	dd .item4-constantpool
+	dd .item5-constantpool
+	dd .item6-constantpool
+	dd .item7-constantpool	
 alignb 8, db 0
 
 ; == CP contents ==
@@ -164,7 +170,7 @@ alignb 8, db 0
 	
 	alignb 8, db 0					; Align end of CP (not necessary here)
 	
-itemtotalsize equ $-.items			; CP contents size calculation (nasm pseudoinstruction)
+itemtotalsize equ $-constantpool			; CP contents size calculation (nasm pseudoinstruction)
 
 ;; === END OF CONSTANT POOL ===		(and of the entire file, too)
 
