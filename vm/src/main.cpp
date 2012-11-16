@@ -47,7 +47,16 @@ void initSigsegv() {
 
 
 int main(int argc, char* argv[]) {
+
+#ifdef DEBUG
     cout << "This is Daisy version 0.0, a Quack virtual machine." << endl;
+#endif
+
+    if(argc < 2) {
+        cerr << "usage: daisy <classfile>" << endl;
+        return 2;
+    }
+
     try {
         initGlobals(2*getpagesize(), 2*getpagesize(), 2*getpagesize()); // super-tight for testing
         if(sigsetjmp(jmpEnv,1) == 0) {
@@ -67,6 +76,8 @@ int main(int argc, char* argv[]) {
     } catch(ExitException) {
         // OK, terminate correctly
     }
+#ifdef DEBUG
     cout << "Quack quack. Good bye." << endl;
+#endif
     return 0;
 }
