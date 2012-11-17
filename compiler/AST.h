@@ -46,7 +46,7 @@ public:
     std::map<std::string, NClass*> classes;
     
     void addClass(std::string* name, NClass* nclass);
-    virtual void generateCode();
+    virtual void generateCode() {}
 };
 
 
@@ -56,7 +56,7 @@ public:
     
     std::string* superClass;
     
-    virtual void generateCode();
+    virtual void generateCode() {}
 };
 
 
@@ -64,7 +64,7 @@ class NStatClass : public NClass {
 public:
     virtual ~NStatClass() {}
     
-    virtual void generateCode();
+    virtual void generateCode() {}
 };
 
 
@@ -72,10 +72,11 @@ class NMethod : public Node {
 public:
     virtual ~NMethod() {}
     
-    std::list<std::string*>* parameters;
+    std::string* methodName;
+    std::list<NExpression*>* parameters;
     NBlock* block;
     
-    virtual void generateCode();
+    virtual void generateCode() {}
 };
 
 class NBlock : public Node {
@@ -84,9 +85,168 @@ public:
     
     std::list<NStatement*>* statements;
     
-    virtual void generateCode();
+    virtual void generateCode() {}
 };
 
+
+////////////////////////////////////////
+
+class EBOp : public NExpression {
+public:
+    virtual ~EBOp() {}
+    
+    NExpression* left;
+    NExpression* right;
+};
+
+class EUOp : public NExpression {
+public:
+    virtual ~EUOp() {}
+    
+    NExpression* expr;
+};
+
+class EAnd : public EBOp {
+public:
+    virtual ~EAnd() {}
+    virtual void generateCode() {}
+};
+
+class EOr : public EBOp {
+public:
+    virtual ~EOr() {}
+    virtual void generateCode() {}
+};
+
+class ENot : public EUOp {
+public:
+    virtual ~ENot() {}
+    virtual void generateCode() {}
+};
+
+class EAdd : public EBOp {
+public:
+    virtual ~EAdd() {}
+    virtual void generateCode() {}
+};
+
+class ESub : public EBOp {
+public:
+    virtual ~ESub() {}
+    virtual void generateCode() {}
+};
+
+class EMul : public EBOp {
+public:
+    virtual ~EMul() {}
+    virtual void generateCode() {}
+};
+
+class EDiv : public EBOp {
+public:
+    virtual ~EDiv() {}
+    virtual void generateCode() {}
+};
+
+class EMod : public EBOp {
+public:
+    virtual ~EMod() {}
+    virtual void generateCode() {}
+};
+
+class EEq : public EBOp {
+public:
+    virtual ~EEq() {}
+    virtual void generateCode() {}
+};
+
+class ENe : public EBOp {
+public:
+    virtual ~ENe() {}
+    virtual void generateCode() {}
+};
+
+class ELt : public EBOp {
+public:
+    virtual ~ELt() {}
+    virtual void generateCode() {}
+};
+
+class ELe : public EBOp {
+public:
+    virtual ~ELe() {}
+    virtual void generateCode() {}
+};
+
+class EGt : public EBOp {
+public:
+    virtual ~EGt() {}
+    virtual void generateCode() {}
+};
+
+class EGe : public EBOp {
+public:
+    virtual ~EGe() {}
+    virtual void generateCode() {}
+};
+
+
+class CString : public NExpression {
+public:
+    virtual ~CString() {}
+    
+    std::string* value;
+    
+    virtual void generateCode() {}
+};
+
+class CInt : public NExpression {
+public:
+    virtual ~CInt() {}
+    
+    int value;
+    
+    virtual void generateCode() {}
+};
+
+class CFloat : public NExpression {
+public:
+    virtual ~CFloat() {}
+    
+    float value;
+    
+    virtual void generateCode() {}
+};
+
+class CBool : public NExpression {
+public:
+    virtual ~CBool() {}
+    
+    bool value;
+    
+    virtual void generateCode() {}
+};
+
+
+class EVarible : public NExpression {
+public:
+    EVarible() : className(NULL) {}
+    virtual ~EVarible() {}
+    
+    std::string* className;
+    std::string* variableName;
+    
+    virtual void generateCode() {}
+};
+
+class NScope : public Node {
+    virtual ~NScope() {}
+    
+};
+
+class VInteger : public NValue {
+    
+};
 
 ////////////////////////////////////////
 
@@ -94,13 +254,48 @@ class SAssignment : public NStatement {
 public:
     virtual ~SAssignment() {}
     
-    std::string* variable;
-    void* value; //TODO vyřešít
+    EVarible* variable;
+    NExpression* expression;
     
+    virtual void generateCode() {}
+};
+
+class NCall : public NStatement, public NExpression {
+public:
+    virtual ~NCall() {}
+    
+    //TODO zařadi čí meoda se volá
+    std::string* methodName;
+    std::list<NExpression*>* parameters;
+
+    virtual void generateCode() {}
+};
+
+class SIf : public NStatement {
+public:
+    SIf() : elseBlock(NULL) {}
+    virtual ~SIf() {}
+
+    NExpression* condition;
+    NBlock* thenBlock;
+    NBlock* elseBlock;
+    
+    virtual void generateCode() {}
+};
+
+class SFor : public NStatement {
+public:
+    virtual ~SFor() {}
+    
+    NStatement* init;
+    NExpression* condition;
+    NStatement* increment;
+    NBlock* body;
+
+    virtual void generateCode() {}
 };
 
 
 
 
 #endif	/* AST_H */
-

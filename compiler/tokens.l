@@ -1,7 +1,9 @@
 %{ 
 #include "../AST.h"
 #include "parser.hpp"
-#define SAVE_TOKEN yylval.string = new std::string(yytext, yyleng)
+
+#define SAVE_TOKEN_STRING yylval.string = new std::string(yytext, yyleng)
+
 #define TOKEN(t) (yylval.token = t)
 extern "C" int yywrap() { return 1; }
 %}
@@ -23,6 +25,7 @@ extern "C" int yywrap() { return 1; }
 "class"                                 return TOKEN(K_CLASS);
 "statclass"                             return TOKEN(K_STATCLASS);
 "extends"                               return TOKEN(K_EXTENDS);
+"this"                                  return TOKEN(K_THIS);
 "field"                                 return TOKEN(K_FIELD);
 "init"                                  return TOKEN(K_INIT);
 "fun"                                   return TOKEN(K_METHOD);
@@ -40,6 +43,7 @@ extern "C" int yywrap() { return 1; }
 
 "->"                                    return TOKEN(T_MACCESS);
 "."                                     return TOKEN(T_FACCESS);
+"@"                                     return TOKEN(T_STATIC);
 
 "=="                                    return TOKEN(T_EQ);
 "!="                                    return TOKEN(T_NE);
@@ -58,11 +62,11 @@ extern "C" int yywrap() { return 1; }
 "||"                                    return TOKEN(T_OR);
 "!"                                     return TOKEN(T_NOT);
 
-[0-9]+\.[0-9]*                          SAVE_TOKEN; return T_FLOAT;
-[0-9]+                                  SAVE_TOKEN; return T_INT;
-\"(\\.|[^\\"])*\"                       SAVE_TOKEN; return T_STRING;
+[0-9]+\.[0-9]*                          SAVE_TOKEN_STRING; return C_FLOAT;
+[0-9]+                                  SAVE_TOKEN_STRING; return C_INTEGER;
+\"(\\.|[^\\"])*\"                       SAVE_TOKEN_STRING; return T_STRING;
 
-[a-zA-Z_][a-zA-Z0-9_]*                  SAVE_TOKEN; return T_IDENTIFIER ;
+[a-zA-Z_][a-zA-Z0-9_]*                  SAVE_TOKEN_STRING; return T_IDENTIFIER;
 
 .                                       printf("Unknown token!\n"); yyterminate();
 

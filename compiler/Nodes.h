@@ -25,6 +25,36 @@ public:
     virtual ~NExpression() {}
 };
 
+class NValue : public NExpression {
+public:
+    virtual ~NValue() {}
+};
+
+class Environment {
+public:
+    virtual ~Environment() {}
+};
+
+class LocalEnv : public Environment {
+public:
+    virtual ~LocalEnv() {}
+    
+};
+
+class FieldEnv : public Environment {
+public:
+    virtual ~FieldEnv() {}
+    
+};
+
+
+class NClass;
+class NProgram;
+class NDynClass;
+class NStatClass;
+class NMethod;
+class NBlock;
+class NStatement;
 
 
 #endif	/* NODES_H */
