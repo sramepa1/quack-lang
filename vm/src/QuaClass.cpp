@@ -3,21 +3,32 @@
 
 using namespace std;
 
-QuaClass::QuaClass(void *constantPool, void* classDef) : relevantCP(constantPool)
-{
-    //TODO
+QuaClass::~QuaClass() {
+    for(map<QuaSignature*, QuaMethod*, QuaSignatureComp>::iterator it = methods.begin(); it != methods.end(); ++it) {
+        delete (*it).second;
+    }
 }
 
-uint32_t QuaClass::getFieldCount() {
-    return 42;  //TODO
+uint16_t QuaClass::getFieldCount() {
+
+    uint16_t fieldCount = myFieldCount;
+    QuaClass* ancestor = parent;
+
+    while(ancestor != NULL) {
+        fieldCount += ancestor->myFieldCount;
+        ancestor = ancestor->parent;
+    }
+
+    return fieldCount;
 }
 
-QuaMethod* QuaClass::lookupMethod(QuaSignature *sig) {
+QuaMethod* QuaClass::lookupMethod(QuaSignature* sig) {
     //TODO
     return NULL;
 }
 
-uint32_t QuaClass::lookupFieldIndex(string fieldName) {
+uint16_t QuaClass::lookupFieldIndex(string fieldName) {
     //TODO
     return 13;
 }
+

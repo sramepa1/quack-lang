@@ -18,11 +18,14 @@ public:
 
     Instruction* getEntryPoint();
     
-    void getConstantPoolEntry(void* poolPtr, uint32_t index, void*& entryPtr, int& entryLength);
+    static const char* getConstantPoolEntry(void* poolPtr, uint16_t index) {
+        uint32_t* offsetsTable = (uint32_t*)((char*)poolPtr + 8);
+        return (char*)poolPtr + offsetsTable[index];
+    }
+    static bool checkIdentifier(const char* id);
 
 private:
 
-    // TODO private helper parsing methods
     std::vector<std::pair<void*, size_t> >* mmapedClsFiles;
     Instruction* entryPoint;
 

@@ -10,10 +10,9 @@ public:
         COMPILE = 1,
         JUMPTO = 2,
         C_VOID_CALL = 3
-    };
-
-    MethodAction action;
+    } action;
     void* code;
+
 };
 
 #endif // QUAMETHOD_H
