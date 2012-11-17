@@ -12,6 +12,7 @@ class Node {
 public:
     virtual ~Node() {}
     
+    //virtual void analyzeTree() = 0;
     virtual void generateCode() = 0;
 };
 

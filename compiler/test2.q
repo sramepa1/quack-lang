@@ -32,7 +32,12 @@ statclass Main{
 			g = g + i*i;
 		}
 
-        if(true) {}
+        if(true) {
+
+        } else {
+
+        }
+
 	}
 }
 
@@ -41,5 +46,5 @@ class foo {
 }
 
 class bar extends foo {
-    field hello; //chyba v kódu, ale ne na úrovni parse
+    field hello;
 }
