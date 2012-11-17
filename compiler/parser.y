@@ -83,7 +83,7 @@
 %type <nblock> block
 
 %type <statements> statement_list
-%type <sstatement> statement
+%type <sstatement> block_statement standalone_statement
 %type <sassignment> assignment
 %type <ncall> call
 %type <sif> if
@@ -127,11 +127,13 @@ class_inheritance:
 stat_class_entries:
     stat_class_entry {$$ = new std::list<ClassEntry*>(); $$->push_back($1);}
   | stat_class_entries stat_class_entry {$$->push_back($2);}
+  | /* epsilon */ {$$ = NULL;}
 ;
 
 dyn_class_entries:
     dyn_class_entry {$$ = new std::list<ClassEntry*>(); $$->push_back($1);}
   | dyn_class_entries dyn_class_entry {$$->push_back($2);}
+  | /* epsilon */ {$$ = NULL;}
 ;
 
 stat_class_entry: 
@@ -182,16 +184,23 @@ block:
 ;
 
 statement_list:
-    statement T_SEMICOLON {$$ = new std::list<NStatement*>(); $$->push_back($1);}
-  | statement_list statement T_SEMICOLON {$$->push_back($2);}
+    block_statement {$$ = new std::list<NStatement*>(); $$->push_back($1);}
+  | statement_list block_statement {$$->push_back($2);}
 ;
 
-statement:
-    assignment {$$ = $1;}
+block_statement:
+    assignment T_SEMICOLON {$$ = $1;}
+  | call T_SEMICOLON {$$ = $1;}
+  | if {$$ = $1;}
+  | for {$$ = $1;}
+  | T_SEMICOLON {$$ = NULL;}
+;
+
+standalone_statement:
+    assignment  {$$ = $1;}
   | call {$$ = $1;}
   | if {$$ = $1;}
   | for {$$ = $1;}
-  | /* epsilon */ {$$ = NULL;}
 ;   
 
 assignment:
@@ -226,7 +235,7 @@ if:
 ;
 
 for:
-   K_FOR T_LPAREN statement T_SEMICOLON expression T_SEMICOLON statement T_RPAREN block {$$ = new SFor(); $$->init = $3; $$->condition = $5; $$->increment = $7; $$->body = $9;}
+   K_FOR T_LPAREN standalone_statement T_SEMICOLON expression T_SEMICOLON standalone_statement T_RPAREN block {$$ = new SFor(); $$->init = $3; $$->condition = $5; $$->increment = $7; $$->body = $9;}
 ; 
 
 expression:

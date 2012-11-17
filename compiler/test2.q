@@ -19,7 +19,7 @@ statclass Main{
 	
 	init {
 		;
-                ;
+        ;
 	}
 
 	fun main(args) { // **/**
@@ -31,11 +31,13 @@ statclass Main{
 		{
 			g = g + i*i;
 		}
+
+        if(true) {}
 	}
 }
 
 class foo {
-
+    
 }
 
 class bar extends foo {

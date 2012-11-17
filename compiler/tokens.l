@@ -34,6 +34,9 @@ extern "C" int yywrap() { return 1; }
 "for"                                   return TOKEN(K_FOR);
 "="                                     return TOKEN(T_ASSIGN);
 
+"true"                                  return TOKEN(K_TRUE);
+"false"                                 return TOKEN(K_FALSE);
+
 ";"                                     return TOKEN(T_SEMICOLON);
 "("                                     return TOKEN(T_LPAREN);
 ")"                                     return TOKEN(T_RPAREN);
