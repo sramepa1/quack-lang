@@ -12,6 +12,7 @@ class Node {
 public:
     virtual ~Node() {}
     
+    //virtual void analyzeTree() = 0;
     virtual void generateCode() = 0;
 };
 
@@ -25,10 +26,37 @@ public:
     virtual ~NExpression() {}
 };
 
-class NBlock : public Node {
+class NValue : public NExpression {
 public:
-    virtual ~NBlock() {}
+    virtual ~NValue() {}
 };
+
+class Environment {
+public:
+    virtual ~Environment() {}
+};
+
+class LocalEnv : public Environment {
+public:
+    virtual ~LocalEnv() {}
+    
+};
+
+class FieldEnv : public Environment {
+public:
+    virtual ~FieldEnv() {}
+    
+};
+
+
+class NClass;
+class NProgram;
+class NDynClass;
+class NStatClass;
+class NMethod;
+class NBlock;
+class NStatement;
+
 
 #endif	/* NODES_H */
 

@@ -14,6 +14,7 @@ NProgram::~NProgram() {
     }
 }
 
+/*
 void NProgram::generateCode() {
     cout << "NProgram::generateCode()" << endl;
 }
@@ -26,10 +27,11 @@ void NStatClass::generateCode() {
     cout << "NStatClass::generateCode()" << endl;
 }
 
-void NInit::generateCode() {
-    cout << "NInit::generateCode()" << endl;
-}
-
 void NMethod::generateCode() {
     cout << "NMethod::generateCode()" << endl;
 }
+
+void NBlock::generateCode() {
+    cout << "NMethod::generateCode()" << endl;
+}
+*/

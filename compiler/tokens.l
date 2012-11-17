@@ -1,7 +1,9 @@
 %{ 
 #include "../AST.h"
 #include "parser.hpp"
-#define SAVE_TOKEN yylval.string = new std::string(yytext, yyleng)
+
+#define SAVE_TOKEN_STRING yylval.string = new std::string(yytext, yyleng)
+
 #define TOKEN(t) (yylval.token = t)
 extern "C" int yywrap() { return 1; }
 %}
@@ -23,22 +25,52 @@ extern "C" int yywrap() { return 1; }
 "class"                                 return TOKEN(K_CLASS);
 "statclass"                             return TOKEN(K_STATCLASS);
 "extends"                               return TOKEN(K_EXTENDS);
+"this"                                  return TOKEN(K_THIS);
 "field"                                 return TOKEN(K_FIELD);
 "init"                                  return TOKEN(K_INIT);
 "fun"                                   return TOKEN(K_METHOD);
 "if"                                    return TOKEN(K_IF);
 "else"                                  return TOKEN(K_ELSE);
 "for"                                   return TOKEN(K_FOR);
+"="                                     return TOKEN(T_ASSIGN);
+
+"true"                                  return TOKEN(K_TRUE);
+"false"                                 return TOKEN(K_FALSE);
 
 ";"                                     return TOKEN(T_SEMICOLON);
-"("                                     return TOKEN(T_LBRACKET);
-")"                                     return TOKEN(T_RBRACKET);
+"("                                     return TOKEN(T_LPAREN);
+")"                                     return TOKEN(T_RPAREN);
 "{"                                     return TOKEN(T_LBLOCK);
 "}"                                     return TOKEN(T_RBLOCK);
 ","                                     return TOKEN(T_COMMA);
 
-[a-zA-Z_][a-zA-Z0-9_]*                  SAVE_TOKEN; return T_IDENTIFIER ;
+"->"                                    return TOKEN(T_MACCESS);
+"."                                     return TOKEN(T_FACCESS);
+"@"                                     return TOKEN(T_STATIC);
 
-.					printf("Unknown token!\n"); yyterminate();
+"=="                                    return TOKEN(T_EQ);
+"!="                                    return TOKEN(T_NE);
+"<"                                     return TOKEN(T_LT);
+"<="                                    return TOKEN(T_LE);
+">"                                     return TOKEN(T_GT);
+">="                                    return TOKEN(T_GE);
+
+"+"                                     return TOKEN(T_PLUS);
+"-"                                     return TOKEN(T_MINUS);
+"*"                                     return TOKEN(T_MUL);
+"/"                                     return TOKEN(T_DIV);
+"%"                                     return TOKEN(T_MOD);
+
+"&&"                                    return TOKEN(T_AND);
+"||"                                    return TOKEN(T_OR);
+"!"                                     return TOKEN(T_NOT);
+
+[0-9]+\.[0-9]*                          SAVE_TOKEN_STRING; return C_FLOAT;
+[0-9]+                                  SAVE_TOKEN_STRING; return C_INTEGER;
+\"(\\.|[^\\"])*\"                       SAVE_TOKEN_STRING; return T_STRING;
+
+[a-zA-Z_][a-zA-Z0-9_]*                  SAVE_TOKEN_STRING; return T_IDENTIFIER;
+
+.                                       printf("Unknown token!\n"); yyterminate();
 
 %%

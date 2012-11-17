@@ -7,6 +7,7 @@ extern int yyparse();
 extern NProgram* quackProgram;
 
 int main(int argc, char** argv) {
+    
     yyparse();
     quackProgram->generateCode();
 

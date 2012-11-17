@@ -1,4 +1,4 @@
-CFLAGS = -Wall -pedantic -O2
+CFLAGS = -Wall -pedantic -O2 -g0
 
 all: run
 
