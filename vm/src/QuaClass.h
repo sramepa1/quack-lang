@@ -14,6 +14,7 @@ extern "C" {
 #define CLS_STATIC 1;
 
 class Loader;
+class NativeLoader;
 
 class QuaClass
 {
@@ -29,7 +30,9 @@ public:
 private:
     // !!! defined in Loader.cpp !!!
     QuaClass(void* constantPool, void* classDef, const std::string& className, void* clsTabPtr);
+    QuaClass() {}
     friend class Loader;
+    friend class NativeLoader;
 
     QuaClass* parent;
     void* relevantCP;

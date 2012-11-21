@@ -17,10 +17,23 @@ extern "C" {
     #include <stdint.h>
 }
 
+#include "NativeLoader.h"
+#include "natives/SystemNative.h"
+
 using namespace std;
 
 Loader::Loader() : mmapedClsFiles(new vector<pair<void*, size_t> >()), entryPoint(NULL) {
+#ifdef DEBUG
+    cout << "Start loading native classes!" << endl;
+#endif
+
     // TODO: load natives
+    DataBlobNative();
+    SystemNative();
+
+#ifdef DEBUG
+    cout << "Native classes loaded!" << endl;
+#endif
 }
 
 Loader::~Loader() {
@@ -179,6 +192,7 @@ QuaClass::QuaClass(void* constantPool, void* classDef, const string& className, 
     char* curPos = (char*)classDef;
 
     // ancestor
+    // the addend '1' is here because is needed to jump over the class table header
     uint16_t ancestorIndex = *(uint16_t*)((uint64_t*)clsTabPtr + 1 + *(uint16_t*)curPos);
     string ancestorName(Loader::getConstantPoolEntry(constantPool, ancestorIndex));
 

@@ -12,8 +12,11 @@ build:
 build/%.o: src/%.cpp
 	g++ $(CFLAGS) -I$(INCLUDE) -D$(DEFINE) -c -o $@ $<
 
-daisy: build $(OBJECTS)
-	g++ $(CFLAGS) -o $@ $(OBJECTS)
+build/%.o: src/natives/%.cpp
+	g++ $(CFLAGS) -I$(INCLUDE) -D$(DEFINE) -c -o $@ $<
+
+daisy: build $(OBJECTS) build/SystemNative.o
+	g++ $(CFLAGS) -o $@ $(OBJECTS) build/SystemNative.o
 
 run: daisy
 	./daisy ../examples/hello.qc
