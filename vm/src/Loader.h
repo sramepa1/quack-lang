@@ -29,7 +29,7 @@ private:
     std::vector<std::pair<void*, size_t> >* mmapedClsFiles;
     Instruction* entryPoint;
 
-	void parseClass(char* start, void* poolPtr);
+    void parseClass(char* start, void* poolPtr, void* clsTablePtr);
 
 };
 

@@ -113,9 +113,8 @@ void Loader::loadClassFile(const char* cfName) {
 #endif
 
     for(uint64_t* p = (uint64_t*) curPos; p < classTableEnd; ++p) {
-        parseClass((char*)p, constantPoolPos);
+        parseClass((char*)p, constantPoolPos, classTablePos);
     }
-    
 }
 
 Instruction* Loader::getEntryPoint() {
@@ -126,7 +125,7 @@ Instruction* Loader::getEntryPoint() {
 	}
 }
 
-void Loader::parseClass(char* start, void* poolPtr) {
+void Loader::parseClass(char* start, void* poolPtr, void* clsTablePtr) {
 	uint16_t nameIndex = *(uint16_t*)start;
 	start += 2;
 	uint16_t classSize = *(uint16_t*)start;
@@ -152,10 +151,11 @@ void Loader::parseClass(char* start, void* poolPtr) {
     cout << "Constructing class " << className << endl;
 #endif
 	
-    // TODO: decide who has responsibility for delete
-    typeArray[linkedTypes->size()] = new QuaClass(poolPtr, (char*)mmapedClsFiles->back().first + classOffset, className);
+    typeArray[linkedTypes->size()] =
+            new QuaClass(poolPtr, (char*)mmapedClsFiles->back().first + classOffset, className, clsTablePtr);
 
     // find entry point
+    // TODO: check if class main is statclass
     if(className == "Main") {
         QuaSignature* mainSignature = (QuaSignature*)"\1main";
 
@@ -173,13 +173,15 @@ void Loader::parseClass(char* start, void* poolPtr) {
 
 }
 
-QuaClass::QuaClass(void* constantPool, void* classDef, const string& className) : relevantCP(constantPool) {
+QuaClass::QuaClass(void* constantPool, void* classDef, const string& className, void* clsTabPtr)
+    : relevantCP(constantPool) {
 
     char* curPos = (char*)classDef;
 
     // ancestor
-    // TODO: ensure that it is the index into CP
-    string ancestorName(Loader::getConstantPoolEntry(constantPool, *(uint16_t*)curPos));
+    uint16_t ancestorIndex = *(uint16_t*)((uint64_t*)clsTabPtr + 1 + *(uint16_t*)curPos);
+    string ancestorName(Loader::getConstantPoolEntry(constantPool, ancestorIndex));
+
     if(className == ancestorName) {
         parent = NULL;
     } else {

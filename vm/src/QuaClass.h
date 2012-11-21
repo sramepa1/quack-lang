@@ -28,7 +28,7 @@ public:
 
 private:
     // !!! defined in Loader.cpp !!!
-    QuaClass(void* constantPool, void* classDef, const std::string& className);
+    QuaClass(void* constantPool, void* classDef, const std::string& className, void* clsTabPtr);
     friend class Loader;
 
     QuaClass* parent;
