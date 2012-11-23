@@ -3,6 +3,7 @@ INCLUDE = ../common/include
 DEFINE = DEBUG
 
 OBJECTS = $(patsubst src/%.cpp,build/%.o,$(wildcard src/*.cpp))
+OBJECTS += $(patsubst src/natives/%.cpp,build/%.o,$(wildcard src/natives/*.cpp))
 
 all: daisy
 
@@ -15,8 +16,8 @@ build/%.o: src/%.cpp
 build/%.o: src/natives/%.cpp
 	g++ $(CFLAGS) -I$(INCLUDE) -D$(DEFINE) -c -o $@ $<
 
-daisy: build $(OBJECTS) build/SystemNative.o
-	g++ $(CFLAGS) -o $@ $(OBJECTS) build/SystemNative.o
+daisy: build $(OBJECTS)
+	g++ $(CFLAGS) -o $@ $(OBJECTS)
 
 run: daisy
 	./daisy ../examples/hello.qc
