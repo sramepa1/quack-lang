@@ -23,6 +23,10 @@ private:
     std::vector<uint64_t> regs;
 
     JITCompiler* compiler;
+
+
+
+    Instruction* handleLDC(Instruction* insn);
 };
 
 #endif // INTERPRETER_H

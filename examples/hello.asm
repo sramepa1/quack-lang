@@ -64,6 +64,7 @@ classtable:
 .classdefs:
 .mainclass:
 	dw 0						; Main is its own ancestor
+								; = Parent index in CT, must be <= current index
 	dw 1						; Flags: CLS_STATIC
 	dw 0						; 0 fields
 	; field name indices array would be here if Main had fields
@@ -126,7 +127,7 @@ alignb 8, db 0
 
 	; LDSTAT r0, 1
 	
-	db 0xA	; LDSTAT
+	db 0xA			; LDSTAT
 	db 0
 	dw 0			; Destination r0
 	dw 1 | 0x8000	; CT index 1 = System. High bit = unresolved
@@ -135,16 +136,16 @@ alignb 8, db 0
 	
 	; LDF r0, r0, 3
 	
-	db 0x6	; LDF
+	db 0x6			; LDF
 	db 0
-	dw 0	; Destination r0
-	dw 0	; 'That' is in r0
-	dw 3	; CP index 3 = "out"
+	dw 0			; Destination r0
+	dw 0			; 'That' is in r0
+	dw 3			; CP index 3 = "out"
 	
 	
 	; PUSHC 2, 6
 	
-	db 0x12	; PUSHC
+	db 0x12			; PUSHC
 	db 0
 	dw 2 | 0x8000	; CT index 2 = String. High bit = unresolved
 	dw 6			; CP index 6 = "Hello, world!"
@@ -153,18 +154,24 @@ alignb 8, db 0
 	
 	; CALL r1, r0, 4
 	
-	db 0x52	; CALL
+	db 0x52			; CALL
 	db 0
-	dw 1	; Destination r1
-	dw 0	; 'That' is in r0
-	dw 4	; CP index 4 = signature of writeLine(str)
+	dw 1			; Destination r1
+	dw 0			; 'That' is in r0
+	dw 4			; CP index 4 = signature of writeLine(str)
+
+
+	; HLT			(temporary substitution until returning from Main is implemented)
 	
-	
-	; RETNULL
-	
-	db 0x57	; RETNULL
+	db 0xFF			; HLT
 	times 7 db 0
 
+;	
+;	; RETNULL
+;	
+;	db 0x57	; RETNULL
+;	times 7 db 0
+;
 ;; ================================ ;;
 
 	
