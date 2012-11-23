@@ -1,7 +1,7 @@
 #ifndef SYSTEMNATIVE_H
 #define SYSTEMNATIVE_H
 
-#include "../NativeLoader.h"
+#include "NativeLoader.h"
 
 class SystemNative : protected NativeLoader {
 

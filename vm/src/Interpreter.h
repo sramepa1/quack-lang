@@ -9,6 +9,7 @@ extern "C" {
 
 #include "Instruction.h"
 #include "JITCompiler.h"
+#include "QuaValue.h"
 
 class ExitException {};
 
@@ -20,13 +21,15 @@ public:
     Instruction* processInstruction(Instruction* insn);
 
 private:
-    std::vector<uint64_t> regs;
+    std::vector<QuaValue> regs;
 
     JITCompiler* compiler;
 
-
+    static Instruction* handleIllegalInstruction(Instruction* insn);
 
     Instruction* handleLDC(Instruction* insn);
+    Instruction* handleLDF(Instruction* insn);
+    Instruction* handleLDSTAT(Instruction* insn);
 };
 
 #endif // INTERPRETER_H

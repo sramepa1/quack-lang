@@ -24,6 +24,7 @@ public:
 
     bool isStatic() { return flags & (uint16_t)CLS_STATIC; }
     uint16_t getFieldCount();
+    inline void* getCP() { return relevantCP; }
     QuaMethod* lookupMethod(QuaSignature* sig);
     uint16_t lookupFieldIndex(std::string fieldName);
 
