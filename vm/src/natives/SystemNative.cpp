@@ -13,6 +13,7 @@ QuaValue SystemNative::initNativeImpl() {
     uint16_t type = linkedTypes->at("OutFile");
     QuaValue outRef = heap->allocateNew(type, resolveType(type)->getFieldCount());
 
+    getFieldByIndex(outRef, 0).flags = TAG_INT;
     getFieldByIndex(outRef, 0).value = FILE_FLAG_UNCLOSEABLE;
     quaValuesFromPtr(&cout, getFieldByIndex(outRef, 1), getFieldByIndex(outRef, 2));
     getFieldByIndex(*BP, 0) = outRef;

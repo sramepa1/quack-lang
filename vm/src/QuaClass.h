@@ -18,6 +18,11 @@ extern "C" {
 class Loader;
 class NativeLoader;
 
+class FieldNameComparator {
+public:
+    bool operator()(const char* first, const char* second) const { return std::strcmp(first, second) < 0; }
+};
+
 class QuaClass
 {
 public:
@@ -25,9 +30,9 @@ public:
 
     bool isStatic() { return flags & (uint16_t)CLS_STATIC; }
     uint16_t getFieldCount();
-    inline void* getCP() { return relevantCP; }
+    void* getCP() { return relevantCP; }
     QuaMethod* lookupMethod(QuaSignature* sig);
-    uint16_t lookupFieldIndex(std::string fieldName);
+    uint16_t lookupFieldIndex(const char* fieldName);
 
     QuaValue deserialize(const char* data) { return deserializer(data); }
 
@@ -41,9 +46,10 @@ private:
     QuaValue (*deserializer)(const char* data);
     static QuaValue defaultDeserializer(const char* data);
 
+    std::string className;
     QuaClass* parent;
     void* relevantCP;
-    std::map<std::string, uint16_t> fieldIndices;
+    std::map<const char*, uint16_t, FieldNameComparator> fieldIndices;
     std::map<QuaSignature*, QuaMethod*, QuaSignatureComp> methods;
     uint16_t myFieldCount;
     uint16_t flags;

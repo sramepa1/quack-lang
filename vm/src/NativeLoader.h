@@ -26,6 +26,7 @@ protected:
         fields = &(nativeClass->fieldIndices);
         methods = &(nativeClass->methods);
 
+        nativeClass->className = name;
         nativeClass->relevantCP = NULL; // ???
         nativeClass->myFieldCount = fieldCount;
 
@@ -48,7 +49,7 @@ protected:
     uint16_t* flags;
     QuaValue (**deserializer)(const char* data);
 
-    std::map<std::string, uint16_t>* fields;
+    std::map<const char*, uint16_t, FieldNameComparator>* fields;
     std::map<QuaSignature*, QuaMethod*, QuaSignatureComp>* methods;
 
 };
@@ -65,8 +66,9 @@ inline void* ptrFromQuaValues(QuaValue first, QuaValue second) {
     return (void*)((uint64_t)first.value << 32 | (uint64_t)second.value);
 }
 inline void quaValuesFromPtr(void* ptr, QuaValue& first, QuaValue& second) {
-    // TODO: add into flags that these are not references but ...ermmm... integers :D
+    first.flags = TAG_INT;
     first.value = (uint32_t)((uint64_t)ptr >> 32);
+    second.flags = TAG_INT;
     second.value = (uint32_t)((uint64_t)ptr & 0xFFFFFFFF);
 }
 

@@ -1,12 +1,29 @@
 #include "StringNative.h"
 
 #include <stdexcept>
+#include <cstring>
+
+#include "helpers.h"
 
 using namespace std;
 
 QuaValue stringDeserializer(const char* data) {
-    QuaValue strRef = heap->allocateNew(linkedTypes->at("String"), 2);
+    uint16_t type = linkedTypes->at("String");
+    QuaValue strRef = heap->allocateNew(type, resolveType(type)->getFieldCount());
 
+    uint32_t length = strlen(data);
+    QuaValue blobRef = heap->allocateNew(0, length);
+
+    for(uint32_t i = 0; i < length; i++) {
+        getFieldByIndex(blobRef, i).flags = TAG_INT;
+        getFieldByIndex(blobRef, i).value = (unsigned char)data[i];
+    }
+
+    getFieldByIndex(strRef, 0) = blobRef;
+    getFieldByIndex(strRef, 1).flags = TAG_INT;
+    getFieldByIndex(strRef, 1).value = length;
+
+    return strRef;
 }
 
 

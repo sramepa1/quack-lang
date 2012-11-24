@@ -5,6 +5,14 @@ extern "C" {
     #include <stdint.h>
 }
 
+#include "bytecode.h"
+
+// these tags are used in flags
+#define TAG_REF SOP_TAG_NONE
+#define TAG_INT SOP_TAG_INT
+#define TAG_FLOAT SOP_TAG_FLOAT
+#define TAG_BOOL SOP_TAG_BOOL
+
 #pragma pack(1)
 
 struct QuaValue {

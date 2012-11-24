@@ -196,7 +196,7 @@ void Loader::parseClass(char* start, void* poolPtr, void* clsTablePtr) {
 }
 
 QuaClass::QuaClass(void* constantPool, void* classDef, const string& className, void* clsTabPtr)
-    : relevantCP(constantPool) {
+    : relevantCP(constantPool), deserializer(&defaultDeserializer), className(className) {
 
     char* curPos = (char*)classDef;
 
@@ -244,7 +244,7 @@ QuaClass::QuaClass(void* constantPool, void* classDef, const string& className, 
         }
 
         // TODO: check index overflow!!!
-        fieldIndices.insert(make_pair(string(fieldEntry), ancestorFieldCount + fieldIndices.size()));
+        fieldIndices.insert(make_pair(fieldEntry, ancestorFieldCount + fieldIndices.size()));
     }
 
     // methods

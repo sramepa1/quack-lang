@@ -26,7 +26,6 @@ uint16_t QuaClass::getFieldCount() {
     return fieldCount;
 }
 
-// TODO Change lookups to const char* to avoid unnecessary std::string construction every time!
 // TODO add class name to error message (how come QuaClass doesn't know its name?)
 
 QuaMethod* QuaClass::lookupMethod(QuaSignature* sig) {
@@ -43,9 +42,9 @@ QuaMethod* QuaClass::lookupMethod(QuaSignature* sig) {
     return parent->lookupMethod(sig);
 }
 
-uint16_t QuaClass::lookupFieldIndex(string fieldName) {
+uint16_t QuaClass::lookupFieldIndex(const char *fieldName) {
 
-    map<std::string, uint16_t>::iterator it = fieldIndices.find(fieldName);
+    map<const char*, uint16_t, FieldNameComparator>::iterator it = fieldIndices.find(fieldName);
     if(it != fieldIndices.end()) {
         return it->second;
     }
