@@ -20,6 +20,7 @@ extern "C" {
 #include "NativeLoader.h"
 #include "natives/SystemNative.h"
 #include "natives/FileNative.h"
+#include "natives/ExceptionNative.h"
 
 using namespace std;
 
@@ -31,9 +32,14 @@ Loader::Loader() : mmapedClsFiles(new vector<pair<void*, size_t> >()), entryPoin
     // TODO: load natives
     DataBlobNative();
     SystemNative();
+
     FileNative();
     OutFileNative();
     InFileNative();
+
+    ExceptionNative();
+    NotFoundExceptionNative();
+    IOExceptionNative();
 
 #ifdef DEBUG
     cout << "Native classes loaded!" << endl;

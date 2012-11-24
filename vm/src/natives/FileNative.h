@@ -3,6 +3,10 @@
 
 #include "../NativeLoader.h"
 
+// Flags for File instances
+#define FILE_FLAG_CLOSED 1
+#define FILE_FLAG_UNCLOSEABLE 2
+
 class FileNative : protected NativeLoader
 {
 public:

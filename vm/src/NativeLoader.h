@@ -1,7 +1,6 @@
 #ifndef NATIVELOADER_H
 #define NATIVELOADER_H
 
-
 #ifdef DEBUG
 #include <iostream>
 #endif

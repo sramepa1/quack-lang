@@ -28,10 +28,12 @@ public:
     void* getBase();
     void* getEnd();
 
-    inline const ObjRecord dereference(QuaValue ref) {
+    const ObjRecord& dereference(QuaValue ref) {
         // TODO type check, autobox
         return objTable[ref.value];
     }
+
+    QuaValue allocateNew(uint16_t type, uint32_t size);
 
 private:
     void* heapBase;
@@ -41,7 +43,6 @@ private:
 
     std::vector<ObjRecord> objTable;
 
-    QuaValue allocateNew(uint16_t type, uint32_t size);
 };
 
 

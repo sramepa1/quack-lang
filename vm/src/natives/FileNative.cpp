@@ -6,9 +6,6 @@
 
 using namespace std;
 
-#define FILE_FLAG_CLOSED 1
-#define FILE_FLAG_UNCLOSEABLE 2
-
 void* ptrFromQuaValues(QuaValue& first, QuaValue& second) {
     return (void*)((uint64_t)first.value << 32 | (uint64_t)second.value);
 }
@@ -24,7 +21,7 @@ void FileNative::readLineNativeImpl() {
 
 
 void FileNative::writeLineNativeImpl() {
-    QuaObject* thisPtr = heap->getObjRecord(BP->value).instance;
+    QuaObject* thisPtr = heap->dereference(*BP).instance;
     if(((QuaValue*)thisPtr)[1].value & FILE_FLAG_CLOSED) {
         // TODO: throw IOException - file is already closed
         return;
@@ -32,13 +29,13 @@ void FileNative::writeLineNativeImpl() {
 
     ostream* thisStream = (ostream*)ptrFromQuaValues(((QuaValue*)thisPtr)[1], ((QuaValue*)thisPtr)[2]);
 
-    QuaObject* argPtr = heap->getObjRecord((BP + 1)->value).instance;
+    QuaObject* argPtr = heap->dereference(*(BP + 1)).instance;
     // TODO: test if arg is string... if not, call stringValue
     uint32_t stringLength = ((QuaValue*)argPtr)[0].value;
     string buffer;
     buffer.reserve(stringLength);
 
-    QuaObject* stringData = heap->getObjRecord(((QuaValue*)argPtr)[1].value).instance;
+    QuaObject* stringData = heap->dereference(((QuaValue*)argPtr)[1]).instance;
     for(uint32_t i = 0; i < stringLength; i++) {
         buffer.append(1, (unsigned char)(((QuaValue*)stringData)[i].value));
     }
