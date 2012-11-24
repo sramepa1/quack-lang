@@ -28,22 +28,20 @@ uint16_t QuaClass::getFieldCount() {
 
 QuaValue QuaClass::getInstance() {
     if(!isStatic()) {
-        throw runtime_error("Attempted to take static instance from a non-static class.");
+        throw runtime_error(string("Attempted to take static instance from non-static class ") + className);
     }
     return instance;
 }
 
 void QuaClass::setInstance(QuaValue newInstance) {
     if(!isStatic()) {
-        throw runtime_error("Attempted to set static instance for a non-static class.");
+        throw runtime_error(string("Attempted to set static instance for non-static class ") + className);
     }
     if(instance.value != 0) {
-        throw runtime_error("Attempted to overwrite a non-null static instance.");
+        throw runtime_error(string("Attempted to overwrite a non-null static instance of class ") + className);
     }
     instance = newInstance;
 }
-
-// TODO add class name to error message (how come QuaClass doesn't know its name?)
 
 QuaMethod* QuaClass::lookupMethod(QuaSignature* sig) {
 
@@ -53,7 +51,8 @@ QuaMethod* QuaClass::lookupMethod(QuaSignature* sig) {
     }
     if(parent == NULL) {
         ostringstream os;
-        os << "Method \"" << sig->name << "\" with " << (int)sig->argCnt << " arg(s) not found in internal VM lookup.";
+        os << "Method \"" << sig->name << "\" with " << (int)sig->argCnt << " arg(s) of class " << className
+                << "not found in internal VM lookup.";
         throw runtime_error(os.str());
     }
     return parent->lookupMethod(sig);
@@ -66,12 +65,11 @@ uint16_t QuaClass::lookupFieldIndex(const char *fieldName) {
         return it->second;
     }
     if(parent == NULL) {
-        throw runtime_error(string("Field ") + fieldName + " not found in internal VM lookup.");
+        throw runtime_error(string("Field ") +fieldName+ " of class " +className+ " not found in internal VM lookup.");
     }
     return parent->lookupFieldIndex(fieldName);
 }
 
 QuaValue QuaClass::defaultDeserializer(const char* data) {
     throw runtime_error("Attempted to deserialize a class that doesn't support loading from data blobs.");
-}
-
+}       // TODO how to pass class name without breaking a lot of things?

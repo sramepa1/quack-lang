@@ -1,5 +1,5 @@
 CFLAGS = -pedantic -Wall -O0 -g3
-INCLUDE = ../common/include ./natives src
+INCLUDE = ../common/include src/natives src
 DEFINE = DEBUG
 INCDEF = $(foreach inc,$(INCLUDE),-I$(inc)) $(foreach def,$(DEFINE),-D$(def))
 

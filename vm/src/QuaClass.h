@@ -31,6 +31,7 @@ public:
     bool isStatic() { return flags & (uint16_t)CLS_STATIC; }
     uint16_t getFieldCount();
     void* getCP() { return relevantCP; }
+    void* getCT() { return relevantCT; }
     QuaMethod* lookupMethod(QuaSignature* sig);
     uint16_t lookupFieldIndex(const char* fieldName);
     QuaValue getInstance();
@@ -51,6 +52,7 @@ private:
     std::string className;
     QuaClass* parent;
     void* relevantCP;
+    void* relevantCT;
     std::map<const char*, uint16_t, FieldNameComparator> fieldIndices;
     std::map<QuaSignature*, QuaMethod*, QuaSignatureComp> methods;
     uint16_t myFieldCount;

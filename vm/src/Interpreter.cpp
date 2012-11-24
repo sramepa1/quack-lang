@@ -142,7 +142,7 @@ Instruction* Interpreter::processInstruction(Instruction* insn) {
         case OP_JMP:	throw runtime_error("Instruction not yet implemented.");
         case OP_JCC:	throw runtime_error("Instruction not yet implemented.");
 
-        case OP_CALL:	throw runtime_error("Instruction not yet implemented.");
+        case OP_CALL:	return handleCALL(insn);
         case OP_CALLMY:	throw runtime_error("Instruction not yet implemented.");
         case OP_NEW:	throw runtime_error("Instruction not yet implemented.");
 
@@ -235,9 +235,7 @@ Instruction* Interpreter::handleLDSTAT(Instruction* insn) {
     if(instance.value == 0) {
         instance = heap->allocateNew(insn->ARG1, statclass->getFieldCount());
         statclass->setInstance(instance);
-        *(--SP) = instance;                                                             // sub esp, 4
-        *(--ASP) = QuaFrame(insn, true, 0, insn->ARG0, (QuaValue*)valStackHigh - BP);   // push ebp
-        BP = SP;                                                                        // mov ebp, esp
+        functionPrologue(instance, insn, true, 0, insn->ARG0);
         return performCall(statclass->lookupMethod((QuaSignature*)"\0init"));
     }
     regs[insn->ARG0] = instance;
@@ -245,10 +243,20 @@ Instruction* Interpreter::handleLDSTAT(Instruction* insn) {
 }
 
 
+
 Instruction* Interpreter::handlePUSHC(Instruction* insn) {
 
     *(--SP) = loadConstant(insn->ARG0, insn->ARG1);
     return ++insn;
+}
+
+
+
+Instruction* Interpreter::handleCALL(Instruction* insn) {
+
+    QuaSignature* methSig = (QuaSignature*)getCurrentCPEntry(insn->ARG2);
+    functionPrologue(regs[insn->ARG1], insn + 1, true, methSig->argCnt, insn->ARG0);
+    return performCall(getClass(regs[insn->ARG1])->lookupMethod(methSig));
 }
 
 

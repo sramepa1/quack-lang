@@ -1,6 +1,7 @@
 #ifndef HELPERS_H
 #define HELPERS_H
 
+#include <string>
 #include <sstream>
 #include <stdexcept>
 #include <cerrno>
@@ -11,8 +12,6 @@ extern "C" {
 
 #include "globals.h"
 #include "QuaClass.h"
-#include "QuaMethod.h"
-#include "Instruction.h"
 
 #define TYPE_UNRESOLVED 0x8000
 
@@ -32,11 +31,8 @@ inline const char* getConstantPoolEntry(void* poolPtr, uint16_t index) {
     return (char*)poolPtr + ((uint32_t*)((char*)poolPtr + 8))[index];
 }
 
-inline QuaClass* resolveType(uint16_t & type) {
-    if(type & TYPE_UNRESOLVED) {
-        type = type ^ TYPE_UNRESOLVED; // TODO this is an incorrect placeholder! Replace with type mapping!
-    }
-    return typeArray[type];
+inline const uint64_t* getClassTableEntry(void* tablePtr, uint16_t index) {
+    return (uint64_t*)tablePtr + 1 + index;
 }
 
 inline QuaClass* getClass(QuaValue val) {
@@ -49,6 +45,14 @@ inline QuaClass* getThisClass() {
 
 inline const char* getCurrentCPEntry(uint16_t index) {
     return getConstantPoolEntry(getThisClass()->getCP(), index);
+}
+
+inline QuaClass* resolveType(uint16_t & type) {
+    if(type & TYPE_UNRESOLVED) {
+        uint16_t cpIndex = *((uint16_t*)getClassTableEntry(getThisClass()->getCT(), type ^ TYPE_UNRESOLVED));
+        type = (*linkedTypes)[std::string(getCurrentCPEntry(cpIndex))];
+    }
+    return typeArray[type];
 }
 
 inline QuaValue loadConstant(uint16_t & type, uint16_t cpIndex) {
@@ -65,6 +69,12 @@ inline uint16_t getFieldIndex(QuaValue that, const char* fieldName) {
 
 inline QuaValue& getFieldByName(QuaValue that, const char* fieldName) {
     return getFieldByIndex(that, getFieldIndex(that, fieldName));
+}
+
+inline void functionPrologue(QuaValue that, void* retAddr, bool interpreted, char argCount, uint16_t destReg) {
+    *(--SP) = that;                                                                                 // sub esp, 4
+    *(--ASP) = QuaFrame(retAddr, interpreted, argCount, destReg, (QuaValue*)valStackHigh - BP);     // push ebp
+    BP = SP;                                                                                        // mov ebp, esp
 }
 
 #endif // HELPERS_H

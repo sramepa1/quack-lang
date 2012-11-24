@@ -27,7 +27,8 @@ protected:
         methods = &(nativeClass->methods);
 
         nativeClass->className = name;
-        nativeClass->relevantCP = NULL; // ???
+        nativeClass->relevantCP = NULL; // This is OK as long as native classes don't have bytecode accessing these
+        nativeClass->relevantCT = NULL;
         nativeClass->myFieldCount = fieldCount;
 
         typeArray[linkedTypes->size()] = nativeClass;

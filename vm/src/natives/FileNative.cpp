@@ -28,11 +28,11 @@ QuaValue FileNative::writeLineNativeImpl() {
     ostream* thisStream = (ostream*)ptrFromQuaValues(getFieldByIndex(*BP, 1), getFieldByIndex(*BP, 2));
 
     // TODO: test if arg is string... if not, call stringValue
-    uint32_t stringLength = getFieldByIndex(*(BP + 1), 0).value;
+    uint32_t stringLength = getFieldByIndex(*(BP + 1), 1).value;
     string buffer;
     buffer.reserve(stringLength);
 
-    QuaValue stringRef = getFieldByIndex(*(BP + 1), 1);
+    QuaValue stringRef = getFieldByIndex(*(BP + 1), 0);
     for(uint32_t i = 0; i < stringLength; i++) {
         buffer.append(1, (unsigned char)(getFieldByIndex(stringRef, i).value));
     }

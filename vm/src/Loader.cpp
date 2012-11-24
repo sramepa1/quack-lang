@@ -18,9 +18,10 @@ extern "C" {
 }
 
 #include "NativeLoader.h"
-#include "natives/SystemNative.h"
-#include "natives/FileNative.h"
-#include "natives/ExceptionNative.h"
+#include "SystemNative.h"
+#include "FileNative.h"
+#include "ExceptionNative.h"
+#include "StringNative.h"
 
 #define INVALID_TYPE 0xFFFF
 
@@ -38,6 +39,8 @@ Loader::Loader() : mmapedClsFiles(new vector<pair<void*, size_t> >()), mainClass
     FileNative();
     OutFileNative();
     InFileNative();
+
+    StringNative();
 
     ExceptionNative();
     NotFoundExceptionNative();
@@ -200,7 +203,7 @@ void Loader::parseClass(char* start, void* poolPtr, void* clsTablePtr) {
 }
 
 QuaClass::QuaClass(void* constantPool, void* classDef, const string& className, void* clsTabPtr)
-    : relevantCP(constantPool), deserializer(&defaultDeserializer), className(className) {
+    : relevantCP(constantPool), relevantCT(clsTabPtr), deserializer(&defaultDeserializer), className(className) {
 
     char* curPos = (char*)classDef;
 
