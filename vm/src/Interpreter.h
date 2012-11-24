@@ -4,7 +4,6 @@
 extern "C" {
     #include <stdint.h>
 }
-
 #include <vector>
 
 #include "Instruction.h"
@@ -17,7 +16,7 @@ class Interpreter
 {
 public:
     Interpreter();
-    void start(Instruction* entryPoint);
+    void start(uint16_t mainClassType);
     Instruction* processInstruction(Instruction* insn);
 
 private:

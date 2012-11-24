@@ -3,8 +3,6 @@
 #include "globals.h"
 #include "helpers.h"
 
-#include "Loader.h" //TODO remove this dependency!
-
 #include <sstream>
 #include <iomanip>
 #include <stdexcept>
@@ -20,15 +18,23 @@ Interpreter::Interpreter() : regs(vector<QuaValue>(65536)), compiler(new JITComp
 {
 }
 
-void Interpreter::start(Instruction* entryPoint) {
-    Instruction* pc = entryPoint;
+void Interpreter::start(uint16_t mainClassType) {
+
+    QuaClass* mainClass = resolveType(mainClassType);
+
+    // push This pointer
+    *(--BP) = heap->allocateNew(mainClassType, mainClass->getFieldCount());
+    --SP;
+
+    // push exit handler
+    *(--ASP) = QuaFrame(NULL, false, false);
+
+    // get entry point
+    Instruction* pc = (Instruction*)(mainClass->lookupMethod((QuaSignature*)"\1main")->code);
 
 #ifdef DEBUG
-    cout << "Entering interpreter loop, entry point address is " << entryPoint << endl;
+    cout << "Entering interpreter loop, entry point address is " << pc << endl;
 #endif
-
-    //TODO instantiate Main and get a thispointer
-    //TODO push Main's stack frame!
 
     while(1) {
         pc = processInstruction(pc);

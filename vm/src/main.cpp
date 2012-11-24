@@ -61,9 +61,8 @@ int main(int argc, char* argv[]) {
         initGlobals(2*getpagesize(), 2*getpagesize(), 2*getpagesize()); // super-tight for testing
         if(sigsetjmp(jmpEnv,1) == 0) {
             initSigsegv();
-            loader->loadClassFile(argv[1]);
             Interpreter interpreter;
-            interpreter.start(loader->getEntryPoint());
+            interpreter.start(loader->loadClassFile(argv[1]));
         } else {
             // SIGSEGV handler long jump landing
             throw runtime_error("QUACK OVERFLOW!");

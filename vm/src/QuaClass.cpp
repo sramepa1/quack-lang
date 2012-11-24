@@ -29,9 +29,9 @@ uint16_t QuaClass::getFieldCount() {
 
 QuaMethod* QuaClass::lookupMethod(QuaSignature* sig) {
 
-    // Double map lookup should be faster than iterator construction and end() comparison for very small maps
-    if(methods.count(sig)) {
-        return methods[sig];
+    map<QuaSignature*, QuaMethod*, QuaSignatureComp>::iterator it = methods.find(sig);
+    if(it != methods.end()) {
+        return it->second;
     }
     if(parent == NULL) {
         throw runtime_error("This should throw a NoSuchMethodException, but it's not yet implemented."); // TODO
@@ -41,8 +41,9 @@ QuaMethod* QuaClass::lookupMethod(QuaSignature* sig) {
 
 uint16_t QuaClass::lookupFieldIndex(string fieldName) {
 
-    if(fieldIndices.count(fieldName)) {
-        return fieldIndices[fieldName];
+    map<std::string, uint16_t>::iterator it = fieldIndices.find(fieldName);
+    if(it != fieldIndices.end()) {
+        return it->second;
     }
     if(parent == NULL) {
         throw runtime_error("This should throw a NoSuchFieldException, but it's not yet implemented."); // TODO

@@ -41,6 +41,8 @@ private:
 
     void* freePtr;
 
+    uint32_t temporaryObjTableFreeIndex;
+
     std::vector<ObjRecord> objTable;
 
 };

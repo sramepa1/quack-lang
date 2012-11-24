@@ -15,7 +15,6 @@ extern "C" {
     #include <sys/mman.h>
     #include <sys/stat.h>
     #include <fcntl.h>
-    #include <stdint.h>
 }
 
 #include "NativeLoader.h"
@@ -23,9 +22,11 @@ extern "C" {
 #include "natives/FileNative.h"
 #include "natives/ExceptionNative.h"
 
+#define INVALID_TYPE 0xFFFF
+
 using namespace std;
 
-Loader::Loader() : mmapedClsFiles(new vector<pair<void*, size_t> >()), entryPoint(NULL) {
+Loader::Loader() : mmapedClsFiles(new vector<pair<void*, size_t> >()), mainClassType(INVALID_TYPE) {
 #ifdef DEBUG
     cout << "Start loading native classes!" << endl;
 #endif
@@ -54,7 +55,7 @@ Loader::~Loader() {
     delete mmapedClsFiles;
 }
 
-void Loader::loadClassFile(const char* cfName) {
+uint16_t Loader::loadClassFile(const char* cfName) {
 
     int clsFileFD = open(cfName, O_RDONLY);
     if(clsFileFD == -1) {
@@ -139,15 +140,17 @@ void Loader::loadClassFile(const char* cfName) {
     for(uint64_t* p = (uint64_t*) curPos; p < classTableEnd; ++p) {
         parseClass((char*)p, constantPoolPos, classTablePos);
     }
+
+    if(mainClassType == INVALID_TYPE) {
+        throw runtime_error("Main class not found!");
+    }
+
+#ifdef DEBUG
+    cout << "Loading finished, Main class has type " << mainClassType << endl;
+#endif
+    return mainClassType;
 }
 
-Instruction* Loader::getEntryPoint() {
-    if(entryPoint) {
-        return entryPoint;
-    } else {
-        throw runtime_error("No entry point found!");
-    }
-}
 
 void Loader::parseClass(char* start, void* poolPtr, void* clsTablePtr) {
     uint16_t nameIndex = *(uint16_t*)start;
@@ -178,15 +181,10 @@ void Loader::parseClass(char* start, void* poolPtr, void* clsTablePtr) {
     typeArray[linkedTypes->size()] =
             new QuaClass(poolPtr, (char*)mmapedClsFiles->back().first + classOffset, className, clsTablePtr);
 
-    // find entry point
-    // TODO: check if class main is statclass
+    // find Main class
+    // TODO: check if class Main is statclass
     if(className == "Main") {
-        QuaSignature* mainSignature = (QuaSignature*)"\1main";
-
-        if(!(typeArray[linkedTypes->size()]->methods.count(mainSignature))) {
-            throw runtime_error("The main(args) method was not found within the class Main!");
-        }
-        entryPoint = (Instruction*) typeArray[linkedTypes->size()]->methods.at(mainSignature)->code;
+        mainClassType = linkedTypes->size() - 1;
     }
 
     linkedTypes->insert(make_pair(className, linkedTypes->size()));
