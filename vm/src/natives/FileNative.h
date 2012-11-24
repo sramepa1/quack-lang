@@ -38,7 +38,7 @@ public:
     OutFileNative() : NativeLoader("OutFile", 0) {
 
         *parent = typeArray[linkedTypes->at("File")];
-        *flags = 0;
+        *flags = CLS_DESTRUCTIBLE;
 
         createMethod((QuaSignature*)"\1init", (void*)&OutFileNative::initNativeImpl);
         createMethod((QuaSignature*)"\0readLine", (void*)&OutFileNative::readLineNativeImpl);
@@ -55,7 +55,7 @@ public:
     InFileNative() : NativeLoader("InFile", 0) {
 
         *parent = typeArray[linkedTypes->at("File")];
-        *flags = 0;
+        *flags = CLS_DESTRUCTIBLE;
 
         createMethod((QuaSignature*)"\1init", (void*)&InFileNative::initNativeImpl);
         createMethod((QuaSignature*)"\1writeLine", (void*)&InFileNative::writeLineNativeImpl);

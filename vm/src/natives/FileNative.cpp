@@ -4,11 +4,9 @@
 #include <fstream>
 #include <stdexcept>
 
-using namespace std;
+#include "helpers.h"
 
-void* ptrFromQuaValues(QuaValue& first, QuaValue& second) {
-    return (void*)((uint64_t)first.value << 32 | (uint64_t)second.value);
-}
+using namespace std;
 
 void FileNative::initNativeImpl() {
     throw runtime_error("Native method not yet implemented.");
@@ -21,23 +19,22 @@ void FileNative::readLineNativeImpl() {
 
 
 void FileNative::writeLineNativeImpl() {
-    QuaObject* thisPtr = heap->dereference(*BP).instance;
-    if(((QuaValue*)thisPtr)[1].value & FILE_FLAG_CLOSED) {
+
+    if(getFieldByIndex(*BP, 0).value & FILE_FLAG_CLOSED) {
         // TODO: throw IOException - file is already closed
         return;
     }
 
-    ostream* thisStream = (ostream*)ptrFromQuaValues(((QuaValue*)thisPtr)[1], ((QuaValue*)thisPtr)[2]);
+    ostream* thisStream = (ostream*)ptrFromQuaValues(getFieldByIndex(*BP, 1), getFieldByIndex(*BP, 2));
 
-    QuaObject* argPtr = heap->dereference(*(BP + 1)).instance;
     // TODO: test if arg is string... if not, call stringValue
-    uint32_t stringLength = ((QuaValue*)argPtr)[0].value;
+    uint32_t stringLength = getFieldByIndex(*(BP + 1), 0).value;
     string buffer;
     buffer.reserve(stringLength);
 
-    QuaObject* stringData = heap->dereference(((QuaValue*)argPtr)[1]).instance;
+    QuaValue stringRef = getFieldByIndex(*(BP + 1), 1);
     for(uint32_t i = 0; i < stringLength; i++) {
-        buffer.append(1, (unsigned char)(((QuaValue*)stringData)[i].value));
+        buffer.append(1, (unsigned char)(getFieldByIndex(stringRef, i).value));
     }
 
     // TODO: test stream fail and bad bit

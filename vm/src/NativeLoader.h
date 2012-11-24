@@ -58,4 +58,15 @@ public:
     DataBlobNative() : NativeLoader("", 0) {}
 };
 
+
+inline void* ptrFromQuaValues(QuaValue first, QuaValue second) {
+    return (void*)((uint64_t)first.value << 32 | (uint64_t)second.value);
+}
+inline void quaValuesFromPtr(void* ptr, QuaValue& first, QuaValue& second) {
+    // TODO: add into flags that these are not references but ...ermmm... integers :D
+    first.value = (uint32_t)((uint64_t)ptr >> 32);
+    second.value = (uint32_t)((uint64_t)ptr & 0xFFFFFFFF);
+}
+
+
 #endif // NATIVELOADER_H

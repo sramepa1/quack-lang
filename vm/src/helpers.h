@@ -53,7 +53,7 @@ inline QuaValue loadConstant(uint16_t & type, uint16_t cpIndex) {
     return resolveType(type)->deserialize(getCurrentCPEntry(cpIndex));
 }
 
-inline QuaValue getFieldValueByIndex(QuaValue that, uint16_t index) {
+inline QuaValue& getFieldByIndex(QuaValue that, uint16_t index) {
     return heap->dereference(that).instance->fields[index];
 }
 
@@ -61,8 +61,8 @@ inline uint16_t getFieldIndex(QuaValue that, const char* fieldName) {
     return typeArray[that.type]->lookupFieldIndex(fieldName);
 }
 
-inline QuaValue getFieldValueByName(QuaValue that, const char* fieldName) {
-    return getFieldValueByIndex(that, getFieldIndex(that, fieldName));
+inline QuaValue& getFieldByName(QuaValue that, const char* fieldName) {
+    return getFieldByIndex(that, getFieldIndex(that, fieldName));
 }
 
 #endif // HELPERS_H

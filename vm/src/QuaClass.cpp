@@ -33,7 +33,7 @@ QuaMethod* QuaClass::lookupMethod(QuaSignature* sig) {
     if(methods.count(sig)) {
         return methods[sig];
     }
-    if(parent == this) {
+    if(parent == NULL) {
         throw runtime_error("This should throw a NoSuchMethodException, but it's not yet implemented."); // TODO
     }
     return parent->lookupMethod(sig);
@@ -44,7 +44,7 @@ uint16_t QuaClass::lookupFieldIndex(string fieldName) {
     if(fieldIndices.count(fieldName)) {
         return fieldIndices[fieldName];
     }
-    if(parent == this) {
+    if(parent == NULL) {
         throw runtime_error("This should throw a NoSuchFieldException, but it's not yet implemented."); // TODO
     }
     return parent->lookupFieldIndex(fieldName);

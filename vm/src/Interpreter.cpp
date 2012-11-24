@@ -180,7 +180,7 @@ Instruction* Interpreter::handleLDC(Instruction* insn) {
 
 Instruction* Interpreter::handleLDF(Instruction* insn) {
 
-    regs[insn->ARG0] = getFieldValueByName(regs[insn->ARG1], getCurrentCPEntry(insn->ARG2));
+    regs[insn->ARG0] = getFieldByName(regs[insn->ARG1], getCurrentCPEntry(insn->ARG2));
     return ++insn;
 }
 
