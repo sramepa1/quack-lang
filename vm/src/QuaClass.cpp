@@ -1,6 +1,7 @@
 #include "QuaClass.h"
 #include <cstdlib>
 #include <stdexcept>
+#include <sstream>
 
 using namespace std;
 
@@ -26,6 +27,7 @@ uint16_t QuaClass::getFieldCount() {
 }
 
 // TODO Change lookups to const char* to avoid unnecessary std::string construction every time!
+// TODO add class name to error message (how come QuaClass doesn't know its name?)
 
 QuaMethod* QuaClass::lookupMethod(QuaSignature* sig) {
 
@@ -34,7 +36,9 @@ QuaMethod* QuaClass::lookupMethod(QuaSignature* sig) {
         return it->second;
     }
     if(parent == NULL) {
-        throw runtime_error("This should throw a NoSuchMethodException, but it's not yet implemented."); // TODO
+        ostringstream os;
+        os << "Method \"" << sig->name << "\" with " << (int)sig->argCnt << " arg(s) not found in internal VM lookup.";
+        throw runtime_error(os.str());
     }
     return parent->lookupMethod(sig);
 }
@@ -46,13 +50,12 @@ uint16_t QuaClass::lookupFieldIndex(string fieldName) {
         return it->second;
     }
     if(parent == NULL) {
-        throw runtime_error("This should throw a NoSuchFieldException, but it's not yet implemented."); // TODO
+        throw runtime_error(string("Field ") + fieldName + " not found in internal VM lookup.");
     }
     return parent->lookupFieldIndex(fieldName);
 }
 
 QuaValue QuaClass::defaultDeserializer(const char* data) {
     throw runtime_error("Attempted to deserialize a class that doesn't support loading from data blobs.");
-    // TODO add class name to error message (how come QuaClass doesn't know its name?)
 }
 

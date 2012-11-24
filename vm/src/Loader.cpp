@@ -184,7 +184,7 @@ void Loader::parseClass(char* start, void* poolPtr, void* clsTablePtr) {
     // find Main class
     // TODO: check if class Main is statclass
     if(className == "Main") {
-        mainClassType = linkedTypes->size() - 1;
+        mainClassType = linkedTypes->size();
     }
 
     linkedTypes->insert(make_pair(className, linkedTypes->size()));
