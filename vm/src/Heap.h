@@ -28,6 +28,10 @@ public:
     void* getBase();
     void* getEnd();
 
+    inline const ObjRecord dereference(QuaValue ref) {
+        // TODO type check, autobox
+        return objTable[ref.value];
+    }
 
 private:
     void* heapBase;

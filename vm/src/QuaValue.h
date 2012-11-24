@@ -12,6 +12,7 @@ struct QuaValue {
 	uint16_t type;
 	uint16_t flags;
 	
+    QuaValue() : value(0), type(0), flags(0) {}
 	QuaValue(uint32_t value, uint16_t type, uint16_t flags) : value(value), type(type), flags(flags) {}	
 };
 
