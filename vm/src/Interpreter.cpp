@@ -20,6 +20,10 @@ Interpreter::Interpreter() : regs(vector<QuaValue>(65536)), compiler(new JITComp
 
 void Interpreter::start(uint16_t mainClassType) {
 
+#ifdef DEBUG
+    cout << "Initializing interpreter environment, Main class has type " << mainClassType << endl;
+#endif
+
     QuaClass* mainClass = resolveType(mainClassType);
 
     // push This pointer
@@ -92,7 +96,7 @@ Instruction* Interpreter::processInstruction(Instruction* insn) {
         case OP_XCHG:	throw runtime_error("Instruction not yet implemented.");
         case OP_PUSH:	throw runtime_error("Instruction not yet implemented.");
         case OP_POP:	throw runtime_error("Instruction not yet implemented.");
-        case OP_PUSHC:	throw runtime_error("Instruction not yet implemented.");
+        case OP_PUSHC:	return handlePUSHC(insn);
         case OP_PUSHCT:	throw runtime_error("Instruction not yet implemented.");
         case OP_LDS:	throw runtime_error("Instruction not yet implemented.");
         case OP_STS:	throw runtime_error("Instruction not yet implemented.");
@@ -167,6 +171,39 @@ Instruction* Interpreter::processInstruction(Instruction* insn) {
     //compiler->compile(NULL);
 }
 
+// may need ASM implementation
+Instruction* Interpreter::performCall(QuaMethod* method) {
+    switch(method->action) {
+        case QuaMethod::INTERPRET:  return (Instruction*) method->code; //TODO set flag to compile
+        case QuaMethod::COMPILE:    compiler->compile(method); // and fall-through
+        case QuaMethod::JUMPTO:     throw runtime_error("Jumping to compiled code blobs is not yet implemented.");
+        case QuaMethod::C_CALL:     return performReturn( ( (QuaValue (*)())method->code )() );
+    }
+}
+
+Instruction* Interpreter::performReturn(QuaValue retVal) {
+
+    // discard adress stack junk
+    while(ASP->FRAME_TYPE == EXCEPTION || ASP->FRAME_TYPE == FINALLY) {
+        ++ASP;
+    }
+    if(ASP->FRAME_TYPE == EXIT) {
+        throw ExitException(); // TODO Is this safe if code had passed through ASM?
+    }
+
+    // The frame is a correct return address (frameType == METHOD)
+    SP = BP + (ASP->ARG_COUNT + 1);
+    BP = (QuaValue*)valStackHigh - ASP->BP_OFFSET;
+    if(ASP->INTERPRETED) {
+        regs[ASP->DEST_REG] = retVal;
+        return (Instruction*)((ASP++)->code);
+    } else {
+        ++ASP;
+        // TODO where to put return value?
+        throw runtime_error("Returning to machine code is not yet implemented");
+    }
+}
+
 
 Instruction* Interpreter::handleIllegalInstruction(Instruction* insn) {
     ostringstream os;
@@ -193,8 +230,17 @@ Instruction* Interpreter::handleLDF(Instruction* insn) {
 
 Instruction* Interpreter::handleLDSTAT(Instruction* insn) {
 
-    regs[insn->ARG0] = QuaValue(0x0, insn->ARG1, 0); // TODO Placeholder, needs hidden singleton support
-
+    QuaClass* statclass = resolveType(insn->ARG1);
+    QuaValue instance = statclass->getInstance();
+    if(instance.value == 0) {
+        instance = heap->allocateNew(insn->ARG1, statclass->getFieldCount());
+        statclass->setInstance(instance);
+        *(--SP) = instance;                                                             // sub esp, 4
+        *(--ASP) = QuaFrame(insn, true, 0, insn->ARG0, (QuaValue*)valStackHigh - BP);   // push ebp
+        BP = SP;                                                                        // mov ebp, esp
+        return performCall(statclass->lookupMethod((QuaSignature*)"\0init"));
+    }
+    regs[insn->ARG0] = instance;
     return ++insn;
 }
 

@@ -11,6 +11,8 @@ extern "C" {
 
 #include "globals.h"
 #include "QuaClass.h"
+#include "QuaMethod.h"
+#include "Instruction.h"
 
 #define TYPE_UNRESOLVED 0x8000
 

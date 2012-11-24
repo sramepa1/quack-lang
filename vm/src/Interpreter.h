@@ -9,6 +9,8 @@ extern "C" {
 #include "Instruction.h"
 #include "JITCompiler.h"
 #include "QuaValue.h"
+#include "QuaMethod.h"
+
 
 class ExitException {};
 
@@ -23,6 +25,9 @@ private:
     std::vector<QuaValue> regs;
 
     JITCompiler* compiler;
+
+    Instruction* performCall(QuaMethod* method);
+    Instruction* performReturn(QuaValue retVal);
 
     static Instruction* handleIllegalInstruction(Instruction* insn);
 

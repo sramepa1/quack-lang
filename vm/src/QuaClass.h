@@ -33,6 +33,8 @@ public:
     void* getCP() { return relevantCP; }
     QuaMethod* lookupMethod(QuaSignature* sig);
     uint16_t lookupFieldIndex(const char* fieldName);
+    QuaValue getInstance();
+    void setInstance(QuaValue newInstance);
 
     QuaValue deserialize(const char* data) { return deserializer(data); }
 
@@ -53,6 +55,7 @@ private:
     std::map<QuaSignature*, QuaMethod*, QuaSignatureComp> methods;
     uint16_t myFieldCount;
     uint16_t flags;
+    QuaValue instance; // default "null"
 };
 
 #endif // QUACLASS_H

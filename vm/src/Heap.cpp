@@ -10,7 +10,7 @@
 
 using namespace std;
 
-Heap::Heap(size_t size) : temporaryObjTableFreeIndex(0)
+Heap::Heap(size_t size) : temporaryObjTableFreeIndex(1)
 {
     heapSize = size;
     heapBase = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
@@ -18,6 +18,7 @@ Heap::Heap(size_t size) : temporaryObjTableFreeIndex(0)
     // guard page
     mprotect( (void*)((char*)heapBase + size - getpagesize()), getpagesize(), PROT_NONE);
     freePtr = heapBase;
+    objTable.push_back(ObjRecord()); // "null"
 }
 
 QuaValue Heap::allocateNew(uint16_t type, uint32_t size) {

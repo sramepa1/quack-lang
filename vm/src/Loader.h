@@ -15,7 +15,8 @@ public:
     ~Loader();
 
     void loadNative();
-    uint16_t loadClassFile(const char* cfName);
+    void loadClassFile(const char* cfName);
+    uint16_t getMainType();
 
     static bool checkIdentifier(const char* id);
 

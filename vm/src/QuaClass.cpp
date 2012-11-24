@@ -26,6 +26,23 @@ uint16_t QuaClass::getFieldCount() {
     return fieldCount;
 }
 
+QuaValue QuaClass::getInstance() {
+    if(!isStatic()) {
+        throw runtime_error("Attempted to take static instance from a non-static class.");
+    }
+    return instance;
+}
+
+void QuaClass::setInstance(QuaValue newInstance) {
+    if(!isStatic()) {
+        throw runtime_error("Attempted to set static instance for a non-static class.");
+    }
+    if(instance.value != 0) {
+        throw runtime_error("Attempted to overwrite a non-null static instance.");
+    }
+    instance = newInstance;
+}
+
 // TODO add class name to error message (how come QuaClass doesn't know its name?)
 
 QuaMethod* QuaClass::lookupMethod(QuaSignature* sig) {

@@ -55,7 +55,7 @@ Loader::~Loader() {
     delete mmapedClsFiles;
 }
 
-uint16_t Loader::loadClassFile(const char* cfName) {
+void Loader::loadClassFile(const char* cfName) {
 
     int clsFileFD = open(cfName, O_RDONLY);
     if(clsFileFD == -1) {
@@ -141,13 +141,17 @@ uint16_t Loader::loadClassFile(const char* cfName) {
         parseClass((char*)p, constantPoolPos, classTablePos);
     }
 
+#ifdef DEBUG
+    cout << "Loading class file " << cfName << " finished." << endl;
+#endif
+}
+
+uint16_t Loader::getMainType() {
     if(mainClassType == INVALID_TYPE) {
         throw runtime_error("Main class not found!");
     }
 
-#ifdef DEBUG
-    cout << "Loading finished, Main class has type " << mainClassType << endl;
-#endif
+
     return mainClassType;
 }
 

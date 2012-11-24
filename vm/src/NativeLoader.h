@@ -40,7 +40,7 @@ protected:
 
     void createMethod(QuaSignature* signature, void* code) {
         QuaMethod* method = new QuaMethod();
-        method->action = QuaMethod::C_VOID_CALL;
+        method->action = QuaMethod::C_CALL;
         method->code = code;
         methods->insert(std::make_pair(signature, method));
     }

@@ -9,7 +9,7 @@ public:
         INTERPRET = 0,
         COMPILE = 1,
         JUMPTO = 2,
-        C_VOID_CALL = 3
+        C_CALL = 3
     } action;
     void* code;
 
