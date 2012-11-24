@@ -5,6 +5,7 @@
 #include <unistd.h>
 
 #include "globals.h"
+#include "helpers.h"
 
 using namespace std;
 

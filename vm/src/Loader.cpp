@@ -8,6 +8,7 @@
 #endif
 
 #include "globals.h"
+#include "helpers.h"
 
 extern "C" {
     #include <unistd.h>
@@ -80,7 +81,7 @@ void Loader::loadClassFile(const char* cfName) {
 #ifdef DEBUG
     cout << "Class file: " << cfName << " successfuly loaded into memory!" << endl;
 #endif
-    
+
     char* parsingStartPoint = NULL;
     char magicNum[] = {0xD, 'U', 0xC, 'K'};
 
@@ -96,10 +97,10 @@ void Loader::loadClassFile(const char* cfName) {
     for(uint64_t* p = (uint64_t*)classFileBase; p < magicNumBound; ++p) {
         if(*(uint32_t*)magicNum == *(uint32_t*)p) {
             parsingStartPoint = (char*)((uint32_t*)p + 1);
-    		break;
-    	}
+            break;
+        }
     }
-    
+
     if(!parsingStartPoint) {
         throw runtime_error("Malformed class file!\nCannot find magic number within the first 1024 bytes.");
     }
@@ -107,22 +108,22 @@ void Loader::loadClassFile(const char* cfName) {
 #ifdef DEBUG
     cout << "Magic number found!" << endl;
 #endif
-    
+
     // helper pointer for better orientation in currently parsed file
     char* curPos = (char*)parsingStartPoint;
-    
+
     // read classfile version and minimun required VM version
     uint16_t clsFileVersion = *(uint16_t*)curPos;
     curPos += 2;
     uint16_t minVmVersion = *(uint16_t*)curPos;
     curPos += 2;
-    
+
     // TODO: check VM version
-    
+
     char* classTablePos = (char*)classFileBase + *(uint32_t*)curPos;
-	curPos += 4;
+    curPos += 4;
     char* constantPoolPos = (char*)classFileBase + *(uint32_t*)curPos;
-    
+
     // start parsing classes
     curPos = classTablePos;
     uint32_t classTableSize = *(uint32_t*)curPos;
@@ -130,7 +131,7 @@ void Loader::loadClassFile(const char* cfName) {
     uint16_t numberOfClasses = *(uint16_t*)curPos;
     curPos += 4;
     uint64_t* classTableEnd = (uint64_t*)curPos + numberOfClasses;
-    
+
 #ifdef DEBUG
     cout << "Start parsing classes" << endl;
 #endif
@@ -141,24 +142,24 @@ void Loader::loadClassFile(const char* cfName) {
 }
 
 Instruction* Loader::getEntryPoint() {
-	if(entryPoint) {
-		return entryPoint;
-	} else {
+    if(entryPoint) {
+        return entryPoint;
+    } else {
         throw runtime_error("No entry point found!");
-	}
+    }
 }
 
 void Loader::parseClass(char* start, void* poolPtr, void* clsTablePtr) {
-	uint16_t nameIndex = *(uint16_t*)start;
-	start += 2;
-	uint16_t classSize = *(uint16_t*)start;
-	start += 2;
-	uint32_t classOffset = *(uint32_t*)start;
-	
-	if(classSize == 0 && classOffset == 0) {
-		// class is defined on another place
-		return;
-	}
+    uint16_t nameIndex = *(uint16_t*)start;
+    start += 2;
+    uint16_t classSize = *(uint16_t*)start;
+    start += 2;
+    uint32_t classOffset = *(uint32_t*)start;
+
+    if(classSize == 0 && classOffset == 0) {
+        // class is defined on another place
+        return;
+    }
 
     const char* entry = getConstantPoolEntry(poolPtr, nameIndex);
     if(!checkIdentifier(entry)) {
@@ -173,7 +174,7 @@ void Loader::parseClass(char* start, void* poolPtr, void* clsTablePtr) {
 #ifdef DEBUG
     cout << "Constructing class " << className << endl;
 #endif
-	
+
     typeArray[linkedTypes->size()] =
             new QuaClass(poolPtr, (char*)mmapedClsFiles->back().first + classOffset, className, clsTablePtr);
 
@@ -204,7 +205,7 @@ QuaClass::QuaClass(void* constantPool, void* classDef, const string& className, 
     // ancestor
     // the addend '1' is here because is needed to jump over the class table header
     uint16_t ancestorIndex = *(uint16_t*)((uint64_t*)clsTabPtr + 1 + *(uint16_t*)curPos);
-    string ancestorName(Loader::getConstantPoolEntry(constantPool, ancestorIndex));
+    string ancestorName(getConstantPoolEntry(constantPool, ancestorIndex));
 
     if(className == ancestorName) {
         parent = NULL;
@@ -230,7 +231,7 @@ QuaClass::QuaClass(void* constantPool, void* classDef, const string& className, 
 
     curPos += 2;
     for(uint16_t i = 0; i < myFieldCount; ++i) {
-        const char* fieldEntry = Loader::getConstantPoolEntry(constantPool, ((uint16_t*)curPos)[i]);
+        const char* fieldEntry = getConstantPoolEntry(constantPool, ((uint16_t*)curPos)[i]);
         if(!Loader::checkIdentifier(fieldEntry)) {
             throw runtime_error("Field name is invalid!");
         }
@@ -260,7 +261,7 @@ QuaClass::QuaClass(void* constantPool, void* classDef, const string& className, 
     for(uint16_t i = 0; i < methodCount; ++i) {
         uint16_t signatureIndex = ((uint16_t*)curPos)[2 * i];
         uint16_t codeIndex = ((uint16_t*)curPos)[2 * i + 1];
-        QuaSignature* signature = (QuaSignature*)Loader::getConstantPoolEntry(constantPool, signatureIndex);
+        QuaSignature* signature = (QuaSignature*)getConstantPoolEntry(constantPool, signatureIndex);
 
         if(!Loader::checkIdentifier(signature->name)) {
             throw runtime_error("Method name is invalid!");
@@ -272,7 +273,7 @@ QuaClass::QuaClass(void* constantPool, void* classDef, const string& className, 
 
         QuaMethod* method = new QuaMethod();
         method->action = QuaMethod::INTERPRET;
-        method->code = (void*)Loader::getConstantPoolEntry(constantPool, codeIndex);
+        method->code = (void*)getConstantPoolEntry(constantPool, codeIndex);
 
         methods.insert(make_pair(signature, method));
     }

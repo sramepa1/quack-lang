@@ -41,7 +41,6 @@ extern "C" {
     extern Loader* loader;
 
     void initGlobals(size_t valStackSize, size_t addrStackSize, size_t heapSize);
-    void checkMmap(void* ptr, const char* errMsg);
 
     extern sigjmp_buf jmpEnv;
 

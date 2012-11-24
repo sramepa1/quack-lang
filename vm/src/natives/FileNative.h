@@ -15,7 +15,7 @@ public:
     FileNative() : NativeLoader("File", 3) {
 
         *parent = NULL;
-        *flags = 0;
+        *flags = CLS_DESTRUCTIBLE;
 
         createMethod((QuaSignature*)"\1init", (void*)&FileNative::initNativeImpl);
         createMethod((QuaSignature*)"\0readLine", (void*)&FileNative::readLineNativeImpl);

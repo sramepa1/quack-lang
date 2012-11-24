@@ -1,6 +1,7 @@
 #include "Interpreter.h"
 #include "bytecode.h"
 #include "globals.h"
+#include "helpers.h"
 
 #include "Loader.h" //TODO remove this dependency!
 
@@ -26,6 +27,7 @@ void Interpreter::start(Instruction* entryPoint) {
     cout << "Entering interpreter loop, entry point address is " << entryPoint << endl;
 #endif
 
+    //TODO instantiate Main and get a thispointer
     //TODO push Main's stack frame!
 
     while(1) {
@@ -162,7 +164,8 @@ Instruction* Interpreter::processInstruction(Instruction* insn) {
 
 Instruction* Interpreter::handleIllegalInstruction(Instruction* insn) {
     ostringstream os;
-    os << "Illegal instruction opcode 0x" << setw(2) << setfill('0') << uppercase << hex << (int)insn->op << " encountered at " << insn << "." << endl;
+    os << "Illegal instruction opcode 0x" << setw(2) << setfill('0') << uppercase << hex << (int)insn->op
+       << " encountered at " << insn << "." << endl;
     // TODO improve this error message - print current class and method names
     throw runtime_error(os.str());
 }
@@ -170,29 +173,29 @@ Instruction* Interpreter::handleIllegalInstruction(Instruction* insn) {
 
 Instruction* Interpreter::handleLDC(Instruction* insn) {
 
-    // TODO: LDC is a hidden NEW -> need native class support for this
-
+    regs[insn->ARG0] = loadConstant(insn->ARG1, insn->ARG2);
     return ++insn;
 }
 
 
 Instruction* Interpreter::handleLDF(Instruction* insn) {
 
-    /* TODO:
-     *  - remove dependency on Loader
-     *  - change lookupFieldIndex to avoid unnecessary std::string construction
-     */
-
-    regs[insn->ARG0] = heap->dereference(regs[insn->ARG1]).instance->fields[ typeArray[regs[insn->ARG1].type]->lookupFieldIndex( (char*)Loader::getConstantPoolEntry(typeArray[BP->type]->getCP(), insn->ARG2)) ]; // One-liners FTW!
-
+    regs[insn->ARG0] = getFieldValueByName(regs[insn->ARG1], getCurrentCPEntry(insn->ARG2));
     return ++insn;
 }
 
 
 Instruction* Interpreter::handleLDSTAT(Instruction* insn) {
 
-    regs[insn->ARG0] = QuaValue(0x42, insn->ARG1, 0); // TODO Placeholder, needs hidden singleton support
+    regs[insn->ARG0] = QuaValue(0x0, insn->ARG1, 0); // TODO Placeholder, needs hidden singleton support
 
+    return ++insn;
+}
+
+
+Instruction* Interpreter::handlePUSHC(Instruction* insn) {
+
+    *(--SP) = loadConstant(insn->ARG0, insn->ARG1);
     return ++insn;
 }
 

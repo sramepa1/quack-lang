@@ -10,8 +10,10 @@ extern "C" {
 
 #include "QuaSignature.h"
 #include "QuaMethod.h"
+#include "QuaValue.h"
 
 #define CLS_STATIC 1;
+#define CLS_DESTRUCTIBLE 2;
 
 class Loader;
 class NativeLoader;
@@ -19,7 +21,6 @@ class NativeLoader;
 class QuaClass
 {
 public:
-
     ~QuaClass();
 
     bool isStatic() { return flags & (uint16_t)CLS_STATIC; }
@@ -28,12 +29,17 @@ public:
     QuaMethod* lookupMethod(QuaSignature* sig);
     uint16_t lookupFieldIndex(std::string fieldName);
 
+    QuaValue deserialize(const char* data) { return deserializer(data); }
+
 private:
     // !!! defined in Loader.cpp !!!
     QuaClass(void* constantPool, void* classDef, const std::string& className, void* clsTabPtr);
-    QuaClass() {}
+    QuaClass();
     friend class Loader;
     friend class NativeLoader;
+
+    QuaValue (*deserializer)(const char* data);
+    static QuaValue defaultDeserializer(const char* data);
 
     QuaClass* parent;
     void* relevantCP;

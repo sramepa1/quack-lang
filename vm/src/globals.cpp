@@ -1,4 +1,5 @@
 #include "globals.h"
+#include "helpers.h"
 
 #include <stdexcept>
 #include <string>
@@ -35,7 +36,7 @@ extern "C" {
 
 
 void initGlobals(size_t valStackSize, size_t addrStackSize, size_t heapSize) {
-    valStackLow = mmap(NULL, valStackSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_GROWSDOWN, -1, 0);
+    valStackLow = mmap(NULL, valStackSize, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS|MAP_GROWSDOWN, -1, 0);
     checkMmap(valStackLow, "Could not allocate value stack." );
     valStackHigh = (void*)((char*)valStackLow + valStackSize); // sigh, pedantic mode doesn't like void pointers...
     SP = (QuaValue*) valStackHigh;
@@ -43,7 +44,7 @@ void initGlobals(size_t valStackSize, size_t addrStackSize, size_t heapSize) {
     // guard page
     mprotect(valStackLow, getpagesize(), PROT_NONE);
 
-    addrStackLow = mmap(NULL, addrStackSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_GROWSDOWN, -1, 0);
+    addrStackLow = mmap(NULL, addrStackSize, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS|MAP_GROWSDOWN, -1, 0);
     checkMmap(valStackLow, "Could not allocate address stack." );
     addrStackHigh = (void*)((char*)addrStackLow + addrStackSize); // sigh again...
     // guard page
@@ -55,15 +56,4 @@ void initGlobals(size_t valStackSize, size_t addrStackSize, size_t heapSize) {
 
     heap = new Heap(heapSize);
     loader = new Loader();
-}
-
-
-void checkMmap(void* ptr, const char* errMsg) {
-    if(ptr == MAP_FAILED) {
-        int err = errno;
-        ostringstream os;
-        os << errMsg << endl;
-        os << "Memory mapping failed with error code " << err << ", that is \"" << strerror(err) << "\"." << endl;
-        throw runtime_error(os.str());
-    }
 }

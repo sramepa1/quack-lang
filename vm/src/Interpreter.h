@@ -30,6 +30,8 @@ private:
     Instruction* handleLDC(Instruction* insn);
     Instruction* handleLDF(Instruction* insn);
     Instruction* handleLDSTAT(Instruction* insn);
+
+    Instruction* handlePUSHC(Instruction* insn);
 };
 
 #endif // INTERPRETER_H
