@@ -1,7 +1,7 @@
 #ifndef SYSTEMNATIVE_H
 #define SYSTEMNATIVE_H
 
-#include "../NativeLoader.h"
+#include "NativeLoader.h"
 
 class SystemNative : protected NativeLoader {
 
@@ -16,14 +16,10 @@ public:
         fields->insert(std::make_pair("err", (uint16_t)2));
 
         createMethod((QuaSignature*)"\0init", (void*)&SystemNative::initNativeImpl);
-        createMethod((QuaSignature*)"\1openFile", (void*)&SystemNative::openFileNativeImpl);
-        createMethod((QuaSignature*)"\1closeFile", (void*)&SystemNative::closeFileNativeImpl);
 
     }
 
-    static void initNativeImpl();
-    static void openFileNativeImpl();
-    static void closeFileNativeImpl();
+    static void initNativeImpl();       // native init()
 
 };
 
