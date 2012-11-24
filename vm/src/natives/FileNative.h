@@ -25,11 +25,11 @@ public:
 
     }
 
-    static void initNativeImpl();       // native init(filename);
-    static void readLineNativeImpl();   // native fun readLine();
-    static void writeLineNativeImpl();  // native fun writeLine(string);
-    static void eofNativeImpl();        // native fun eof();
-    static void closeNativeImpl();      // native fun close();
+    static QuaValue initNativeImpl();       // native init(filename);
+    static QuaValue readLineNativeImpl();   // native fun readLine();
+    static QuaValue writeLineNativeImpl();  // native fun writeLine(string);
+    static QuaValue eofNativeImpl();        // native fun eof();
+    static QuaValue closeNativeImpl();      // native fun close();
 };
 
 class OutFileNative : protected NativeLoader
@@ -45,8 +45,8 @@ public:
 
     }
 
-    static void initNativeImpl();
-    static void readLineNativeImpl();   // throws an exception :)
+    static QuaValue initNativeImpl();
+    static QuaValue readLineNativeImpl();   // throws an exception :)
 };
 
 class InFileNative : protected NativeLoader
@@ -62,8 +62,8 @@ public:
 
     }
 
-    static void initNativeImpl();
-    static void writeLineNativeImpl();   // throws an exception :)
+    static QuaValue initNativeImpl();
+    static QuaValue writeLineNativeImpl();   // throws an exception :)
 };
 
 #endif // FILENATIVE_H

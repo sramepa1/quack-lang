@@ -21,6 +21,7 @@ protected:
 
         parent = &(nativeClass->parent);
         flags = &(nativeClass->flags);
+        deserializer = &(nativeClass->deserializer);
 
         fields = &(nativeClass->fieldIndices);
         methods = &(nativeClass->methods);
@@ -45,6 +46,7 @@ protected:
 
     QuaClass** parent;
     uint16_t* flags;
+    QuaValue (**deserializer)(const char* data);
 
     std::map<std::string, uint16_t>* fields;
     std::map<QuaSignature*, QuaMethod*, QuaSignatureComp>* methods;

@@ -19,7 +19,7 @@ public:
 
     }
 
-    static void initNativeImpl();       // native init()
+    static QuaValue initNativeImpl();       // native init()
 
 };
 

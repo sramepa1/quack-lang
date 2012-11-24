@@ -7,14 +7,16 @@
 
 using namespace std;
 
-void SystemNative::initNativeImpl() {
+QuaValue SystemNative::initNativeImpl() {
 
     // create out stream
-    QuaValue outRef = heap->allocateNew(linkedTypes->at("OutFile"), 3);
+    uint16_t type = linkedTypes->at("OutFile");
+    QuaValue outRef = heap->allocateNew(type, resolveType(type)->getFieldCount());
 
     getFieldByIndex(outRef, 0).value = FILE_FLAG_UNCLOSEABLE;
     quaValuesFromPtr(&cout, getFieldByIndex(outRef, 1), getFieldByIndex(outRef, 2));
     getFieldByIndex(*BP, 0) = outRef;
 
     // TODO: create err and in stream
+    return QuaValue();
 }

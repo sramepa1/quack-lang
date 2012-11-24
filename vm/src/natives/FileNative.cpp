@@ -8,21 +8,21 @@
 
 using namespace std;
 
-void FileNative::initNativeImpl() {
+QuaValue FileNative::initNativeImpl() {
     throw runtime_error("Native method not yet implemented.");
 }
 
 
-void FileNative::readLineNativeImpl() {
+QuaValue FileNative::readLineNativeImpl() {
     throw runtime_error("Native method not yet implemented.");
 }
 
 
-void FileNative::writeLineNativeImpl() {
+QuaValue FileNative::writeLineNativeImpl() {
 
     if(getFieldByIndex(*BP, 0).value & FILE_FLAG_CLOSED) {
         // TODO: throw IOException - file is already closed
-        return;
+        return QuaValue();
     }
 
     ostream* thisStream = (ostream*)ptrFromQuaValues(getFieldByIndex(*BP, 1), getFieldByIndex(*BP, 2));
@@ -39,34 +39,35 @@ void FileNative::writeLineNativeImpl() {
 
     // TODO: test stream fail and bad bit
     (*thisStream) << buffer << endl;
+    return QuaValue();
 }
 
 
-void FileNative::eofNativeImpl() {
+QuaValue FileNative::eofNativeImpl() {
     throw runtime_error("Native method not yet implemented.");
 }
 
 
-void FileNative::closeNativeImpl() {
+QuaValue FileNative::closeNativeImpl() {
     throw runtime_error("Native method not yet implemented.");
 }
 
 
-void OutFileNative::initNativeImpl() {
+QuaValue OutFileNative::initNativeImpl() {
     throw runtime_error("Native method not yet implemented.");
 }
 
 
-void OutFileNative::readLineNativeImpl() {
+QuaValue OutFileNative::readLineNativeImpl() {
     throw runtime_error("Native method not yet implemented.");
 }
 
 
-void InFileNative::initNativeImpl() {
+QuaValue InFileNative::initNativeImpl() {
     throw runtime_error("Native method not yet implemented.");
 }
 
 
-void InFileNative::writeLineNativeImpl() {
+QuaValue InFileNative::writeLineNativeImpl() {
     throw runtime_error("Native method not yet implemented.");
 }
