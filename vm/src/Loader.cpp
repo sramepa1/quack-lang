@@ -203,7 +203,7 @@ void Loader::parseClass(char* start, void* poolPtr, void* clsTablePtr) {
 }
 
 QuaClass::QuaClass(void* constantPool, void* classDef, const string& className, void* clsTabPtr)
-    : relevantCP(constantPool), relevantCT(clsTabPtr), deserializer(&defaultDeserializer), className(className) {
+    : deserializer(&defaultDeserializer), className(className), relevantCP(constantPool), relevantCT(clsTabPtr)  {
 
     char* curPos = (char*)classDef;
 

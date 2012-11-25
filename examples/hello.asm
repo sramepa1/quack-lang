@@ -160,18 +160,18 @@ alignb 8, db 0
 	dw 0			; 'That' is in r0
 	dw 4			; CP index 4 = signature of writeLine(str)
 
-
-	; HLT			(temporary substitution until returning from Main is implemented)
-	
-	db 0xFF			; HLT
-	times 7 db 0
-
+;
+;	; HLT			(temporary substitution until returning from Main was implemented)
 ;	
-;	; RETNULL
-;	
-;	db 0x57	; RETNULL
+;	db 0xFF			; HLT
 ;	times 7 db 0
 ;
+	
+	; RETNULL
+	
+	db 0x57	; RETNULL
+	times 7 db 0
+
 ;; ================================ ;;
 
 	

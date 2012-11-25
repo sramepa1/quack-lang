@@ -148,7 +148,7 @@ Instruction* Interpreter::processInstruction(Instruction* insn) {
 
         case OP_RET:	throw runtime_error("Instruction not yet implemented.");
         case OP_RETT:	throw runtime_error("Instruction not yet implemented.");
-        case OP_RETNULL:throw runtime_error("Instruction not yet implemented.");
+        case OP_RETNULL:return performReturn(QuaValue());
 
         case OP_TRY:	throw runtime_error("Instruction not yet implemented.");
         case OP_CATCH:	throw runtime_error("Instruction not yet implemented.");
@@ -173,12 +173,14 @@ Instruction* Interpreter::processInstruction(Instruction* insn) {
 
 // may need ASM implementation
 Instruction* Interpreter::performCall(QuaMethod* method) {
+
     switch(method->action) {
         case QuaMethod::INTERPRET:  return (Instruction*) method->code; //TODO set flag to compile
         case QuaMethod::COMPILE:    compiler->compile(method); // and fall-through
         case QuaMethod::JUMPTO:     throw runtime_error("Jumping to compiled code blobs is not yet implemented.");
-        case QuaMethod::C_CALL:     return performReturn( ( (QuaValue (*)())method->code )() );
+        case QuaMethod::C_CALL:     return performReturn( ( __extension__ (QuaValue (*)())method->code )() );
     }
+    return NULL; // to make the compiler happy...
 }
 
 Instruction* Interpreter::performReturn(QuaValue retVal) {
@@ -258,6 +260,5 @@ Instruction* Interpreter::handleCALL(Instruction* insn) {
     functionPrologue(regs[insn->ARG1], insn + 1, true, methSig->argCnt, insn->ARG0);
     return performCall(getClass(regs[insn->ARG1])->lookupMethod(methSig));
 }
-
 
 

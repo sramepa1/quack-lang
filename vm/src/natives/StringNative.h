@@ -17,12 +17,12 @@ public:
         // first hidden field is reference to DataBlobNative which contains the string
         fields->insert(std::make_pair("length", (uint16_t)1));
 
-        createMethod((QuaSignature*)"\0init", (void*)&StringNative::init0NativeImpl);
-        createMethod((QuaSignature*)"\1init", (void*)&StringNative::init1NativeImpl);
-        createMethod((QuaSignature*)"\1_operatorPlus", (void*)&StringNative::_operatorPlusNativeImpl);
-        createMethod((QuaSignature*)"\1_operatorIndex", (void*)&StringNative::_operatorIndexNativeImpl);
-        createMethod((QuaSignature*)"\0_stringValue", (void*)&StringNative::_stringValueNativeImpl);
-        createMethod((QuaSignature*)"\1explode", (void*)&StringNative::explodeNativeImpl);
+        createMethod((QuaSignature*)"\0init", __extension__ (void*)&StringNative::init0NativeImpl);
+        createMethod((QuaSignature*)"\1init", __extension__ (void*)&StringNative::init1NativeImpl);
+        createMethod((QuaSignature*)"\1_operatorPlus", __extension__ (void*)&StringNative::_operatorPlusNativeImpl);
+        createMethod((QuaSignature*)"\1_operatorIndex", __extension__ (void*)&StringNative::_operatorIndexNativeImpl);
+        createMethod((QuaSignature*)"\0_stringValue", __extension__ (void*)&StringNative::_stringValueNativeImpl);
+        createMethod((QuaSignature*)"\1explode", __extension__ (void*)&StringNative::explodeNativeImpl);
 
     }
 

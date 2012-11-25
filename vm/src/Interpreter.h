@@ -38,6 +38,7 @@ private:
     Instruction* handlePUSHC(Instruction* insn);
 
     Instruction* handleCALL(Instruction* insn);
+
 };
 
 #endif // INTERPRETER_H

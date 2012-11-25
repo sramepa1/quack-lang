@@ -8,7 +8,7 @@
 
 struct QuaSignature {
     unsigned char argCnt;
-    char name[];
+    __extension__ char name[];
 };
 
 

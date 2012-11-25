@@ -17,11 +17,11 @@ public:
         *parent = NULL;
         *flags = CLS_DESTRUCTIBLE;
 
-        createMethod((QuaSignature*)"\1init", (void*)&FileNative::initNativeImpl);
-        createMethod((QuaSignature*)"\0readLine", (void*)&FileNative::readLineNativeImpl);
-        createMethod((QuaSignature*)"\1writeLine", (void*)&FileNative::writeLineNativeImpl);
-        createMethod((QuaSignature*)"\0eof", (void*)&FileNative::eofNativeImpl);
-        createMethod((QuaSignature*)"\0close", (void*)&FileNative::closeNativeImpl);
+        createMethod((QuaSignature*)"\1init", __extension__ (void*)&FileNative::initNativeImpl);
+        createMethod((QuaSignature*)"\0readLine", __extension__ (void*)&FileNative::readLineNativeImpl);
+        createMethod((QuaSignature*)"\1writeLine", __extension__ (void*)&FileNative::writeLineNativeImpl);
+        createMethod((QuaSignature*)"\0eof", __extension__ (void*)&FileNative::eofNativeImpl);
+        createMethod((QuaSignature*)"\0close", __extension__ (void*)&FileNative::closeNativeImpl);
 
     }
 
@@ -40,8 +40,8 @@ public:
         *parent = typeArray[linkedTypes->at("File")];
         *flags = CLS_DESTRUCTIBLE;
 
-        createMethod((QuaSignature*)"\1init", (void*)&OutFileNative::initNativeImpl);
-        createMethod((QuaSignature*)"\0readLine", (void*)&OutFileNative::readLineNativeImpl);
+        createMethod((QuaSignature*)"\1init", __extension__ (void*)&OutFileNative::initNativeImpl);
+        createMethod((QuaSignature*)"\0readLine", __extension__ (void*)&OutFileNative::readLineNativeImpl);
 
     }
 
@@ -57,8 +57,8 @@ public:
         *parent = typeArray[linkedTypes->at("File")];
         *flags = CLS_DESTRUCTIBLE;
 
-        createMethod((QuaSignature*)"\1init", (void*)&InFileNative::initNativeImpl);
-        createMethod((QuaSignature*)"\1writeLine", (void*)&InFileNative::writeLineNativeImpl);
+        createMethod((QuaSignature*)"\1init", __extension__ (void*)&InFileNative::initNativeImpl);
+        createMethod((QuaSignature*)"\1writeLine", __extension__ (void*)&InFileNative::writeLineNativeImpl);
 
     }
 

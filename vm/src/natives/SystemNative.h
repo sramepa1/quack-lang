@@ -15,7 +15,7 @@ public:
         fields->insert(std::make_pair("in", (uint16_t)1));
         fields->insert(std::make_pair("err", (uint16_t)2));
 
-        createMethod((QuaSignature*)"\0init", (void*)&SystemNative::initNativeImpl);
+        createMethod((QuaSignature*)"\0init", __extension__ (void*)&SystemNative::initNativeImpl);
 
     }
 
