@@ -121,7 +121,7 @@ class:
 
 class_inheritance:
     T_IDENTIFIER {$$ = new NDynClass(); $$->name = $1;}
-  | T_IDENTIFIER K_EXTENDS T_IDENTIFIER {NDynClass* tmp = new NDynClass(); $$ = tmp; tmp->name = $1; tmp->superClass = $3;}
+  | T_IDENTIFIER K_EXTENDS T_IDENTIFIER {NDynClass* tmp = new NDynClass(); $$ = tmp; tmp->name = $1; tmp->ancestor = $3;}
 ;
 
 stat_class_entries:

@@ -8,9 +8,6 @@
 #ifndef COMPILER_H
 #define	COMPILER_H
 
-#include "ConstantPool.h"
-#include "ClassTable.h"
-
 #include <fstream>
 #include <list>
 #include <vector>
@@ -29,7 +26,7 @@ public:
     
     const char* outputFileName;
     
-  //  void compile();
+    void compile();
     
     
 //private:

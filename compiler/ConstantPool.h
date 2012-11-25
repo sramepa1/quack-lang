@@ -8,6 +8,8 @@
 #ifndef CONSTANTPOOL_H
 #define	CONSTANTPOOL_H
 
+#include "Compiler.h"
+
 #include <list>
 #include <vector>
 
@@ -30,13 +32,13 @@ public:
     virtual ~ConstantPool();
     
     uint32_t totalSize;
-    uint16_t itemCnt;
+    uint32_t nextOffset;
     
-    int offset;
-    
-    std::list<ConstantPoolEntry*>* entries;
+    std::list<ConstantPoolEntry*> entries;
     
     int addConstant(char* content, int size);
+    
+    void write(Compiler& compiler);
     
 private:
 

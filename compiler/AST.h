@@ -34,11 +34,10 @@ class NProgram : public Node {
 public:
     virtual ~NProgram();
 
-    std::map<std::string, NDynClass*> DynClassDef;
-    std::map<std::string, NStatClass*> StatClassDef;
+    std::map<std::string, NClass*> ClassDef;
     
-    std::map<std::string, std::string> DynClassRef;
-    std::map<std::string, std::string> StatClassRef;
+    std::map<std::string, std::string*> DynClassRef;
+    std::map<std::string, std::string*> StatClassRef;
     
     std::map<std::string, uint16_t> classNameIndicies;
     
@@ -47,7 +46,10 @@ public:
     
     void addClass(std::string* name, NClass* nclass);
     
-    virtual void generateCode(Compiler&);
+    virtual void analyzeTree();
+    virtual void generateCode(Compiler& compiler);
+    
+    virtual void compile(Compiler&);
     
 };
 
@@ -57,6 +59,9 @@ public:
     std::string* name;
     
     std::list<ClassEntry*>* entries;
+    
+    virtual std::string* getAncestor() = 0;
+    virtual uint16_t getFlags() = 0;
     
     /*
     std::map<int, NInit*>* inits;
@@ -69,9 +74,18 @@ public:
 
 class NDynClass : public NClass {
 public:
+    NDynClass() : ancestor(NULL) {}
     virtual ~NDynClass() {}
     
     std::string* ancestor;
+    
+    virtual std::string* getAncestor() {
+        return ancestor;
+    }
+    
+    virtual uint16_t getFlags() {
+        return 0; // TODO add define
+    }
     
     virtual void generateCode(Compiler&) {}
 };
@@ -80,6 +94,14 @@ public:
 class NStatClass : public NClass {
 public:
     virtual ~NStatClass() {}
+    
+    virtual std::string* getAncestor() {
+        return NULL;
+    }
+    
+    virtual uint16_t getFlags() {
+        return 1; // TODO add define
+    }
     
     virtual void generateCode(Compiler&) {}
 };

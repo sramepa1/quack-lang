@@ -19,10 +19,10 @@ public:
     ClassTableEntry();
     virtual ~ClassTableEntry() {}
     
-    uint16_t nameIndex;
     uint16_t defSize;
-    uint32_t defOffset;
+   // uint32_t defOffset;
     
+    uint16_t nameIndex;
     uint16_t ancestor;
     uint16_t flags;
     
@@ -32,10 +32,8 @@ public:
     void addField(uint16_t cpNameIndex);
     void addMethod(uint16_t cpSigIndex, uint16_t cpCodeIndex);
     
-    void writeTable(Compiler& compiler);
+    void writeTable(Compiler& compiler, uint16_t offset);
     void writeDef(Compiler& compiler);
-    
-    uint16_t computeDefSize();
     
 private:
 
@@ -51,12 +49,11 @@ public:
     virtual ~ClassTable() {}
     
     uint32_t totalSize;
-    uint16_t itemCnt;
     
     std::list<ClassTableEntry*> classTableEntries;
     
     // returns index of added class
-    uint16_t addClass(ClassTableEntry* entry);
+    void addClass(ClassTableEntry* entry);
     
     void write(Compiler& compiler);
     

@@ -7,58 +7,75 @@ using namespace std;
 
 
 void NProgram::addClass(string* s, NClass* nclass) {
-    classes.insert(pair<string, NClass*>(*s, nclass));
+    ClassDef.insert(pair<string, NClass*>(*s, nclass));
 }
 
 NProgram::~NProgram() {
-    for(map<string, NClass*>::iterator it = classes.begin(); it != classes.end(); it++) {
+    for(map<string, NClass*>::iterator it = ClassDef.begin(); it != ClassDef.end(); it++) {
         delete (it->second);
     }
 }
 
 
-void NProgram::generateCode(Compiler& compiler) {
+void NProgram::compile(Compiler& compiler) {
+    analyzeTree();
     
-    // Defined classes
-    for(map<std::string, NClass*>::iterator it = DynClassDef.begin(); it != DynClassDef.end(); ++it) {
+    // write offsets
+    uint32_t tmp = compiler.offset + 8;
+    compiler.write((char*) &tmp, 4); // classtable file offset
+    
+    tmp = compiler.offset + classTable.totalSize + 4;
+    compiler.write((char*) &tmp, 4); // constatnpool file offset
+    
+    generateCode(compiler);
+}
+
+
+void NProgram::analyzeTree() {
+     // Defined classes
+    for(map<std::string, NClass*>::iterator it = ClassDef.begin(); it != ClassDef.end(); ++it) {
         
         ClassTableEntry* entry = new ClassTableEntry();
         
         // class name
-        char* className = it->first.c_str(); 
+        char* className = (char*) it->first.c_str(); 
         uint16_t cpIndex = constantPool.addConstant(className, it->first.size() + 1);
+        
+        const char* test = "abcdef";
+        constantPool.addConstant((char*) test, 7);
         
         classNameIndicies.insert(make_pair(it->first, cpIndex));
         entry->nameIndex = cpIndex;
         
-        // stapic or dynamic (flags)
-        //TODO 
-        entry->flags = 0;
+        // flags
+        entry->flags = it->second->getFlags();
         
-        if(true) {
-            // ancestor
-            if(it->second->ancestor == NULL) {
-                entry->ancestor = 0;
-            } else {
-                map<std::string, uint16_t>::iterator it = classNameIndicies.find(*(entry->ancestor));
+        // inheritance
+        string* ancestorName = it->second->getAncestor();
+        
+        if(ancestorName == NULL) {
+            entry->ancestor = 0;
+        } else {
+            map<std::string, uint16_t>::iterator it = classNameIndicies.find(*ancestorName);
 
-                if(it == classNameIndicies.end()) {
-                    // TODO error - ancestor does not exist
-                }
-
-                entry->ancestor = it->second;
+            if(it == classNameIndicies.end()) {
+                throw "Superclass does not exist.";
+                // TODO error - ancestor does not exist
             }
+
+            entry->ancestor = it->second;
         }
 
         
-        
-        
-        
-        
-        
-        classTable.addClass();
-        
+        classTable.addClass(entry);
     }
+}
+
+
+void NProgram::generateCode(Compiler& compiler) {
+    classTable.write(compiler);
+    
+    constantPool.write(compiler);
 }
 
 

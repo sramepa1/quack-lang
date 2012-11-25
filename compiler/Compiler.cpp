@@ -24,49 +24,31 @@ Compiler::Compiler() : outputFileName("a.q"), offset(0) {}
 
 Compiler::~Compiler() {}
 
-/*
+
 void Compiler::compile() {
     
     ofs.open(outputFileName, ios::out | ios::trunc | ios::binary);
     
-    
     yyparse();
-    
-    
-    
     
     // write prologs
     write("#!/usr/bin/daisy\n");
     writeAlign8();
     
-    char header[16];
+    char header[8];
     *((uint32_t*) header) = 0x0D550C4D;  // magic {0xD, 'U', 0xC, 'K'}
 
     *((uint16_t*) header + 2) = 1; // version 1
     *((uint16_t*) header + 3) = 1; // version 1
-    *((uint32_t*) header + 2) = offset + 16; // classtable follows imediately
-    *((uint32_t*) header + 3) = offset + 16 + constanPool->size();
         
-    write(header, 16);
+    write(header, 8);
     
-    writeConstantPool();
-    writeClassTable();
-    
-    
-    //quackProgram->generateCode(ofs);
-    
-    
-    int tmp = 1234;
-    
-    ofs.write((char*) &tmp, 4);
-    
-    ofs << 1234;
-    
+    quackProgram->compile(*this);
     
     ofs.close();
 }
 
-
+/*
 
 void Compiler::writeClassTable() {
     
