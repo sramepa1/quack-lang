@@ -37,12 +37,12 @@ QuaValue StringNative::init1NativeImpl() {
 }
 
 
-QuaValue StringNative::_operatorPlusNativeImpl() {
+QuaValue StringNative::_opPlusNativeImpl() {
     throw runtime_error("Native method not yet implemented.");
 }
 
 
-QuaValue StringNative::_operatorIndexNativeImpl() {
+QuaValue StringNative::_opIndexNativeImpl() {
     throw runtime_error("Native method not yet implemented.");
 }
 

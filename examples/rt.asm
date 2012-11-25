@@ -57,7 +57,7 @@ classtable:
 .cls5:
 	dw 5						; CP index 5 = "String"
 	dw .endstring-.stringclass
-	dd .sysclass
+	dd .stringclass
 
 ; === CLASS DEFINITIONS ===
 

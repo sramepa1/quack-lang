@@ -112,7 +112,7 @@ alignb 8, db 0
 	db 'out',0
 	alignb 8, db 0
 .item4:
-	db 1,'writeLine',0
+	db 1,'writeLineN',0		; bypass stub
 	alignb 8, db 0
 .item5:
 	db 'String',0

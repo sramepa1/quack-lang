@@ -52,7 +52,7 @@ QuaMethod* QuaClass::lookupMethod(QuaSignature* sig) {
     if(parent == NULL) {
         ostringstream os;
         os << "Method \"" << sig->name << "\" with " << (int)sig->argCnt << " arg(s) of class " << className
-                << "not found in internal VM lookup.";
+                << " not found in internal VM lookup.";
         throw runtime_error(os.str());
     }
     return parent->lookupMethod(sig);
