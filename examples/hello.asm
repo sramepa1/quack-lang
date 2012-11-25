@@ -70,6 +70,7 @@ classtable:
 	; field name indices array would be here if Main had fields
 	dw 1						; 1 method
 
+	dw 0						; flags      = empty (normal, fully accessible method)
 	dw 1						; CP index 1 = signature of main(args)
 	dw 7						; CP index 6 = bytecode of main(args)
 .endmain:

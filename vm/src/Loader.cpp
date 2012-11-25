@@ -264,12 +264,13 @@ QuaClass::QuaClass(void* constantPool, void* classDef, const string& className, 
 
     curPos += 2;
     for(uint16_t i = 0; i < methodCount; ++i) {
-        uint16_t signatureIndex = ((uint16_t*)curPos)[2 * i];
-        uint16_t codeIndex = ((uint16_t*)curPos)[2 * i + 1];
+        uint16_t methodFlags = ((uint16_t*)curPos)[3 * i];
+        uint16_t signatureIndex = ((uint16_t*)curPos)[3 * i + 1];
+        uint16_t codeIndex = ((uint16_t*)curPos)[3 * i + 2];
         QuaSignature* signature = (QuaSignature*)getConstantPoolEntry(constantPool, signatureIndex);
 
         if(!Loader::checkIdentifier(signature->name)) {
-            throw runtime_error("Method name is invalid!");
+            throw runtime_error(string("Method name \"") + signature->name + "\" is invalid!");
         }
 
 #ifdef DEBUG
