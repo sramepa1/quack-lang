@@ -10,6 +10,7 @@
 #include "ClassTable.h"
 #include "ConstantPool.h"
 
+#include <iostream>
 #include <list>
 #include <map>
 #include <set>

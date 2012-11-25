@@ -33,10 +33,10 @@ void ClassTableEntry::addMethod(uint16_t cpSigIndex, uint16_t cpCodeIndex) {
 }
 
 
-void ClassTableEntry::writeTable(Compiler& compiler, uint16_t offset) {
+void ClassTableEntry::writeTable(Compiler& compiler, uint32_t offset) {
     compiler.write((char*) &nameIndex, 2); // CP index of class name
     compiler.write((char*) &defSize, 2);
-    compiler.write((char*) &offset, 2);
+    compiler.write((char*) &offset, 4);
 }
 
 

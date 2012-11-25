@@ -32,7 +32,7 @@ public:
     void addField(uint16_t cpNameIndex);
     void addMethod(uint16_t cpSigIndex, uint16_t cpCodeIndex);
     
-    void writeTable(Compiler& compiler, uint16_t offset);
+    void writeTable(Compiler& compiler, uint32_t offset);
     void writeDef(Compiler& compiler);
     
 private:
