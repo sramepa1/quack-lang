@@ -5,25 +5,26 @@
 
 QuaValue stringDeserializer(const char* data);
 
-class StringNative : protected NativeLoader
+class StringNative
 {
+    const char* const name;
+
 public:
-    StringNative() : NativeLoader("String", 2) {
+    StringNative(NativeLoader* loader) : name("String") {
+        loader->registerClassDeserializer(name, &stringDeserializer);
 
-        *parent = NULL;
-        *flags = CLS_STATIC;
-        *deserializer = &stringDeserializer;
-
-        // first hidden field is reference to DataBlobNative which contains the string
-        fields->insert(std::make_pair("length", (uint16_t)1));
-
-        createMethod((QuaSignature*)"\0init", __extension__ (void*)&StringNative::init0NativeImpl);
-        createMethod((QuaSignature*)"\1init", __extension__ (void*)&StringNative::init1NativeImpl);
-        createMethod((QuaSignature*)"\1_operatorPlus", __extension__ (void*)&StringNative::_operatorPlusNativeImpl);
-        createMethod((QuaSignature*)"\1_operatorIndex", __extension__ (void*)&StringNative::_operatorIndexNativeImpl);
-        createMethod((QuaSignature*)"\0_stringValue", __extension__ (void*)&StringNative::_stringValueNativeImpl);
-        createMethod((QuaSignature*)"\1explode", __extension__ (void*)&StringNative::explodeNativeImpl);
-
+        loader->registerNativeMethod(name, (QuaSignature*)"\0init",
+                          __extension__ (void*)&StringNative::init0NativeImpl);
+        loader->registerNativeMethod(name, (QuaSignature*)"\1init",
+                          __extension__ (void*)&StringNative::init1NativeImpl);
+        loader->registerNativeMethod(name, (QuaSignature*)"\1_operatorPlus",
+                          __extension__ (void*)&StringNative::_operatorPlusNativeImpl);
+        loader->registerNativeMethod(name, (QuaSignature*)"\1_operatorIndex",
+                          __extension__ (void*)&StringNative::_operatorIndexNativeImpl);
+        loader->registerNativeMethod(name, (QuaSignature*)"\0_stringValue",
+                          __extension__ (void*)&StringNative::_stringValueNativeImpl);
+        loader->registerNativeMethod(name, (QuaSignature*)"\1explode",
+                          __extension__ (void*)&StringNative::explodeNativeImpl);
     }
 
     static QuaValue init0NativeImpl();                  // native init()

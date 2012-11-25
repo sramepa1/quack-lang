@@ -1,69 +1,63 @@
 #ifndef FILENATIVE_H
 #define FILENATIVE_H
 
-#include "../NativeLoader.h"
+#include "NativeLoader.h"
 
 // Flags for File instances
 #define FILE_FLAG_CLOSED 1
 #define FILE_FLAG_UNCLOSEABLE 2
 
-class FileNative : protected NativeLoader
+class FileNative
 {
+    const char* const name;
+
 public:
 
-    // 3 hidden fields - first is for flags, second and third are high and low part of std::fstream pointer
-    FileNative() : NativeLoader("File", 3) {
-
-        *parent = NULL;
-        *flags = CLS_DESTRUCTIBLE;
-
-        createMethod((QuaSignature*)"\1init", __extension__ (void*)&FileNative::initNativeImpl);
-        createMethod((QuaSignature*)"\0readLine", __extension__ (void*)&FileNative::readLineNativeImpl);
-        createMethod((QuaSignature*)"\1writeLine", __extension__ (void*)&FileNative::writeLineNativeImpl);
-        createMethod((QuaSignature*)"\0eof", __extension__ (void*)&FileNative::eofNativeImpl);
-        createMethod((QuaSignature*)"\0close", __extension__ (void*)&FileNative::closeNativeImpl);
-
+    FileNative(NativeLoader* loader) : name("File") {
+        loader->registerNativeMethod(name, (QuaSignature*)"\1initN",
+                          __extension__ (void*)&FileNative::initNativeImpl);
+        loader->registerNativeMethod(name, (QuaSignature*)"\0readLine",
+                          __extension__ (void*)&FileNative::readLineNativeImpl);
+        loader->registerNativeMethod(name, (QuaSignature*)"\1writeLineN",
+                          __extension__ (void*)&FileNative::writeLineNativeImpl);
+        loader->registerNativeMethod(name, (QuaSignature*)"\0eof",
+                          __extension__ (void*)&FileNative::eofNativeImpl);
+        loader->registerNativeMethod(name, (QuaSignature*)"\0finalize",
+                          __extension__ (void*)&FileNative::finalizeNativeImpl);
     }
 
     static QuaValue initNativeImpl();       // native init(filename);
     static QuaValue readLineNativeImpl();   // native fun readLine();
     static QuaValue writeLineNativeImpl();  // native fun writeLine(string);
     static QuaValue eofNativeImpl();        // native fun eof();
-    static QuaValue closeNativeImpl();      // native fun close();
+    static QuaValue finalizeNativeImpl();   // native fun finalize();
 };
 
-class OutFileNative : protected NativeLoader
+class OutFileNative
 {
+    const char* const name;
+
 public:
-    OutFileNative() : NativeLoader("OutFile", 0) {
-
-        *parent = typeArray[linkedTypes->at("File")];
-        *flags = CLS_DESTRUCTIBLE;
-
-        createMethod((QuaSignature*)"\1init", __extension__ (void*)&OutFileNative::initNativeImpl);
-        createMethod((QuaSignature*)"\0readLine", __extension__ (void*)&OutFileNative::readLineNativeImpl);
-
+    OutFileNative(NativeLoader* loader) : name("OutFile") {
+        loader->registerNativeMethod(name, (QuaSignature*)"\1initN",
+                          __extension__ (void*)&OutFileNative::initNativeImpl);
     }
 
     static QuaValue initNativeImpl();
-    static QuaValue readLineNativeImpl();   // throws an exception :)
 };
 
-class InFileNative : protected NativeLoader
+class InFileNative
 {
+    const char* const name;
+
 public:
-    InFileNative() : NativeLoader("InFile", 0) {
-
-        *parent = typeArray[linkedTypes->at("File")];
-        *flags = CLS_DESTRUCTIBLE;
-
-        createMethod((QuaSignature*)"\1init", __extension__ (void*)&InFileNative::initNativeImpl);
-        createMethod((QuaSignature*)"\1writeLine", __extension__ (void*)&InFileNative::writeLineNativeImpl);
-
+    InFileNative(NativeLoader* loader) : name("InFile") {
+        loader->registerNativeMethod(name, (QuaSignature*)"\1initN",
+                          __extension__ (void*)&InFileNative::initNativeImpl);
     }
 
     static QuaValue initNativeImpl();
-    static QuaValue writeLineNativeImpl();   // throws an exception :)
+
 };
 
 #endif // FILENATIVE_H

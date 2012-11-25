@@ -18,10 +18,6 @@ extern "C" {
 }
 
 #include "NativeLoader.h"
-#include "SystemNative.h"
-#include "FileNative.h"
-#include "ExceptionNative.h"
-#include "StringNative.h"
 
 #define INVALID_TYPE 0xFFFF
 
@@ -31,27 +27,14 @@ extern "C" {
 
 using namespace std;
 
-Loader::Loader() : mmapedClsFiles(new vector<pair<void*, size_t> >()), mainClassType(INVALID_TYPE) {
+Loader::Loader() : mmapedClsFiles(new vector<pair<void*, size_t> >()) {
 #ifdef DEBUG
     cout << "Start loading native classes!" << endl;
 #endif
 
     // Loading the core classes of Quack runtime
     // This will be replaced by resource embedded into VM's binary
-    //loadClassFile("./rt.qc");
-
-    DataBlobNative();
-    SystemNative();
-
-    FileNative();
-    OutFileNative();
-    InFileNative();
-
-    StringNative();
-
-    ExceptionNative();
-    NotFoundExceptionNative();
-    IOExceptionNative();
+    loadClassFile("./rt.qc");
 
 #ifdef DEBUG
     cout << "Native classes loaded!" << endl;
@@ -195,7 +178,7 @@ void Loader::parseClass(char* start, void* poolPtr, void* clsTablePtr) {
 }
 
 QuaClass::QuaClass(void* constantPool, void* classDef, const string& className, void* clsTabPtr)
-    : deserializer(&defaultDeserializer), className(className), relevantCP(constantPool), relevantCT(clsTabPtr)  {
+    : className(className), relevantCP(constantPool), relevantCT(clsTabPtr)  {
 
     char* curPos = (char*)classDef;
 
@@ -217,6 +200,9 @@ QuaClass::QuaClass(void* constantPool, void* classDef, const string& className, 
     curPos += 2;
     flags = *(uint16_t*)curPos;
     // TODO: check static class inheritance
+
+    // deserializer
+    deserializer = nativeLoader->getClassDeserializer(className);
 
     // fields
     curPos += 2;

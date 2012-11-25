@@ -1,69 +1,28 @@
 #ifndef NATIVELOADER_H
 #define NATIVELOADER_H
 
-#ifdef DEBUG
-#include <iostream>
-#endif
+#include <map>
 
 #include "globals.h"
-
 #include "QuaClass.h"
 
 class NativeLoader {
 
 public:
     NativeLoader();
+    ~NativeLoader();
+
     void* getNativeMethod(std::string className, QuaSignature* methodSig);
+    void registerNativeMethod(std::string className, QuaSignature* methodSig, void* nativeImpl);
 
-protected:
+    QuaValue (*getClassDeserializer(std::string className))(const char*);
+    void registerClassDeserializer(std::string className, QuaValue (*deserializer)(const char*));
 
-    NativeLoader(std::string name, uint16_t fieldCount) {
-#ifdef DEBUG
-        std::cout << "Creating native class: " << name << std::endl;
-#endif
-        QuaClass* nativeClass = new QuaClass();
+private:
 
-        parent = &(nativeClass->parent);
-        flags = &(nativeClass->flags);
-        deserializer = &(nativeClass->deserializer);
+    std::map<std::string, std::map<QuaSignature*, void*, QuaSignatureComp> >* nativeMethods;
+    std::map<std::string, QuaValue(*)(const char*)>* deserializers;
 
-        fields = &(nativeClass->fieldIndices);
-        methods = &(nativeClass->methods);
-
-        nativeClass->className = name;
-        nativeClass->relevantCP = NULL; // This is OK as long as native classes don't have bytecode accessing these
-        nativeClass->relevantCT = NULL;
-        nativeClass->myFieldCount = fieldCount;
-
-        typeArray[linkedTypes->size()] = nativeClass;
-        linkedTypes->insert(make_pair(name, linkedTypes->size()));
-
-#ifdef DEBUG
-        std::cout << "Native class: " << name << " registered!" << std::endl;
-#endif
-    }
-
-    void createMethod(QuaSignature* signature, void* code) {
-        QuaMethod* method = new QuaMethod();
-        method->action = QuaMethod::C_CALL;
-        method->code = code;
-        methods->insert(std::make_pair(signature, method));
-    }
-
-    QuaClass** parent;
-    uint16_t* flags;
-    QuaValue (**deserializer)(const char* data);
-
-    std::map<const char*, uint16_t, FieldNameComparator>* fields;
-    std::map<QuaSignature*, QuaMethod*, QuaSignatureComp>* methods;
-
-};
-
-// WARNING: This native QuaClass is only used as helper data storage for arrays or strings. It cannot be created
-//          by calling of "new" instruction!
-class DataBlobNative : protected NativeLoader {
-public:
-    DataBlobNative() : NativeLoader("", 0) {}
 };
 
 

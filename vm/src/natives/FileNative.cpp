@@ -48,7 +48,7 @@ QuaValue FileNative::eofNativeImpl() {
 }
 
 
-QuaValue FileNative::closeNativeImpl() {
+QuaValue FileNative::finalizeNativeImpl() {
     throw runtime_error("Native method not yet implemented.");
 }
 
@@ -58,16 +58,7 @@ QuaValue OutFileNative::initNativeImpl() {
 }
 
 
-QuaValue OutFileNative::readLineNativeImpl() {
-    throw runtime_error("Native method not yet implemented.");
-}
-
-
 QuaValue InFileNative::initNativeImpl() {
     throw runtime_error("Native method not yet implemented.");
 }
 
-
-QuaValue InFileNative::writeLineNativeImpl() {
-    throw runtime_error("Native method not yet implemented.");
-}
