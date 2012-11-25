@@ -63,7 +63,7 @@ int main(int argc, char* argv[]) {
             initSigsegv();
             loader->loadClassFile(argv[1]);
             Interpreter interpreter;
-            interpreter.start(loader->getMainType());
+            interpreter.start();
         } else {
             // SIGSEGV handler long jump landing
             throw runtime_error("QUACK OVERFLOW!");

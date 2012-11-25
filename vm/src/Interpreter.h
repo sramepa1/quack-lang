@@ -18,7 +18,7 @@ class Interpreter
 {
 public:
     Interpreter();
-    void start(uint16_t mainClassType);
+    void start();
     Instruction* processInstruction(Instruction* insn);
 
 private:

@@ -31,7 +31,7 @@ dd constantpool;				; Constant pool offset in file
 
 classtable:
 	dd .classdeftotalsize		; Class def blob size, including alignment bytes
-	dw 5						; Class table item count 
+	dw 6						; Class table item count 
 								; (number of class references, not definitions)
 	alignb 8, db 0
 .cls0:

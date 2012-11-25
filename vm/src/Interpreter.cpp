@@ -18,13 +18,23 @@ Interpreter::Interpreter() : regs(vector<QuaValue>(65536)), compiler(new JITComp
 {
 }
 
-void Interpreter::start(uint16_t mainClassType) {
+void Interpreter::start() {
+
+    map<string, uint16_t>::iterator mainIt = linkedTypes->find("Main");
+    if(mainIt == linkedTypes->end()) {
+        throw runtime_error("Main class was not found!");
+    }
+    uint16_t mainClassType = mainIt->second;
 
 #ifdef DEBUG
     cout << "Initializing interpreter environment, Main class has type " << mainClassType << endl;
 #endif
 
     QuaClass* mainClass = resolveType(mainClassType);
+
+    if(!mainClass->isStatic()) {
+        throw runtime_error("Main class is not static!");
+    }
 
     // push This pointer
     *(--BP) = heap->allocateNew(mainClassType, mainClass->getFieldCount());

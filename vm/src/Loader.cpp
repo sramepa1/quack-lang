@@ -38,7 +38,7 @@ Loader::Loader() : mmapedClsFiles(new vector<pair<void*, size_t> >()), mainClass
 
     // Loading the core classes of Quack runtime
     // This will be replaced by resource embedded into VM's binary
-    loadClassFile("./rt.qc");
+    //loadClassFile("./rt.qc");
 
     DataBlobNative();
     SystemNative();
@@ -156,14 +156,6 @@ void Loader::loadClassFile(const char* cfName) {
 #endif
 }
 
-uint16_t Loader::getMainType() {
-    if(mainClassType == INVALID_TYPE) {
-        throw runtime_error("Main class not found!");
-    }
-
-    return mainClassType;
-}
-
 
 void Loader::parseClass(char* start, void* poolPtr, void* clsTablePtr) {
     uint16_t nameIndex = *(uint16_t*)start;
@@ -193,12 +185,6 @@ void Loader::parseClass(char* start, void* poolPtr, void* clsTablePtr) {
 
     typeArray[linkedTypes->size()] =
             new QuaClass(poolPtr, (char*)mmapedClsFiles->back().first + classOffset, className, clsTablePtr);
-
-    // find Main class
-    // TODO: check if class Main is statclass
-    if(className == "Main") {
-        mainClassType = linkedTypes->size();
-    }
 
     linkedTypes->insert(make_pair(className, linkedTypes->size()));
 

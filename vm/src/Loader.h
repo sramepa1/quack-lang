@@ -16,14 +16,12 @@ public:
 
     void loadNative();
     void loadClassFile(const char* cfName);
-    uint16_t getMainType();
 
     static bool checkIdentifier(const char* id);
 
 private:
 
     std::vector<std::pair<void*, size_t> >* mmapedClsFiles;
-    uint16_t mainClassType;
 
     void parseClass(char* start, void* poolPtr, void* clsTablePtr);
 
