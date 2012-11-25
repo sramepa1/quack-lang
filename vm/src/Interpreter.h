@@ -8,8 +8,10 @@ extern "C" {
 
 #include "Instruction.h"
 #include "JITCompiler.h"
+#include "QuaClass.h"
 #include "QuaValue.h"
 #include "QuaMethod.h"
+#include "QuaSignature.h"
 
 
 class ExitException {};
@@ -26,7 +28,7 @@ private:
 
     JITCompiler* compiler;
 
-    Instruction* performCall(QuaMethod* method);
+    Instruction* performCall(QuaClass* type, QuaSignature* sig);
     Instruction* performReturn(QuaValue retVal);
 
     static Instruction* handleIllegalInstruction(Instruction* insn);

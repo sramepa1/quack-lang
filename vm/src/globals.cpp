@@ -36,6 +36,7 @@ extern "C" {
 
     NativeLoader* nativeLoader;
     Loader* loader;
+    Interpreter* interpreter;
 
     sigjmp_buf jmpEnv;
 
@@ -63,4 +64,6 @@ void initGlobals(size_t valStackSize, size_t addrStackSize, size_t heapSize) {
 
     nativeLoader = new NativeLoader();
     loader = new Loader();
+
+    interpreter = new Interpreter();
 }

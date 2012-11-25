@@ -1,6 +1,8 @@
 #ifndef GLOBALS_H
 #define GLOBALS_H
 
+#define VM_VERSION 1
+
 /* Assembly-access-friendly VM state globals */
 
 // but is it even needed?
@@ -14,6 +16,7 @@
 #include "QuaFrame.h"
 #include "Heap.h"
 #include "Loader.h"
+#include "Interpreter.h"
 
 
 // These symbols might be needed from assembly sources -> disable mangling
@@ -40,6 +43,7 @@ extern "C" {
 
     extern NativeLoader* nativeLoader;
     extern Loader* loader;
+    extern Interpreter* interpreter;
 
     void initGlobals(size_t valStackSize, size_t addrStackSize, size_t heapSize);
 

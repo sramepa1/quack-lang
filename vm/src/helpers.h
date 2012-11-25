@@ -32,7 +32,7 @@ inline const char* getConstantPoolEntry(void* poolPtr, uint16_t index) {
 }
 
 inline const uint64_t* getClassTableEntry(void* tablePtr, uint16_t index) {
-    return (uint64_t*)tablePtr + 1 + index;
+    return (uint64_t*)tablePtr + 1 + index; // 1 jumps over table header
 }
 
 inline QuaClass* getClass(QuaValue val) {

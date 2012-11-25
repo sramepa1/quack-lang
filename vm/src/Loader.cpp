@@ -183,8 +183,7 @@ QuaClass::QuaClass(void* constantPool, void* classDef, const string& className, 
     char* curPos = (char*)classDef;
 
     // ancestor
-    // the addend '1' is here because is needed to jump over the class table header
-    uint16_t ancestorIndex = *(uint16_t*)((uint64_t*)clsTabPtr + 1 + *(uint16_t*)curPos);
+    uint16_t ancestorIndex = *((uint16_t *)getClassTableEntry(clsTabPtr, *(uint16_t*)curPos));
     string ancestorName(getConstantPoolEntry(constantPool, ancestorIndex));
 
     if(className == ancestorName) {

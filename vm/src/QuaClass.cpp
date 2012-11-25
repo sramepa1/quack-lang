@@ -43,6 +43,10 @@ void QuaClass::setInstance(QuaValue newInstance) {
     instance = newInstance;
 }
 
+const char* QuaClass::getName() {
+    return className.c_str();
+}
+
 QuaMethod* QuaClass::lookupMethod(QuaSignature* sig) {
 
     map<QuaSignature*, QuaMethod*, QuaSignatureComp>::iterator it = methods.find(sig);

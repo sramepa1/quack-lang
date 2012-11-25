@@ -10,6 +10,8 @@
 
 #ifdef DEBUG
 #include <iostream>
+#elif defined TRACE
+#include <iostream>
 #endif
 
 using namespace std;
@@ -51,6 +53,10 @@ void Interpreter::start() {
 #endif
 
     while(1) {
+
+#ifdef TRACE
+        cout << "# " << getThisClass()->getName() << ": ";
+#endif
         pc = processInstruction(pc);
     }
 }
@@ -89,7 +95,11 @@ Instruction* Interpreter::processInstruction(Instruction* insn) {
 
     switch(insn->op) {
 
-    case OP_NOP:    return ++insn;
+            case OP_NOP:
+                            #ifdef TRACE
+                                cout << "NOP" << endl;
+                            #endif
+                            return ++insn;
             case OP_LDC:    return handleLDC(insn);
             case OP_LDCT:   return handleLDCT(insn);
             case OP_LDNULL:	return handleLDNULL(insn);
@@ -145,29 +155,36 @@ Instruction* Interpreter::processInstruction(Instruction* insn) {
             case OP_NEW:	return handleNEW(insn);
             case OP_RET:	return handleRET(insn);
             case OP_RETT:	return handleRETT(insn);
-            case OP_RETNULL:return performReturn(QuaValue());
+            case OP_RETNULL:
+                            #ifdef TRACE
+                                cout << "RETNULL" << endl;
+                            #endif
+                            return performReturn(QuaValue());
             case OP_TRY:	return handleTRY(insn);
             case OP_CATCH:	return handleCATCH(insn);
             case OP_THROW:	return handleTHROW(insn);
             case OP_THROWT:	return handleTHROWT(insn);
             case OP_FIN:	return handleFIN(insn);
             case OP_HCF:
-            case OP_HLT:    throw ExitException();
+            case OP_HLT:
+                            #ifdef TRACE
+                                cout << "HLT" << endl;
+                            #endif
+                            throw ExitException();
 
         default:        return handleIllegalInstruction(insn);
     }
-
-    // SIGSEGV tests
-    //*((char*)valStackLow + getpagesize() - 1) = 'a';
-    //*((char*)addrStackLow + getpagesize() - 1) = 'a';
-    //*((char*)heap->getEnd() - 1) = 'a';
-    //*((char*)NULL) = 'a';
-
-    //compiler->compile(NULL);
 }
 
+
 // may need ASM implementation
-Instruction* Interpreter::performCall(QuaMethod* method) {
+Instruction* Interpreter::performCall(QuaClass* type, QuaSignature* sig) {
+
+    QuaMethod* method = type->lookupMethod(sig);
+
+#ifdef TRACE
+    cout << "# Calling " << getThisClass()->getName() << "::" << sig->name << '(' << (int)sig->argCnt << ')' << endl;
+#endif
 
     switch(method->action) {
         case QuaMethod::INTERPRET:  return (Instruction*) method->code; //TODO set flag to compile
@@ -188,9 +205,18 @@ Instruction* Interpreter::performReturn(QuaValue retVal) {
         throw ExitException(); // TODO Is this safe if code had passed through ASM?
     }
 
+#ifdef TRACE
+    cout << "# Returning from class " << getThisClass()->getName();
+#endif
+
     // The frame is a correct return address (frameType == METHOD)
     SP = BP + (ASP->ARG_COUNT + 1);
     BP = (QuaValue*)valStackHigh - ASP->BP_OFFSET;
+
+#ifdef TRACE
+    cout << " to class " << getThisClass()->getName() << endl;
+#endif
+
     if(ASP->INTERPRETED) {
         regs[ASP->DEST_REG] = retVal;
         return (Instruction*)((ASP++)->code);
@@ -203,15 +229,21 @@ Instruction* Interpreter::performReturn(QuaValue retVal) {
 
 
 Instruction* Interpreter::handleIllegalInstruction(Instruction* insn) {
+#ifdef TRACE
+    cout << "Illegal instruction!" << endl; // terminate the open line from main loop
+#endif
     ostringstream os;
     os << "Illegal instruction opcode 0x" << setw(2) << setfill('0') << uppercase << hex << (int)insn->op
-       << " encountered at " << insn << "." << endl;
-    // TODO improve this error message - print current class and method names
+       << " encountered at " << insn << " in class " << getThisClass()->getName() << "." << endl;
     throw runtime_error(os.str());
 }
 
 
 Instruction* Interpreter::handleLDC(Instruction* insn) {
+
+#ifdef TRACE
+    cout << "LDC r" << insn->ARG0 << ", " << insn->ARG1 << ", " << insn->ARG2 << endl;
+#endif
 
     regs[insn->ARG0] = loadConstant(insn->ARG1, insn->ARG2);
     return ++insn;
@@ -220,6 +252,10 @@ Instruction* Interpreter::handleLDC(Instruction* insn) {
 
 Instruction* Interpreter::handleLDF(Instruction* insn) {
 
+#ifdef TRACE
+    cout << "LDF r" << insn->ARG0 << ", r" << insn->ARG1 << ", " << insn->ARG2 << endl;
+#endif
+
     regs[insn->ARG0] = getFieldByName(regs[insn->ARG1], getCurrentCPEntry(insn->ARG2));
     return ++insn;
 }
@@ -227,13 +263,17 @@ Instruction* Interpreter::handleLDF(Instruction* insn) {
 
 Instruction* Interpreter::handleLDSTAT(Instruction* insn) {
 
+#ifdef TRACE
+    cout << "LDSTAT r" << insn->ARG0 << ", " << insn->ARG1 << endl;
+#endif
+
     QuaClass* statclass = resolveType(insn->ARG1);
     QuaValue instance = statclass->getInstance();
     if(instance.value == 0) {
         instance = heap->allocateNew(insn->ARG1, statclass->getFieldCount());
         statclass->setInstance(instance);
         functionPrologue(instance, insn, true, 0, insn->ARG0);
-        return performCall(statclass->lookupMethod((QuaSignature*)"\0init"));
+        return performCall(statclass, (QuaSignature*)"\0init");
     }
     regs[insn->ARG0] = instance;
     return ++insn;
@@ -286,6 +326,10 @@ Instruction* Interpreter::handlePOP(Instruction* insn) {
 
 
 Instruction* Interpreter::handlePUSHC(Instruction* insn) {
+
+#ifdef TRACE
+    cout << "PUSHC " << insn->ARG0 << ", " << insn->ARG1 << endl;
+#endif
 
     *(--SP) = loadConstant(insn->ARG0, insn->ARG1);
     return ++insn;
@@ -349,9 +393,13 @@ Instruction* Interpreter::handleJCC(Instruction* insn) {
 
 Instruction* Interpreter::handleCALL(Instruction* insn) {
 
+#ifdef TRACE
+    cout << "CALL r" << insn->ARG0 << ", r" << insn->ARG1 << ", " << insn->ARG2 << endl;
+#endif
+
     QuaSignature* methSig = (QuaSignature*)getCurrentCPEntry(insn->ARG2);
     functionPrologue(regs[insn->ARG1], insn + 1, true, methSig->argCnt, insn->ARG0);
-    return performCall(getClass(regs[insn->ARG1])->lookupMethod(methSig));
+    return performCall(getClass(regs[insn->ARG1]), methSig);
 }
 
 

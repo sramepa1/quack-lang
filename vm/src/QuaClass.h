@@ -39,6 +39,7 @@ public:
     uint16_t lookupFieldIndex(const char* fieldName);
     QuaValue getInstance();
     void setInstance(QuaValue newInstance);
+    const char* getName();
 
     QuaValue deserialize(const char* data) { return deserializer(data); }
 

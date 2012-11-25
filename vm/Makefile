@@ -1,6 +1,6 @@
 CFLAGS = -pedantic -Wall -O0 -g3
 INCLUDE = ../common/include src/natives src
-DEFINE = DEBUG
+DEFINE = DEBUG TRACE
 INCDEF = $(foreach inc,$(INCLUDE),-I$(inc)) $(foreach def,$(DEFINE),-D$(def))
 
 OBJECTS = $(patsubst src/%.cpp,build/%.o,$(wildcard src/*.cpp))
