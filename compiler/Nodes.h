@@ -8,12 +8,14 @@
 #ifndef NODES_H
 #define	NODES_H
 
+#include <fstream>
+
 class Node {
 public:
     virtual ~Node() {}
     
     //virtual void analyzeTree() = 0;
-    virtual void generateCode() = 0;
+    virtual void generateCode(std::ofstream&) = 0;
 };
 
 class NStatement : public Node {

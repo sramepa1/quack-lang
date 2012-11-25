@@ -7,6 +7,9 @@
 
 #include "Nodes.h"
 
+#include "ClassTable.h"
+#include "ConstantPool.h"
+
 #include <list>
 #include <map>
 #include <set>
@@ -15,6 +18,7 @@
 #ifndef AST_H
 #define	AST_H
 
+using namespace std;
 
 enum ClassEntryType {FIELD, INIT, METHOD};
 
@@ -24,6 +28,29 @@ struct ClassEntry{
     ClassEntryType type;
     void* entry;
 };
+
+
+class NProgram : public Node {
+public:
+    virtual ~NProgram();
+
+    std::map<std::string, NDynClass*> DynClassDef;
+    std::map<std::string, NStatClass*> StatClassDef;
+    
+    std::map<std::string, std::string> DynClassRef;
+    std::map<std::string, std::string> StatClassRef;
+    
+    std::map<std::string, uint16_t> classNameIndicies;
+    
+    ClassTable classTable;
+    ConstantPool constantPool;
+    
+    void addClass(std::string* name, NClass* nclass);
+    
+    virtual void generateCode(Compiler&);
+    
+};
+
 
 class NClass : public Node {
 public:
@@ -39,24 +66,14 @@ public:
     
 };
 
-class NProgram : public Node {
-public:
-    virtual ~NProgram();
-
-    std::map<std::string, NClass*> classes;
-    
-    void addClass(std::string* name, NClass* nclass);
-    virtual void generateCode() {}
-};
-
 
 class NDynClass : public NClass {
 public:
     virtual ~NDynClass() {}
     
-    std::string* superClass;
+    std::string* ancestor;
     
-    virtual void generateCode() {}
+    virtual void generateCode(Compiler&) {}
 };
 
 
@@ -64,7 +81,7 @@ class NStatClass : public NClass {
 public:
     virtual ~NStatClass() {}
     
-    virtual void generateCode() {}
+    virtual void generateCode(Compiler&) {}
 };
 
 
@@ -76,7 +93,7 @@ public:
     std::list<NExpression*>* parameters;
     NBlock* block;
     
-    virtual void generateCode() {}
+    virtual void generateCode(Compiler&) {}
 };
 
 class NBlock : public Node {
@@ -85,7 +102,7 @@ public:
     
     std::list<NStatement*>* statements;
     
-    virtual void generateCode() {}
+    virtual void generateCode(Compiler&) {}
 };
 
 
@@ -109,85 +126,85 @@ public:
 class EAnd : public EBOp {
 public:
     virtual ~EAnd() {}
-    virtual void generateCode() {}
+    virtual void generateCode(Compiler&) {}
 };
 
 class EOr : public EBOp {
 public:
     virtual ~EOr() {}
-    virtual void generateCode() {}
+    virtual void generateCode(Compiler&) {}
 };
 
 class ENot : public EUOp {
 public:
     virtual ~ENot() {}
-    virtual void generateCode() {}
+    virtual void generateCode(Compiler&) {}
 };
 
 class EAdd : public EBOp {
 public:
     virtual ~EAdd() {}
-    virtual void generateCode() {}
+    virtual void generateCode(Compiler&) {}
 };
 
 class ESub : public EBOp {
 public:
     virtual ~ESub() {}
-    virtual void generateCode() {}
+    virtual void generateCode(Compiler&) {}
 };
 
 class EMul : public EBOp {
 public:
     virtual ~EMul() {}
-    virtual void generateCode() {}
+    virtual void generateCode(Compiler&) {}
 };
 
 class EDiv : public EBOp {
 public:
     virtual ~EDiv() {}
-    virtual void generateCode() {}
+    virtual void generateCode(Compiler&) {}
 };
 
 class EMod : public EBOp {
 public:
     virtual ~EMod() {}
-    virtual void generateCode() {}
+    virtual void generateCode(Compiler&) {}
 };
 
 class EEq : public EBOp {
 public:
     virtual ~EEq() {}
-    virtual void generateCode() {}
+    virtual void generateCode(Compiler&) {}
 };
 
 class ENe : public EBOp {
 public:
     virtual ~ENe() {}
-    virtual void generateCode() {}
+    virtual void generateCode(Compiler&) {}
 };
 
 class ELt : public EBOp {
 public:
     virtual ~ELt() {}
-    virtual void generateCode() {}
+    virtual void generateCode(Compiler&) {}
 };
 
 class ELe : public EBOp {
 public:
     virtual ~ELe() {}
-    virtual void generateCode() {}
+    virtual void generateCode(Compiler&) {}
 };
 
 class EGt : public EBOp {
 public:
     virtual ~EGt() {}
-    virtual void generateCode() {}
+    virtual void generateCode(Compiler&) {}
 };
 
 class EGe : public EBOp {
 public:
     virtual ~EGe() {}
-    virtual void generateCode() {}
+    virtual void generateCode(Compiler&) {}
 };
 
 
@@ -197,7 +214,7 @@ public:
     
     std::string* value;
     
-    virtual void generateCode() {}
+    virtual void generateCode(Compiler&) {}
 };
 
 class CInt : public NExpression {
@@ -206,7 +223,7 @@ public:
     
     int value;
     
-    virtual void generateCode() {}
+    virtual void generateCode(Compiler&) {}
 };
 
 class CFloat : public NExpression {
@@ -215,7 +232,7 @@ public:
     
     float value;
     
-    virtual void generateCode() {}
+    virtual void generateCode(Compiler&) {}
 };
 
 class CBool : public NExpression {
@@ -224,7 +241,7 @@ public:
     
     bool value;
     
-    virtual void generateCode() {}
+    virtual void generateCode(Compiler&) {}
 };
 
 
@@ -236,17 +253,12 @@ public:
     std::string* className;
     std::string* variableName;
     
-    virtual void generateCode() {}
+    virtual void generateCode(Compiler&) {}
 };
 
-class NScope : public Node {
-    virtual ~NScope() {}
-    
-};
 
-class VInteger : public NValue {
-    
-};
+
+
 
 ////////////////////////////////////////
 
@@ -257,7 +269,7 @@ public:
     EVarible* variable;
     NExpression* expression;
     
-    virtual void generateCode() {}
+    virtual void generateCode(Compiler&) {}
 };
 
 class NCall : public NStatement, public NExpression {
@@ -268,7 +280,7 @@ public:
     std::string* methodName;
     std::list<NExpression*>* parameters;
 
-    virtual void generateCode() {}
+    virtual void generateCode(Compiler&) {}
 };
 
 class SIf : public NStatement {
@@ -280,7 +292,7 @@ public:
     NBlock* thenBlock;
     NBlock* elseBlock;
     
-    virtual void generateCode() {}
+    virtual void generateCode(Compiler&) {}
 };
 
 class SFor : public NStatement {
@@ -292,7 +304,7 @@ public:
     NStatement* increment;
     NBlock* body;
 
-    virtual void generateCode() {}
+    virtual void generateCode(Compiler&) {}
 };
 
 

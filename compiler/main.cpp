@@ -1,15 +1,16 @@
 
-#include "AST.h"
+
+#include "Compiler.h"
+
 
 using namespace std;
 
-extern int yyparse();
-extern NProgram* quackProgram;
 
 int main(int argc, char** argv) {
     
-    yyparse();
-    quackProgram->generateCode();
+    Compiler compiler;
+    
+    compiler.compile();
 
     return 0;
 }
