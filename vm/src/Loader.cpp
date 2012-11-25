@@ -25,6 +25,8 @@ extern "C" {
 
 #define INVALID_TYPE 0xFFFF
 
+#define METHOD_FLAG_NATIVE 0x1
+
 using namespace std;
 
 Loader::Loader() : mmapedClsFiles(new vector<pair<void*, size_t> >()), mainClassType(INVALID_TYPE) {
@@ -32,7 +34,10 @@ Loader::Loader() : mmapedClsFiles(new vector<pair<void*, size_t> >()), mainClass
     cout << "Start loading native classes!" << endl;
 #endif
 
-    // TODO: load natives
+    // Loading the core classes of Quack runtime
+    // This will be replaced by resource embedded into VM's binary
+    //loadClassFile("./rt.qc");
+
     DataBlobNative();
     SystemNative();
 
@@ -62,7 +67,7 @@ void Loader::loadClassFile(const char* cfName) {
 
     int clsFileFD = open(cfName, O_RDONLY);
     if(clsFileFD == -1) {
-        throw runtime_error(string("Class file ") + cfName + " cannot be opened"
+        throw runtime_error(string("Class file ") + cfName + " cannot be opened "
                             "(check if the file exists and you have permission to read it)!");
     }
 
@@ -117,9 +122,9 @@ void Loader::loadClassFile(const char* cfName) {
     char* curPos = (char*)parsingStartPoint;
 
     // read classfile version and minimun required VM version
-    uint16_t clsFileVersion = *(uint16_t*)curPos;
+    //uint16_t clsFileVersion = *(uint16_t*)curPos;
     curPos += 2;
-    uint16_t minVmVersion = *(uint16_t*)curPos;
+    //uint16_t minVmVersion = *(uint16_t*)curPos;
     curPos += 2;
 
     // TODO: check VM version
@@ -130,7 +135,7 @@ void Loader::loadClassFile(const char* cfName) {
 
     // start parsing classes
     curPos = classTablePos;
-    uint32_t classTableSize = *(uint32_t*)curPos;
+    //uint32_t classTableSize = *(uint32_t*)curPos;
     curPos += 4;
     uint16_t numberOfClasses = *(uint16_t*)curPos;
     curPos += 4;
@@ -153,7 +158,6 @@ uint16_t Loader::getMainType() {
     if(mainClassType == INVALID_TYPE) {
         throw runtime_error("Main class not found!");
     }
-
 
     return mainClassType;
 }
@@ -278,8 +282,13 @@ QuaClass::QuaClass(void* constantPool, void* classDef, const string& className, 
 #endif
 
         QuaMethod* method = new QuaMethod();
-        method->action = QuaMethod::INTERPRET;
-        method->code = (void*)getConstantPoolEntry(constantPool, codeIndex);
+        if(methodFlags & METHOD_FLAG_NATIVE) {
+            method->action = QuaMethod::C_CALL;
+            method->code = nativeLoader->getNativeMethod(className, signature);
+        } else {
+            method->action = QuaMethod::INTERPRET;
+            method->code = (void*)getConstantPoolEntry(constantPool, codeIndex);
+        }
 
         methods.insert(make_pair(signature, method));
     }

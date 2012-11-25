@@ -38,6 +38,7 @@ extern "C" {
 
 }
 
+    extern NativeLoader* nativeLoader;
     extern Loader* loader;
 
     void initGlobals(size_t valStackSize, size_t addrStackSize, size_t heapSize);

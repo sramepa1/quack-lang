@@ -11,6 +11,10 @@
 
 class NativeLoader {
 
+public:
+    NativeLoader();
+    void* getNativeMethod(std::string className, QuaSignature* methodSig);
+
 protected:
 
     NativeLoader(std::string name, uint16_t fieldCount) {

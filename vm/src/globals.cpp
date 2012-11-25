@@ -8,6 +8,9 @@
 #include <cstring>
 #include <cstdlib>
 
+// TODO: move this include into globals.h when completed
+#include "NativeLoader.h"
+
 using namespace std;
 
 extern "C" {
@@ -31,7 +34,9 @@ extern "C" {
     map<string, uint16_t>* linkedTypes;
 }
 
+    NativeLoader* nativeLoader;
     Loader* loader;
+
     sigjmp_buf jmpEnv;
 
 
@@ -55,5 +60,7 @@ void initGlobals(size_t valStackSize, size_t addrStackSize, size_t heapSize) {
     linkedTypes = new map<string, uint16_t>();
 
     heap = new Heap(heapSize);
+
+    nativeLoader = new NativeLoader();
     loader = new Loader();
 }
