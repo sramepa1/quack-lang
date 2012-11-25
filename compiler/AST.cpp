@@ -32,21 +32,14 @@ void NProgram::compile(Compiler& compiler) {
 
 
 void NProgram::analyzeTree() {
-    // Walk throght all classes
-    for(map<std::string, NClass*>::iterator it = ClassDef.begin(); it != ClassDef.end(); ++it) {
-        char* className = (char*) it->first.c_str(); 
-        uint16_t cpIndex = constantPool.addConstant(className, it->first.size() + 1);
-        classNameIndicies.insert(make_pair(it->first, cpIndex));
-    }
-    
+
     // Generate classtable entries
     for(map<std::string, NClass*>::iterator it = ClassDef.begin(); it != ClassDef.end(); ++it) {
         
         ClassTableEntry* entry = new ClassTableEntry();
         
         // class name
-        map<std::string, uint16_t>::iterator it2 = classNameIndicies.find(it->first);
-        entry->nameIndex = it2->second;
+        entry->nameIndex = constantPool.addString(it->first);
            
         // flags
         entry->flags = it->second->getFlags();
@@ -57,19 +50,9 @@ void NProgram::analyzeTree() {
         if(ancestorName == NULL) {
             entry->ancestor = 0;
         } else {
-            it2 = classNameIndicies.find(*ancestorName);
-
-            if(it2 == classNameIndicies.end()) {
-                cout << it->first << *ancestorName << endl;
-                
-                throw "Superclass does not exist.";
-                // TODO error - ancestor does not exist
-            }
-
-            entry->ancestor = it2->second;
+            entry->ancestor = constantPool.addString(*ancestorName);
         }
 
-        
         classTable.addClass(entry);
     }
 }

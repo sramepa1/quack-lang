@@ -11,6 +11,7 @@
 #include "Compiler.h"
 
 #include <list>
+#include <map>
 #include <vector>
 
 // types with wknown size
@@ -35,8 +36,10 @@ public:
     uint32_t nextOffset;
     
     std::list<ConstantPoolEntry*> entries;
+    std::map<std::string, uint16_t> stringLookup;
     
     int addConstant(char* content, int size);
+    uint16_t addString(std::string str);
     
     void write(Compiler& compiler);
     

@@ -35,6 +35,22 @@ int ConstantPool::addConstant(char* content, int size) {
     return entries.size() - 1;
 }
 
+
+uint16_t ConstantPool::addString(std::string str) {
+    uint16_t cpIndex;
+    map<std::string, uint16_t>::iterator it = stringLookup.find(str);
+    
+    if(it == stringLookup.end()) { 
+        cpIndex = addConstant((char*) str.c_str(), str.size() + 1);
+        stringLookup.insert(make_pair(str, cpIndex));
+    } else {
+        cpIndex = it->second;
+    }
+    
+    return cpIndex;
+}
+
+
 void ConstantPool::write(Compiler& compiler) {
     // write header
     compiler.write((char*) &totalSize, 4); // total size

@@ -40,8 +40,6 @@ public:
     std::map<std::string, std::string*> DynClassRef;
     std::map<std::string, std::string*> StatClassRef;
     
-    std::map<std::string, uint16_t> classNameIndicies;
-    
     ClassTable classTable;
     ConstantPool constantPool;
     
