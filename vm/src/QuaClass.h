@@ -12,8 +12,11 @@ extern "C" {
 #include "QuaMethod.h"
 #include "QuaValue.h"
 
-#define CLS_STATIC 1;
-#define CLS_DESTRUCTIBLE 2;
+#define CLS_STATIC 0x1;
+#define CLS_DESTRUCTIBLE 0x2;
+
+#define CLS_VARIABLE_LENGTH 0x4000
+#define CLS_INCONSTRUCTIBLE 0x8000
 
 class Loader;
 class NativeLoader;

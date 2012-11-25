@@ -79,85 +79,70 @@ Instruction* Interpreter::processInstruction(Instruction* insn) {
 
     switch(insn->op) {
 
-        case OP_NOP:    return ++insn;
-
-        case OP_LDC:    return handleLDC(insn);
-        case OP_LDCT:   throw runtime_error("Instruction not yet implemented.");
-        case OP_LDNULL:	throw runtime_error("Instruction not yet implemented.");
-
-        case OP_LDF:	return handleLDF(insn);
-        case OP_STF:	throw runtime_error("Instruction not yet implemented.");
-        case OP_LDMYF:	throw runtime_error("Instruction not yet implemented.");
-        case OP_STMYF:	throw runtime_error("Instruction not yet implemented.");
-
-        case OP_LDSTAT:	return handleLDSTAT(insn);
-
-        case OP_MOV:	throw runtime_error("Instruction not yet implemented.");
-        case OP_XCHG:	throw runtime_error("Instruction not yet implemented.");
-        case OP_PUSH:	throw runtime_error("Instruction not yet implemented.");
-        case OP_POP:	throw runtime_error("Instruction not yet implemented.");
-        case OP_PUSHC:	return handlePUSHC(insn);
-        case OP_PUSHCT:	throw runtime_error("Instruction not yet implemented.");
-        case OP_LDS:	throw runtime_error("Instruction not yet implemented.");
-        case OP_STS:	throw runtime_error("Instruction not yet implemented.");
-
-        case PART_A3REG|PART_ADD:	throw runtime_error("Instruction not yet implemented.");
-        case PART_A3REG|PART_SUB:	throw runtime_error("Instruction not yet implemented.");
-        case PART_A3REG|PART_MUL:	throw runtime_error("Instruction not yet implemented.");
-        case PART_A3REG|PART_DIV:	throw runtime_error("Instruction not yet implemented.");
-        case PART_A3REG|PART_MOD:	throw runtime_error("Instruction not yet implemented.");
-
-        case PART_A3REG|PART_EQ:	throw runtime_error("Instruction not yet implemented.");
-        case PART_A3REG|PART_NEQ:	throw runtime_error("Instruction not yet implemented.");
-        case PART_A3REG|PART_GT:	throw runtime_error("Instruction not yet implemented.");
-        case PART_A3REG|PART_GE:	throw runtime_error("Instruction not yet implemented.");
-        case PART_A3REG|PART_LT:	throw runtime_error("Instruction not yet implemented.");
-        case PART_A3REG|PART_LE:	throw runtime_error("Instruction not yet implemented.");
-
-        case PART_A3REG|PART_LAND:	throw runtime_error("Instruction not yet implemented.");
-        case PART_A3REG|PART_LOR:	throw runtime_error("Instruction not yet implemented.");
-
-        case PART_AREGIMM|PART_ADD:	throw runtime_error("Instruction not yet implemented.");
-        case PART_AREGIMM|PART_SUB:	throw runtime_error("Instruction not yet implemented.");
-        case PART_AREGIMM|PART_MUL:	throw runtime_error("Instruction not yet implemented.");
-        case PART_AREGIMM|PART_DIV:	throw runtime_error("Instruction not yet implemented.");
-        case PART_AREGIMM|PART_MOD:	throw runtime_error("Instruction not yet implemented.");
-
-        case PART_AREGIMM|PART_EQ:	throw runtime_error("Instruction not yet implemented.");
-        case PART_AREGIMM|PART_NEQ:	throw runtime_error("Instruction not yet implemented.");
-        case PART_AREGIMM|PART_GT:	throw runtime_error("Instruction not yet implemented.");
-        case PART_AREGIMM|PART_GE:	throw runtime_error("Instruction not yet implemented.");
-        case PART_AREGIMM|PART_LT:	throw runtime_error("Instruction not yet implemented.");
-        case PART_AREGIMM|PART_LE:	throw runtime_error("Instruction not yet implemented.");
-
-        case PART_AREGIMM|PART_LAND:throw runtime_error("Instruction not yet implemented.");
-        case PART_AREGIMM|PART_LOR:	throw runtime_error("Instruction not yet implemented.");
-
-        case OP_NEG:	throw runtime_error("Instruction not yet implemented.");
-        case OP_LNOT:	throw runtime_error("Instruction not yet implemented.");
-
-        case OP_IDX:	throw runtime_error("Instruction not yet implemented.");
-        case OP_IDXI:	throw runtime_error("Instruction not yet implemented.");
-
-        case OP_JMP:	throw runtime_error("Instruction not yet implemented.");
-        case OP_JCC:	throw runtime_error("Instruction not yet implemented.");
-
-        case OP_CALL:	return handleCALL(insn);
-        case OP_CALLMY:	throw runtime_error("Instruction not yet implemented.");
-        case OP_NEW:	throw runtime_error("Instruction not yet implemented.");
-
-        case OP_RET:	throw runtime_error("Instruction not yet implemented.");
-        case OP_RETT:	throw runtime_error("Instruction not yet implemented.");
-        case OP_RETNULL:return performReturn(QuaValue());
-
-        case OP_TRY:	throw runtime_error("Instruction not yet implemented.");
-        case OP_CATCH:	throw runtime_error("Instruction not yet implemented.");
-        case OP_THROW:	throw runtime_error("Instruction not yet implemented.");
-        case OP_THROWT:	throw runtime_error("Instruction not yet implemented.");
-        case OP_FIN:	throw runtime_error("Instruction not yet implemented.");
-
-        case OP_HCF:
-        case OP_HLT:    throw ExitException();
+    case OP_NOP:    return ++insn;
+            case OP_LDC:    return handleLDC(insn);
+            case OP_LDCT:   return handleLDCT(insn);
+            case OP_LDNULL:	return handleLDNULL(insn);
+            case OP_LDF:	return handleLDF(insn);
+            case OP_STF:	return handleSTF(insn);
+            case OP_LDMYF:	return handleLDMYF(insn);
+            case OP_STMYF:	return handleSTMYF(insn);
+            case OP_LDSTAT:	return handleLDSTAT(insn);
+            case OP_MOV:	return handleMOV(insn);
+            case OP_XCHG:	return handleXCHG(insn);
+            case OP_PUSH:	return handlePUSH(insn);
+            case OP_POP:	return handlePOP(insn);
+            case OP_PUSHC:	return handlePUSHC(insn);
+            case OP_PUSHCT:	return handlePUSHCT(insn);
+            case OP_LDS:	return handleLDS(insn);
+            case OP_STS:	return handleSTS(insn);
+            case PART_A3REG|PART_ADD:
+            case PART_A3REG|PART_SUB:
+            case PART_A3REG|PART_MUL:
+            case PART_A3REG|PART_DIV:
+            case PART_A3REG|PART_MOD:
+            case PART_A3REG|PART_EQ:
+            case PART_A3REG|PART_NEQ:
+            case PART_A3REG|PART_GT:
+            case PART_A3REG|PART_GE:
+            case PART_A3REG|PART_LT:
+            case PART_A3REG|PART_LE:
+            case PART_A3REG|PART_LAND:
+            case PART_A3REG|PART_LOR:
+                            return handleA3REG(insn);
+            case PART_AREGIMM|PART_ADD:
+            case PART_AREGIMM|PART_SUB:
+            case PART_AREGIMM|PART_MUL:
+            case PART_AREGIMM|PART_DIV:
+            case PART_AREGIMM|PART_MOD:
+            case PART_AREGIMM|PART_EQ:
+            case PART_AREGIMM|PART_NEQ:
+            case PART_AREGIMM|PART_GT:
+            case PART_AREGIMM|PART_GE:
+            case PART_AREGIMM|PART_LT:
+            case PART_AREGIMM|PART_LE:
+            case PART_AREGIMM|PART_LAND:
+            case PART_AREGIMM|PART_LOR:
+                            return handleAREGIMM(insn);
+            case OP_NEG:	return handleNEG(insn);
+            case OP_LNOT:	return handleLNOT(insn);
+            case OP_IDX:	return handleIDX(insn);
+            case OP_IDXI:	return handleIDXI(insn);
+            case OP_JMP:	return handleJMP(insn);
+            case OP_JCC:	return handleJCC(insn);
+            case OP_CALL:	return handleCALL(insn);
+            case OP_CALLMY:	return handleCALLMY(insn);
+            case OP_NEW:	return handleNEW(insn);
+            case OP_RET:	return handleRET(insn);
+            case OP_RETT:	return handleRETT(insn);
+            case OP_RETNULL:return performReturn(QuaValue());
+            case OP_TRY:	return handleTRY(insn);
+            case OP_CATCH:	return handleCATCH(insn);
+            case OP_THROW:	return handleTHROW(insn);
+            case OP_THROWT:	return handleTHROWT(insn);
+            case OP_FIN:	return handleFIN(insn);
+            case OP_HCF:
+            case OP_HLT:    throw ExitException();
 
         default:        return handleIllegalInstruction(insn);
     }
@@ -245,6 +230,50 @@ Instruction* Interpreter::handleLDSTAT(Instruction* insn) {
 }
 
 
+Instruction* Interpreter::handleLDCT(Instruction* insn) {
+    return ++insn;
+}
+
+
+Instruction* Interpreter::handleLDNULL(Instruction* insn) {
+    return ++insn;
+}
+
+
+Instruction* Interpreter::handleSTF(Instruction* insn) {
+    return ++insn;
+}
+
+
+Instruction* Interpreter::handleLDMYF(Instruction* insn) {
+    return ++insn;
+}
+
+
+Instruction* Interpreter::handleSTMYF(Instruction* insn) {
+    return ++insn;
+}
+
+
+Instruction* Interpreter::handleMOV(Instruction* insn) {
+    return ++insn;
+}
+
+
+Instruction* Interpreter::handleXCHG(Instruction* insn) {
+    return ++insn;
+}
+
+
+Instruction* Interpreter::handlePUSH(Instruction* insn) {
+    return ++insn;
+}
+
+
+Instruction* Interpreter::handlePOP(Instruction* insn) {
+    return ++insn;
+}
+
 
 Instruction* Interpreter::handlePUSHC(Instruction* insn) {
 
@@ -253,12 +282,111 @@ Instruction* Interpreter::handlePUSHC(Instruction* insn) {
 }
 
 
+Instruction* Interpreter::handlePUSHCT(Instruction* insn) {
+    return ++insn;
+}
+
+
+Instruction* Interpreter::handleLDS(Instruction* insn) {
+    return ++insn;
+}
+
+
+Instruction* Interpreter::handleSTS(Instruction* insn) {
+    return ++insn;
+}
+
+
+Instruction* Interpreter::handleA3REG(Instruction* insn) {
+    return ++insn;
+}
+
+
+Instruction* Interpreter::handleAREGIMM(Instruction* insn) {
+    return ++insn;
+}
+
+
+Instruction* Interpreter::handleNEG(Instruction* insn) {
+    return ++insn;
+}
+
+
+Instruction* Interpreter::handleLNOT(Instruction* insn) {
+    return ++insn;
+}
+
+
+Instruction* Interpreter::handleIDX(Instruction* insn) {
+    return ++insn;
+}
+
+
+Instruction* Interpreter::handleIDXI(Instruction* insn) {
+    return ++insn;
+}
+
+
+Instruction* Interpreter::handleJMP(Instruction* insn) {
+    return ++insn;
+}
+
+
+Instruction* Interpreter::handleJCC(Instruction* insn) {
+    return ++insn;
+}
+
 
 Instruction* Interpreter::handleCALL(Instruction* insn) {
 
     QuaSignature* methSig = (QuaSignature*)getCurrentCPEntry(insn->ARG2);
     functionPrologue(regs[insn->ARG1], insn + 1, true, methSig->argCnt, insn->ARG0);
     return performCall(getClass(regs[insn->ARG1])->lookupMethod(methSig));
+}
+
+
+Instruction* Interpreter::handleCALLMY(Instruction* insn) {
+    return ++insn;
+}
+
+
+Instruction* Interpreter::handleNEW(Instruction* insn) {
+    return ++insn;
+}
+
+
+Instruction* Interpreter::handleRET(Instruction* insn) {
+    return ++insn;
+}
+
+
+Instruction* Interpreter::handleRETT(Instruction* insn) {
+    return ++insn;
+}
+
+
+Instruction* Interpreter::handleTRY(Instruction* insn) {
+    return ++insn;
+}
+
+
+Instruction* Interpreter::handleCATCH(Instruction* insn) {
+    return ++insn;
+}
+
+
+Instruction* Interpreter::handleTHROW(Instruction* insn) {
+    return ++insn;
+}
+
+
+Instruction* Interpreter::handleTHROWT(Instruction* insn) {
+    return ++insn;
+}
+
+
+Instruction* Interpreter::handleFIN(Instruction* insn) {
+    return ++insn;
 }
 
 

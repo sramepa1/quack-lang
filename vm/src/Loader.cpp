@@ -27,6 +27,8 @@ extern "C" {
 
 #define METHOD_FLAG_NATIVE 0x1
 
+#define FIELD_FLAG_HIDDEN 0x8000
+
 using namespace std;
 
 Loader::Loader() : mmapedClsFiles(new vector<pair<void*, size_t> >()), mainClassType(INVALID_TYPE) {
@@ -36,7 +38,7 @@ Loader::Loader() : mmapedClsFiles(new vector<pair<void*, size_t> >()), mainClass
 
     // Loading the core classes of Quack runtime
     // This will be replaced by resource embedded into VM's binary
-    //loadClassFile("./rt.qc");
+    loadClassFile("./rt.qc");
 
     DataBlobNative();
     SystemNative();
@@ -240,13 +242,17 @@ QuaClass::QuaClass(void* constantPool, void* classDef, const string& className, 
 
     curPos += 2;
     for(uint16_t i = 0; i < myFieldCount; ++i) {
-        const char* fieldEntry = getConstantPoolEntry(constantPool, ((uint16_t*)curPos)[i]);
+        uint16_t fieldFlags = ((uint16_t*)curPos)[2*i];
+        if(fieldFlags & FIELD_FLAG_HIDDEN) {
+            continue;
+        }
+        const char* fieldEntry = getConstantPoolEntry(constantPool, ((uint16_t*)curPos)[2*i+1]);
         if(!Loader::checkIdentifier(fieldEntry)) {
             throw runtime_error("Field name is invalid!");
         }
 
 #ifdef DEBUG
-        cout << "Constructing field " << fieldEntry << endl;
+            cout << "Constructing field " << fieldEntry << endl;
 #endif
 
         uint16_t ancestorFieldCount = 0;
@@ -259,7 +265,7 @@ QuaClass::QuaClass(void* constantPool, void* classDef, const string& className, 
     }
 
     // methods
-    curPos += myFieldCount * sizeof(uint16_t);
+    curPos += myFieldCount * 2 * sizeof(uint16_t);
     uint16_t methodCount = *(uint16_t*)curPos;
 
 #ifdef DEBUG
