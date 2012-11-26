@@ -48,8 +48,9 @@
    match our tokens.l lex file. We also define the node type
    they represent.
  */
-%token <token> K_STATCLASS K_CLASS K_EXTENDS K_FIELD K_INIT K_METHOD
-%token <token> K_THIS
+%token <token> K_STATCLASS K_CLASS K_EXTENDS K_FIELD K_INIT K_METHOD K_FLAGS
+%token <token> K_THIS K_NULL
+
 %token <token> T_ASSIGN K_IF K_ELSE K_FOR
 
 %token <token> T_AND T_OR T_NOT
@@ -58,7 +59,7 @@
 
 %token <token> T_MACCESS T_FACCESS T_STATIC
 
-%token <string> T_IDENTIFIER T_STRING C_INTEGER C_FLOAT
+%token <string> T_IDENTIFIER T_STRING C_INTEGER C_HEX_INTEGER C_FLOAT
 
 %token <token> T_LPAREN T_RPAREN T_COMMA
 %token <token> T_LBLOCK T_RBLOCK T_SEMICOLON
@@ -123,14 +124,16 @@ classes:
 
 class:
     K_STATCLASS T_IDENTIFIER T_LBLOCK stat_class_entries T_RBLOCK {$$ = new NStatClass(); $$->name = $2; $$->entries = $4;}
-  | K_STATCLASS T_IDENTIFIER T_LBLOCK T_RBLOCK {$$ = new NStatClass(); $$->name = $2; $$->entries = new std::list<ClassEntry*>();}
   | K_CLASS class_inheritance T_LBLOCK dyn_class_entries T_RBLOCK {$$ = $2; $$->entries = $4;}
+  | K_STATCLASS T_IDENTIFIER T_LBLOCK T_RBLOCK {$$ = new NStatClass(); $$->name = $2; $$->entries = new std::list<ClassEntry*>();}
   | K_CLASS class_inheritance T_LBLOCK T_RBLOCK {$$ = $2; $$->entries = new std::list<ClassEntry*>();}
 ;
 
 class_inheritance:
     T_IDENTIFIER {$$ = new NDynClass(); $$->name = $1;}
   | T_IDENTIFIER K_EXTENDS T_IDENTIFIER {NDynClass* tmp = new NDynClass(); $$ = tmp; tmp->name = $1; tmp->ancestor = $3;}
+  | T_IDENTIFIER K_FLAGS C_HEX_INTEGER {NDynClass* tmp = new NDynClass(); $$ = tmp; tmp->name = $1; tmp->flags = (uint16_t) strtol($3->c_str(), NULL, 16); delete $3;}
+  | T_IDENTIFIER K_EXTENDS T_IDENTIFIER K_FLAGS C_HEX_INTEGER {NDynClass* tmp = new NDynClass(); $$ = tmp; tmp->name = $1; tmp->ancestor = $3; tmp->flags = (uint16_t) strtol($5->c_str(), NULL, 16); delete $5;}
 ;
 
 stat_class_entries:
@@ -265,6 +268,7 @@ compare_expr:
   | boolean_const {$$ = $1;}
   | string_expr {$$ = $1;}
   | relation_expr {$$ = $1;}
+    /* heere add potencial "instanceof" */
 ;
 
 string_expr:
@@ -323,6 +327,7 @@ value:
 variable:
     T_IDENTIFIER {$$ = new EVarible(); ((EVarible*) $$)->variableName = $1;}
   | T_IDENTIFIER T_FACCESS T_IDENTIFIER {$$ = new EVarible(); ((EVarible*) $$)->className = $1; ((EVarible*) $$)->variableName = $3;}
+/*  | T_STATIC T_IDENTIFIER T_FACCESS T_IDENTIFIER {$$ = new EVarible(); ((EVarible*) $$)->className = $2; ((EVarible*) $$)->variableName = $4;} */
 ;
 
 

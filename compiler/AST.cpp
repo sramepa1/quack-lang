@@ -47,7 +47,7 @@ void NProgram::analyzeTree() {
         entry->nameIndex = constantPool.addString(it->first);
            
         // flags
-        entry->flags = it->second->getFlags();
+        entry->flags = it->second->flags;
         
         // inheritance
         string* ancestorName = it->second->getAncestor();

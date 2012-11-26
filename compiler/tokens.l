@@ -25,15 +25,18 @@ extern "C" int yywrap() { return 1; }
 "class"                                 return TOKEN(K_CLASS);
 "statclass"                             return TOKEN(K_STATCLASS);
 "extends"                               return TOKEN(K_EXTENDS);
-"this"                                  return TOKEN(K_THIS);
 "field"                                 return TOKEN(K_FIELD);
 "init"                                  return TOKEN(K_INIT);
 "fun"                                   return TOKEN(K_METHOD);
+"#flags"                                return TOKEN(K_FLAGS);
+
 "if"                                    return TOKEN(K_IF);
 "else"                                  return TOKEN(K_ELSE);
 "for"                                   return TOKEN(K_FOR);
 "="                                     return TOKEN(T_ASSIGN);
 
+"this"                                  return TOKEN(K_THIS);
+"null"                                  return TOKEN(K_NULL);
 "true"                                  return TOKEN(K_TRUE);
 "false"                                 return TOKEN(K_FALSE);
 
@@ -67,6 +70,7 @@ extern "C" int yywrap() { return 1; }
 
 [0-9]+\.[0-9]*                          SAVE_TOKEN_STRING; return C_FLOAT;
 [0-9]+                                  SAVE_TOKEN_STRING; return C_INTEGER;
+0[xX][0-9a-fA-F]+                       SAVE_TOKEN_STRING; return C_HEX_INTEGER;
 \"(\\.|[^\\"])*\"                       SAVE_TOKEN_STRING; return T_STRING;
 
 [a-zA-Z_][a-zA-Z0-9_]*                  SAVE_TOKEN_STRING; return T_IDENTIFIER;

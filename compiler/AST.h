@@ -6,9 +6,10 @@
  */
 
 #include "Nodes.h"
-
 #include "ClassTable.h"
 #include "ConstantPool.h"
+
+#include "classfile.h"
 
 #include <iostream>
 #include <list>
@@ -49,16 +50,14 @@ public:
     std::list<ClassEntry*>* entries;
     
     virtual std::string* getAncestor() = 0;
-    virtual uint16_t getFlags() = 0;
     
     void fillTableEntry(ClassTableEntry* entry);
     
 };
 
-
 class NDynClass : public NClass {
 public:
-    NDynClass() : ancestor(NULL) {}
+    NDynClass() : ancestor(NULL) {flags = 0;}
     virtual ~NDynClass() {}
     
     std::string* ancestor;
@@ -66,26 +65,16 @@ public:
     virtual std::string* getAncestor() {
         return ancestor;
     }
-    
-    virtual uint16_t getFlags() {
-        return 0; // TODO add define
-    }
-    
 };
-
 
 class NStatClass : public NClass {
 public:
+    NStatClass() {flags = CLS_STATIC;}
     virtual ~NStatClass() {}
     
     virtual std::string* getAncestor() {
         return NULL;
     }
-    
-    virtual uint16_t getFlags() {
-        return 1; // TODO add define
-    }
-    
 };
 
 class NField : public ClassEntry {

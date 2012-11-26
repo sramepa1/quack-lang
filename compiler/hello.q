@@ -12,9 +12,9 @@ class Main extends foo {
 */
 
 
-statclass Main {
+class Main #flags 0x01 {
     fun main(args) {
-        //System.out->writeLine("Hello, world!");
+        //@System.out->writeLine("Hello, world!");
     }
 }
 
