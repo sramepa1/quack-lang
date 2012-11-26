@@ -11,7 +11,7 @@ QuaValue SystemNative::initNativeImpl() {
 
     // create out stream
     uint16_t type = linkedTypes->at("OutFile");
-    QuaValue outRef = heap->allocateNew(type, getClassFromType(type)->getFieldCount());
+    QuaValue outRef = newRawInstance(type);
 
     getFieldByIndex(outRef, 0).flags = TAG_INT;
     getFieldByIndex(outRef, 0).value = FILE_FLAG_UNCLOSEABLE /*| FILE_FLAG_CLOSED*/;

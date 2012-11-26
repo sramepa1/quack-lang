@@ -62,7 +62,7 @@ inline QuaValue loadConstant(uint16_t & type, uint16_t cpIndex) {
     return getClassFromType(type)->deserialize(getCurrentCPEntry(cpIndex));
 }
 
-inline QuaValue newInstance(uint16_t & type) {
+inline QuaValue newRawInstance(uint16_t & type) {
     uint16_t fieldCount = getClassFromType(type)->getFieldCount(); // also resolves type
     return heap->allocateNew(type, fieldCount);
 }

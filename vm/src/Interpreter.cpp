@@ -39,7 +39,7 @@ void Interpreter::start() {
     }
 
     // push This pointer
-    *(--BP) = newInstance(mainClassType);
+    *(--BP) = newRawInstance(mainClassType);
     --SP;
 
     // push exit handler
@@ -268,13 +268,9 @@ inline Instruction* Interpreter::performThrow(QuaValue& qex) {
 
 inline Instruction* Interpreter::commonException(const char* className, const char* what) {
 
-    *(--SP) = newInstance(linkedTypes->at(className));
-    // make a "local variable" on the VM stack to ensure correct GC (QuaValues on the C stack are considered dead!)
-
-    *(--SP) = getClassFromType(linkedTypes->at("String"))->deserialize(what); // push what
-    QuaValue instance = nativeCall(*(SP + 1), (QuaSignature*)"\1initN"); // construct
-
-    ++SP; // clean up local variable
+    QuaValue instance = newRawInstance(linkedTypes->at(className));                 // allocate
+    *(--SP) = getClassFromType(linkedTypes->at(CLASS_STRING))->deserialize(what);   // push what
+    instance = nativeCall(instance, (QuaSignature*)"\1initN");                      // construct
 
     return performThrow(instance);
 }
@@ -353,10 +349,10 @@ inline Instruction* Interpreter::handleLDSTAT(Instruction* insn) {
     cout << "LDSTAT r" << insn->ARG0 << ", " << insn->ARG1 << endl;
 #endif
 
-    QuaClass* statclass = getClassFromType(insn->ARG1);
+    QuaClass* statclass = getClassFromType(insn->ARG1); // also resolves type
     QuaValue instance = statclass->getInstance();
     if(instance.value == 0) {
-        instance = heap->allocateNew(insn->ARG1, statclass->getFieldCount());
+        instance = newRawInstance(insn->ARG1);
         statclass->setInstance(instance);
         functionPrologue(instance, insn, true, 0, insn->ARG0);
         return performCall(statclass, (QuaSignature*)"\0init");
