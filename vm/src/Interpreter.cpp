@@ -1,20 +1,20 @@
 #include "Interpreter.h"
+#include "Exceptions.h"
 #include "bytecode.h"
 #include "globals.h"
 #include "helpers.h"
 
+#include <iostream>
 #include <sstream>
 #include <iomanip>
 #include <stdexcept>
 #include <cstdlib>
 
-#ifdef DEBUG
-#include <iostream>
-#elif defined TRACE
-#include <iostream>
-#endif
-
 using namespace std;
+
+#define CLASS_NO_SUCH_FIELD_EXCEPTION "NoSuchFieldException"
+#define CLASS_NO_SUCH_METHOD_EXCEPTION "NoSuchMethodException"
+#define CLASS_STRING "String"
 
 Interpreter::Interpreter() : regs(vector<QuaValue>(65536)), compiler(new JITCompiler())
 {
@@ -32,14 +32,14 @@ void Interpreter::start() {
     cout << "Initializing interpreter environment, Main class has type " << mainClassType << endl;
 #endif
 
-    QuaClass* mainClass = resolveType(mainClassType);
+    QuaClass* mainClass = getClassFromType(mainClassType);
 
     if(!mainClass->isStatic()) {
         throw runtime_error("Main class is not static!");
     }
 
     // push This pointer
-    *(--BP) = heap->allocateNew(mainClassType, mainClass->getFieldCount());
+    *(--BP) = newInstance(mainClassType);
     --SP;
 
     // push exit handler
@@ -95,11 +95,7 @@ inline Instruction* Interpreter::processInstruction(Instruction* insn) {
 
     switch(insn->op) {
 
-            case OP_NOP:
-                            #ifdef TRACE
-                                cout << "NOP" << endl;
-                            #endif
-                            return ++insn;
+            case OP_NOP:    return handleNOP(insn);
             case OP_LDC:    return handleLDC(insn);
             case OP_LDCT:   return handleLDCT(insn);
             case OP_LDNULL:	return handleLDNULL(insn);
@@ -155,24 +151,16 @@ inline Instruction* Interpreter::processInstruction(Instruction* insn) {
             case OP_NEW:	return handleNEW(insn);
             case OP_RET:	return handleRET(insn);
             case OP_RETT:	return handleRETT(insn);
-            case OP_RETNULL:
-                            #ifdef TRACE
-                                cout << "RETNULL" << endl;
-                            #endif
-                            return performReturn(QuaValue());
+            case OP_RETNULL:return handleRETNULL();
             case OP_TRY:	return handleTRY(insn);
             case OP_CATCH:	return handleCATCH(insn);
             case OP_THROW:	return handleTHROW(insn);
             case OP_THROWT:	return handleTHROWT(insn);
             case OP_FIN:	return handleFIN(insn);
-            case OP_HCF:
-            case OP_HLT:
-                            #ifdef TRACE
-                                cout << "HLT" << endl;
-                            #endif
-                            throw ExitException();
+            case OP_HCF:    return handleHCF();
+            case OP_HLT:    return handleHLT();
 
-        default:        return handleIllegalInstruction(insn);
+            default:        return handleIllegalInstruction(insn);
     }
 }
 
@@ -180,7 +168,13 @@ inline Instruction* Interpreter::processInstruction(Instruction* insn) {
 // may need ASM implementation
 inline Instruction* Interpreter::performCall(QuaClass* type, QuaSignature* sig) {
 
-    QuaMethod* method = type->lookupMethod(sig);
+    QuaMethod* method;
+    try {
+        method = type->lookupMethod(sig);
+
+    } catch(NoSuchMethodException& e) {
+        return commonException(CLASS_NO_SUCH_METHOD_EXCEPTION, e.what());
+    }
 
 #ifdef TRACE
     cout << "# Calling " << getThisClass()->getName() << "::" << sig->name << '(' << (int)sig->argCnt << ')' << endl;
@@ -234,18 +228,21 @@ inline Instruction* Interpreter::performReturn(QuaValue retVal) {
 }
 
 
-inline Instruction* Interpreter::performThrow(QuaValue qex) {
+inline Instruction* Interpreter::performThrow(QuaValue& qex) {
 
 #ifdef TRACE
-    cout<<"# Throwing an exception of class "<<getClass(qex)->getName()<< " from class "<< getThisClass()->getName();
+    cout<<"# Throwing an exception of class "<<getClassFromValue(qex)->getName()<< " from class "<< getThisClass()->getName();
 #endif
 
     while(1) {
         if(ASP->FRAME_TYPE == EXIT) {
             // TODO: Attempt to extract qex.what
-            throw runtime_error(string("Unhandled exception of class ") + getClass(qex)->getName());
+#ifdef TRACE
+            cout << "... no suitable handler found!" << endl;
+#endif
+            throw runtime_error(string("Unhandled exception of class ") + getClassFromValue(qex)->getName());
 
-        } else if (ASP->FRAME_TYPE == EXCEPTION && instanceOf(qex, ASP->EXCEPTION_TYPE)) {
+        } else if (ASP->FRAME_TYPE == EXCEPTION && instanceOf(qex, ASP->EXCEPTION_TYPE)) { // TODO: how to Pokemon?
             // correct handler
             break;
         }
@@ -269,10 +266,24 @@ inline Instruction* Interpreter::performThrow(QuaValue qex) {
 }
 
 
-inline Instruction* Interpreter::commonCall(uint16_t destReg, QuaValue that, uint16_t sigIndex, Instruction* retAddr) {
+inline Instruction* Interpreter::commonException(const char* className, const char* what) {
+
+    *(--SP) = newInstance(linkedTypes->at(className));
+    // make a "local variable" on the VM stack to ensure correct GC (QuaValues on the C stack are considered dead!)
+
+    *(--SP) = getClassFromType(linkedTypes->at("String"))->deserialize(what); // push what
+    QuaValue instance = nativeCall(*(SP + 1), (QuaSignature*)"\1initN"); // construct
+
+    ++SP; // clean up local variable
+
+    return performThrow(instance);
+}
+
+
+inline Instruction* Interpreter::commonCall(uint16_t destReg, QuaValue& that, uint16_t sigIndex, Instruction* retAddr) {
     QuaSignature* methSig = (QuaSignature*)getCurrentCPEntry(sigIndex);
     functionPrologue(that, retAddr, true, methSig->argCnt, destReg);
-    return performCall(getClass(that), methSig);
+    return performCall(getClassFromValue(that), methSig);
 }
 
 
@@ -281,8 +292,19 @@ inline Instruction* Interpreter::handleIllegalInstruction(Instruction* insn) {
     cout << "Illegal instruction!" << endl; // terminate the open line from main loop
 #endif
     ostringstream os;
-    os << "Illegal instruction opcode 0x" << setw(2) << setfill('0') << uppercase << hex << (int)insn->op
-       << " encountered at " << insn << " in class " << getThisClass()->getName() << "." << endl;
+    os  << "Illegal instruction opcode 0x" << setw(2)<<setfill('0')<<uppercase<<hex << (int)insn->op
+        << " encountered at " << insn << " in class " << getThisClass()->getName() << "." << endl;
+    throw runtime_error(os.str());
+}
+
+inline Instruction* Interpreter::handleIllegalSubOp(Instruction* insn) {
+#ifdef TRACE
+    cout << "Illegal sub-instruction!" << endl;
+#endif
+    ostringstream os;
+    os  << "Illegal sub-opcode 0x" << setw(2)<<setfill('0')<<uppercase<<hex << (int)insn->subop << endl
+        << "encountered in an instruction with opcode 0x " << setw(2)<<setfill('0')<<uppercase<<hex << (int)insn->op
+        << endl << "at address " << insn << " in class " << getThisClass()->getName() << "." << endl;
     throw runtime_error(os.str());
 }
 
@@ -299,6 +321,16 @@ inline void Interpreter::functionEpilogue() {
 }
 
 
+inline Instruction* Interpreter::handleNOP(Instruction* insn) {
+
+#ifdef TRACE
+    cout << "NOP" << endl;
+#endif
+
+    return ++insn;
+}
+
+
 inline Instruction* Interpreter::handleLDC(Instruction* insn) {
 
 #ifdef TRACE
@@ -310,13 +342,7 @@ inline Instruction* Interpreter::handleLDC(Instruction* insn) {
 }
 
 
-inline Instruction* Interpreter::handleLDF(Instruction* insn) {
-
-#ifdef TRACE
-    cout << "LDF r" << insn->ARG0 << ", r" << insn->ARG1 << ", " << insn->ARG2 << endl;
-#endif
-
-    regs[insn->ARG0] = getFieldByName(regs[insn->ARG1], getCurrentCPEntry(insn->ARG2));
+inline Instruction* Interpreter::handleLDCT(Instruction* insn) {
     return ++insn;
 }
 
@@ -327,7 +353,7 @@ inline Instruction* Interpreter::handleLDSTAT(Instruction* insn) {
     cout << "LDSTAT r" << insn->ARG0 << ", " << insn->ARG1 << endl;
 #endif
 
-    QuaClass* statclass = resolveType(insn->ARG1);
+    QuaClass* statclass = getClassFromType(insn->ARG1);
     QuaValue instance = statclass->getInstance();
     if(instance.value == 0) {
         instance = heap->allocateNew(insn->ARG1, statclass->getFieldCount());
@@ -340,32 +366,79 @@ inline Instruction* Interpreter::handleLDSTAT(Instruction* insn) {
 }
 
 
-inline Instruction* Interpreter::handleLDCT(Instruction* insn) {
+inline Instruction* Interpreter::handleLDNULL(Instruction* insn) {
+
+#ifdef TRACE
+    cout << "LDNULL r" << insn->ARG0 << endl;
+#endif
+
+    regs[insn->ARG0] = QuaValue();
     return ++insn;
 }
 
 
-inline Instruction* Interpreter::handleLDNULL(Instruction* insn) {
+inline Instruction* Interpreter::handleLDF(Instruction* insn) {
+
+#ifdef TRACE
+    cout << "LDF r" << insn->ARG0 << ", r" << insn->ARG1 << ", " << insn->ARG2 << endl;
+#endif
+
+    try {
+        regs[insn->ARG0] = getFieldByName(regs[insn->ARG1], getCurrentCPEntry(insn->ARG2));
+
+    } catch (NoSuchFieldException& e) {
+        return commonException(CLASS_NO_SUCH_FIELD_EXCEPTION, e.what());
+    }
+
     return ++insn;
 }
 
 
 inline Instruction* Interpreter::handleSTF(Instruction* insn) {
+
+#ifdef TRACE
+    cout << "STF r" << insn->ARG0 << ", " << insn->ARG1 << ", r" << insn->ARG2 << endl;
+#endif
+
+    try {
+        getFieldByName(regs[insn->ARG0], getCurrentCPEntry(insn->ARG1)) = regs[insn->ARG2];
+
+    } catch (NoSuchFieldException& e) {
+        return commonException(CLASS_NO_SUCH_FIELD_EXCEPTION, e.what());
+    }
+
     return ++insn;
 }
 
 
 inline Instruction* Interpreter::handleLDMYF(Instruction* insn) {
+
+#ifdef TRACE
+    cout << "LDMYF r" << insn->ARG0 << ", " << insn->ARG1 << endl;
+#endif
+
+    regs[insn->ARG0] = getFieldByIndex(*BP, insn->ARG1);
     return ++insn;
 }
 
 
 inline Instruction* Interpreter::handleSTMYF(Instruction* insn) {
+
+#ifdef TRACE
+    cout << "STMYF " << insn->ARG0 << ", r" << insn->ARG1 << endl;
+#endif
+
+    getFieldByIndex(*BP, insn->ARG0) = regs[insn->ARG1];
     return ++insn;
 }
 
 
 inline Instruction* Interpreter::handleMOV(Instruction* insn) {
+#ifdef TRACE
+    cout << "MOV r" << insn->ARG0 << ", r" << insn->ARG1 << endl;
+#endif
+
+    regs[insn->ARG0] = regs[insn->ARG1];
     return ++insn;
 }
 
@@ -385,12 +458,43 @@ inline Instruction* Interpreter::handleXCHG(Instruction* insn) {
 
 inline Instruction* Interpreter::handlePUSH(Instruction* insn) {
 
+    switch(insn->subop) {
+        case SOP_STACK_1:
 #ifdef TRACE
-    cout << "PUSH r" << insn->ARG0 << endl;
+            cout << "PUSH r" << insn->ARG0 << endl;
 #endif
+            *(--SP) = regs[insn->ARG0];
+            return ++insn;
 
-    *(--SP) = regs[insn->ARG0];
-    return ++insn;
+        case SOP_STACK_2:
+#ifdef TRACE
+            cout << "PUSH2 r" << insn->ARG0 << ", r" << insn->ARG1 << endl;
+#endif
+            *(--SP) = regs[insn->ARG0];
+            *(--SP) = regs[insn->ARG1];
+            return ++insn;
+
+        case SOP_STACK_3:
+#ifdef TRACE
+            cout << "PUSH3 r" << insn->ARG0 << ", r" << insn->ARG1 << ", r" << insn->ARG2 << endl;
+#endif
+            *(--SP) = regs[insn->ARG0];
+            *(--SP) = regs[insn->ARG1];
+            *(--SP) = regs[insn->ARG2];
+            return ++insn;
+
+        case SOP_STACK_RANGE:
+#ifdef TRACE
+            cout << "PUSHA r" << insn->ARG0 << ", r" << insn->ARG1 << endl;
+#endif
+            for(unsigned int i = insn->ARG0; i <= insn->ARG1; i++) {
+                *(--SP) = regs[i];
+            }
+            return ++insn;
+
+        default:
+            return handleIllegalSubOp(insn);
+    }
 }
 
 
@@ -474,7 +578,12 @@ inline Instruction* Interpreter::handleIDXI(Instruction* insn) {
 
 
 inline Instruction* Interpreter::handleJMP(Instruction* insn) {
-    return ++insn;
+
+#ifdef TRACE
+    cout << "JMP " << (int32_t)insn->IMM << endl;
+#endif
+
+    return insn + 1 + (int32_t)insn->IMM;
 }
 
 
@@ -503,6 +612,7 @@ inline Instruction* Interpreter::handleCALLMY(Instruction* insn) {
 }
 
 
+// TODO: make ARG2 param count to hard-coded "init" or use it as constructor signature CP index?
 inline Instruction* Interpreter::handleNEW(Instruction* insn) {
     return ++insn;
 }
@@ -517,13 +627,34 @@ inline Instruction* Interpreter::handleRETT(Instruction* insn) {
     return ++insn;
 }
 
+inline Instruction* Interpreter::handleRETNULL() {
+
+#ifdef TRACE
+    cout << "RETNULL" << endl;
+#endif
+
+    return performReturn(QuaValue());
+}
+
 
 inline Instruction* Interpreter::handleTRY(Instruction* insn) {
+
+#ifdef TRACE
+    cout << "TRY " << (int32_t)insn->IMM << endl;
+#endif
+
+    *(--ASP) = QuaFrame(insn + 1 + (int32_t)insn->IMM, true, true);
     return ++insn;
 }
 
 
 inline Instruction* Interpreter::handleCATCH(Instruction* insn) {
+
+#ifdef TRACE
+    cout << "CATCH " << insn->REG << ", " << (int32_t)insn->IMM << endl;
+#endif
+
+    *(--ASP) = QuaFrame(insn + 1 + (int32_t)insn->IMM, true, resolveType(insn->REG));
     return ++insn;
 }
 
@@ -544,7 +675,39 @@ inline Instruction* Interpreter::handleTHROWT(Instruction* insn) {
 
 
 inline Instruction* Interpreter::handleFIN(Instruction* insn) {
-    return ++insn;
+
+#ifdef TRACE
+    cout << "FIN" << endl;
+#endif
+
+    // discard unused handlers
+    while(ASP->FRAME_TYPE == EXCEPTION) {
+        ++ASP;
+    }
+    if(ASP->FRAME_TYPE != FINALLY) {
+        throw runtime_error("FINALLY instruction used without a preceding TRY.");
+    }
+
+    return (Instruction*)((ASP++)->code);
 }
 
 
+inline Instruction* Interpreter::handleHCF() {
+
+#ifdef TRACE
+    cout << "HCF" << endl;
+#endif
+
+    cerr << "VIRTUAL MACHINE ON FIRE!" << endl;
+    abort();
+}
+
+
+inline Instruction* Interpreter::handleHLT() {
+
+#ifdef TRACE
+    cout << "HLT" << endl;
+#endif
+
+    throw ExitException();
+}

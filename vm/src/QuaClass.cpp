@@ -1,6 +1,7 @@
 #include "QuaClass.h"
+#include "Exceptions.h"
+
 #include <cstdlib>
-#include <stdexcept>
 #include <sstream>
 
 using namespace std;
@@ -55,7 +56,7 @@ QuaMethod* QuaClass::lookupMethod(QuaSignature* sig) {
         ostringstream os;
         os << "Method \"" << sig->name << "\" with " << (int)sig->argCnt << " arg(s) of class " << className
                 << " not found in internal VM lookup.";
-        throw runtime_error(os.str());
+        throw NoSuchMethodException(os.str());
     }
     return parent->lookupMethod(sig);
 }
@@ -67,7 +68,8 @@ uint16_t QuaClass::lookupFieldIndex(const char *fieldName) {
         return it->second;
     }
     if(parent == NULL) {
-        throw runtime_error(string("Field ") +fieldName+ " of class " +className+ " not found in internal VM lookup.");
+        throw NoSuchFieldException(string("Field ") + fieldName + " of class "
+                                   + className + " not found in internal VM lookup.");
     }
     return parent->lookupFieldIndex(fieldName);
 }

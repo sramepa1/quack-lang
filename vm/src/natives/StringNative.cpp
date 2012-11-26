@@ -9,10 +9,10 @@ using namespace std;
 
 QuaValue stringDeserializer(const char* data) {
     uint16_t type = linkedTypes->at("String");
-    QuaValue strRef = heap->allocateNew(type, resolveType(type)->getFieldCount());
+    QuaValue strRef = newInstance(type);
 
     uint32_t length = strlen(data);
-    QuaValue blobRef = heap->allocateNew(0, length);
+    QuaValue blobRef = heap->allocateNew(1, length); // TODO: Resolve _DataBlob and cache its type
 
     for(uint32_t i = 0; i < length; i++) {
         getFieldByIndex(blobRef, i).flags = TAG_INT;

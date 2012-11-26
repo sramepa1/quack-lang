@@ -31,30 +31,35 @@ dd constantpool;				; Constant pool offset in file
 
 classtable:
 	dd .classdeftotalsize		; Class def blob size, including alignment bytes
-	dw 6						; Class table item count 
+	dw 7						; Class table item count 
 								; (number of class references, not definitions)
 	alignb 8, db 0
+	; null type MUST always be type id 0 in rt.qc
 .cls0:
+	dw 35						; "_Null" (added manually too late, compiler should make it CP index 0)
+	dw .endnull-.nullclass
+	dd .nullclass-classtable
+.cls1:
 	dw 0						; CP index 0 = "_DataBlob"
 	dw .endblob-.blobclass		; Size of Blob's definition (without alignment)
 	dd .blobclass-classtable	; Blob definition's offset from start of class table
-.cls1:
+.cls2:
 	dw 1						; CP index 1 = "System"
 	dw .endsys-.sysclass
 	dd .sysclass-classtable
-.cls2:
+.cls3:
 	dw 2						; CP index 2 = "File"
 	dw .endfile-.fileclass
 	dd .fileclass-classtable
-.cls3:
+.cls4:
 	dw 3						; CP index 3 = "OutFile"
 	dw .endout-.outclass
 	dd .outclass-classtable
-.cls4:
+.cls5:
 	dw 4						; CP index 4 = "InFile"
 	dw .endin-.inclass
 	dd .inclass-classtable
-.cls5:
+.cls6:
 	dw 5						; CP index 5 = "String"
 	dw .endstring-.stringclass
 	dd .stringclass-classtable
@@ -62,16 +67,24 @@ classtable:
 ; === CLASS DEFINITIONS ===
 
 .classdefs:
+.nullclass:
+	dw 0						; null is its own ancestor
+	dw 0x8000					; flags: CLS_SYSTEM (inheritance and user allocation disabled)
+	dw 0						; no fields
+	dw 0						; no methods
+.endnull:
+	alignb 8, db 0
+
 .blobclass:
-	dw 0						; blob is its own ancestor
-	dw 0x8000 | 0x4000			; flags: CLS_INCONSTRUCTIBLE | CLS_VARIABLE_LENGTH
+	dw 1						; blob is its own ancestor
+	dw 0x8000 | 0x4000			; flags: CLS_SYSTEM | CLS_VARIABLE_LENGTH 
 	dw 0						; field count must be zero for variable length classes
 	dw 0						; no methods
 .endblob:
 	alignb 8, db 0
 	
 .sysclass:
-	dw 1						; its own ancestor
+	dw 2						; its own ancestor
 	dw 1						; CLS_STATIC
 	
 	dw 3						; field count
@@ -94,7 +107,7 @@ classtable:
 	alignb 8, db 0
 
 .fileclass:
-	dw 2						; its own ancestor
+	dw 3						; its own ancestor
 	dw 2						; CLS_DESTRUCTIBLE
 	
 	dw 3						; field count
@@ -145,7 +158,7 @@ classtable:
 	alignb 8, db 0
 	
 .outclass:
-	dw 2						; inherits from File
+	dw 3						; inherits from File
 	dw 2						; CLS_DESTRUCTIBLE
 	
 	dw 0						; field count
@@ -167,7 +180,7 @@ classtable:
 	alignb 8, db 0
 	
 .inclass:
-	dw 2						; inherits from File
+	dw 3						; inherits from File
 	dw 2						; CLS_DESTRUCTIBLE
 	
 	dw 0						; field count
@@ -189,7 +202,7 @@ classtable:
 	alignb 8, db 0
 	
 .stringclass:
-	dw 5						; its own ancestor
+	dw 6						; its own ancestor
 	dw 0
 	
 	dw 2						; field count
@@ -253,7 +266,7 @@ classtable:
 
 constantpool:
 	dd itemtotalsize			; Size of the constant pool data
-	dw 35						; Item count
+	dw 36						; Item count
 alignb 8, db 0
 
 .offsets:						; Offset array, CP offsets are relative to CP's start
@@ -292,6 +305,7 @@ alignb 8, db 0
 	dd .item32-constantpool
 	dd .item33-constantpool
 	dd .item34-constantpool
+	dd .item35-constantpool
 alignb 8, db 0
 
 ; == CP contents ==
@@ -402,6 +416,10 @@ alignb 8, db 0
 .item34:
 	db 0x57	; RETNULL - stringValue stub
 	alignb 8, db 0
+.item35:
+	db '_Null',0
+	alignb 8, db 0
+
 	
 itemtotalsize equ $-constantpool
 

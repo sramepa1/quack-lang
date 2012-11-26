@@ -41,7 +41,7 @@ extern "C" {
 void initGlobals(size_t valStackSize, size_t addrStackSize, size_t heapSize) {
     valStackLow = mmap(NULL, valStackSize, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS|MAP_GROWSDOWN, -1, 0);
     checkMmap(valStackLow, "Could not allocate value stack." );
-    valStackHigh = (void*)((char*)valStackLow + valStackSize); // sigh, pedantic mode doesn't like void pointers...
+    valStackHigh = (void*)((char*)valStackLow + valStackSize);
     SP = (QuaValue*) valStackHigh;
     BP = (QuaValue*) valStackHigh;
     // guard page
@@ -49,7 +49,7 @@ void initGlobals(size_t valStackSize, size_t addrStackSize, size_t heapSize) {
 
     addrStackLow = mmap(NULL, addrStackSize, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS|MAP_GROWSDOWN, -1, 0);
     checkMmap(valStackLow, "Could not allocate address stack." );
-    addrStackHigh = (void*)((char*)addrStackLow + addrStackSize); // sigh again...
+    addrStackHigh = (void*)((char*)addrStackLow + addrStackSize);
     // guard page
     mprotect(addrStackLow, getpagesize(), PROT_NONE);
     ASP = (QuaFrame*) addrStackHigh;

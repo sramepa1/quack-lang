@@ -10,7 +10,9 @@
 #define CLS_DESTRUCTIBLE 0x2;
 
 #define CLS_VARIABLE_LENGTH 0x4000
-#define CLS_INCONSTRUCTIBLE 0x8000
+
+// disables inheritance and user allocation
+#define CLS_SYSTEM 0x8000
 
 
 // Field flags

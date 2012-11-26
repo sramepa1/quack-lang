@@ -30,14 +30,18 @@ private:
 
     Instruction* performCall(QuaClass* type, QuaSignature* sig);
     Instruction* performReturn(QuaValue retVal);
-    Instruction* performThrow(QuaValue qex);
+    Instruction* performThrow(QuaValue& qex);
 
     void functionPrologue(QuaValue that, void* retAddr, bool interpreted, char argCount, uint16_t destReg);
     void functionEpilogue();
-    Instruction* commonCall(uint16_t destReg, QuaValue that, uint16_t sigIndex, Instruction* retAddr);
+
+    Instruction* commonCall(uint16_t destReg, QuaValue& that, uint16_t sigIndex, Instruction* retAddr);
+    Instruction* commonException(const char* className, const char* what);
 
     static Instruction* handleIllegalInstruction(Instruction* insn);
+    static Instruction* handleIllegalSubOp(Instruction* insn);
 
+    Instruction* handleNOP(Instruction* insn);
     Instruction* handleLDC(Instruction* insn);
     Instruction* handleLDF(Instruction* insn);
     Instruction* handleLDSTAT(Instruction* insn);
@@ -67,11 +71,14 @@ private:
     Instruction* handleNEW(Instruction* insn);
     Instruction* handleRET(Instruction* insn);
     Instruction* handleRETT(Instruction* insn);
+    Instruction* handleRETNULL();
     Instruction* handleTRY(Instruction* insn);
     Instruction* handleCATCH(Instruction* insn);
     Instruction* handleTHROW(Instruction* insn);
     Instruction* handleTHROWT(Instruction* insn);
     Instruction* handleFIN(Instruction* insn);
+    Instruction* handleHCF();
+    Instruction* handleHLT();
 };
 
 #endif // INTERPRETER_H

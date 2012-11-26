@@ -13,15 +13,19 @@ extern "C" {
 #define TAG_FLOAT SOP_TAG_FLOAT
 #define TAG_BOOL SOP_TAG_BOOL
 
+// this is for the type field
+#define TYPE_UNRESOLVED 0x8000
+
 #pragma pack(1)
 
 struct QuaValue {
-	uint32_t value;
-	uint16_t type;
-	uint16_t flags;
-	
+    uint32_t value;
+    uint16_t type;
+    uint16_t flags;
+
+    // constructs a null QuaValue (type 0 must be null in rt.qc and dereferencing value 0 will also fail)
     QuaValue() : value(0), type(0), flags(0) {}
-	QuaValue(uint32_t value, uint16_t type, uint16_t flags) : value(value), type(type), flags(flags) {}	
+    QuaValue(uint32_t value, uint16_t type, uint16_t flags) : value(value), type(type), flags(flags) {}
 };
 
 #pragma pack()
