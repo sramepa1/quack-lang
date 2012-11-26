@@ -42,6 +42,8 @@ public:
     void write(const char byte);
     void writeAlign8();
 
+    static uint32_t sizeToAlign8(uint32_t size);
+    
     // DISABLED
     Compiler(const Compiler& orig);
 };

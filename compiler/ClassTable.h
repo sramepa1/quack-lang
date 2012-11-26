@@ -20,7 +20,6 @@ public:
     virtual ~ClassTableEntry() {}
     
     uint16_t defSize;
-   // uint32_t defOffset;
     
     uint16_t nameIndex;
     uint16_t ancestor;

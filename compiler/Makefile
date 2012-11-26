@@ -1,4 +1,4 @@
-CFLAGS = -Wall -pedantic -O0 -g
+CFLAGS = -I../common/include -Wall -pedantic -O0 -g
 
 all: run
 

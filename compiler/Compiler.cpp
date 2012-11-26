@@ -7,6 +7,8 @@
 
 #include "Compiler.h"
 
+#include "classfile.h"
+
 #include <cstring>
 #include <iostream>
 
@@ -36,7 +38,7 @@ void Compiler::compile() {
     writeAlign8();
     
     char header[8];
-    *((uint32_t*) header) = 0x0D550C4D;  // magic {0xD, 'U', 0xC, 'K'}
+    *((uint32_t*) header) = MAGIC_NUM; // magic {0xD, 'U', 0xC, 'K'}
 
     *((uint16_t*) header + 2) = 1; // version 1
     *((uint16_t*) header + 3) = 1; // version 1
@@ -95,4 +97,6 @@ void Compiler::writeAlign8() {
     }
 }
 
-
+uint32_t Compiler::sizeToAlign8(uint32_t size) {
+    return size % 8 == 0 ? size : size + (8 - size % 8);
+}
