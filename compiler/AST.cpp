@@ -6,6 +6,10 @@
 using namespace std;
 
 
+ClassTable classTable;
+ConstantPool constantPool;
+
+
 void NProgram::addClass(string* s, NClass* nclass) {
     ClassDef.insert(pair<string, NClass*>(*s, nclass));
 }
@@ -53,6 +57,10 @@ void NProgram::analyzeTree() {
             entry->ancestor = constantPool.addString(*ancestorName);
         }
 
+        // fields and methods
+        it->second->fillTableEntry(entry);
+        
+        
         classTable.addClass(entry);
     }
 }
@@ -60,8 +68,24 @@ void NProgram::analyzeTree() {
 
 void NProgram::generateCode(Compiler& compiler) {
     classTable.write(compiler);
-    
     constantPool.write(compiler);
+}
+
+
+void NClass::fillTableEntry(ClassTableEntry* entry) {
+    for(std::list<ClassEntry*>::iterator it = entries->begin(); it != entries->end(); ++it) {
+        (*it)->fillTableEntry(entry);
+    }
+}
+
+
+void NMethod::fillTableEntry(ClassTableEntry* entry) {
+    // TODO
+}
+
+
+void NField::fillTableEntry(ClassTableEntry* entry) {
+    entry->addField(constantPool.addString(*name));
 }
 
 

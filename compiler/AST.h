@@ -21,15 +21,6 @@
 
 using namespace std;
 
-enum ClassEntryType {FIELD, INIT, METHOD};
-
-struct ClassEntry{
-    ClassEntry(ClassEntryType _type, void* _entry) : type(_type), entry(_entry) {}
-    
-    ClassEntryType type;
-    void* entry;
-};
-
 
 class NProgram : public Node {
 public:
@@ -39,9 +30,6 @@ public:
     
     std::map<std::string, std::string*> DynClassRef;
     std::map<std::string, std::string*> StatClassRef;
-    
-    ClassTable classTable;
-    ConstantPool constantPool;
     
     void addClass(std::string* name, NClass* nclass);
     
@@ -62,11 +50,7 @@ public:
     virtual std::string* getAncestor() = 0;
     virtual uint16_t getFlags() = 0;
     
-    /*
-    std::map<int, NInit*>* inits;
-    std::map<std::string, NMethod*>* methods;
-    std::set<std::string>* fields;
-    */
+    void fillTableEntry(ClassTableEntry* entry);
     
 };
 
@@ -86,7 +70,6 @@ public:
         return 0; // TODO add define
     }
     
-    virtual void generateCode(Compiler&) {}
 };
 
 
@@ -102,19 +85,25 @@ public:
         return 1; // TODO add define
     }
     
-    virtual void generateCode(Compiler&) {}
 };
 
+class NField : public ClassEntry {
+public:
+    virtual ~NField() {}
+    NField(std::string* _name) {name = _name;}
+    
+    virtual void fillTableEntry(ClassTableEntry* entry);
+};
 
-class NMethod : public Node {
+class NMethod : public ClassEntry {
 public:
     virtual ~NMethod() {}
+    NMethod(std::string* _name, std::list<NExpression*>* _parameters, NBlock* _block) : parameters(_parameters), block(_block) {name = _name;}
     
-    std::string* methodName;
     std::list<NExpression*>* parameters;
     NBlock* block;
     
-    virtual void generateCode(Compiler&) {}
+    virtual void fillTableEntry(ClassTableEntry* entry);
 };
 
 class NBlock : public Node {
