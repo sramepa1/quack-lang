@@ -1,4 +1,5 @@
 CFLAGS = -I../common/include -Wall -pedantic -O0 -g
+BFLAGS = --report=state --verbose
 
 all: run
 
@@ -8,7 +9,7 @@ build:
 	mkdir build
 
 build/parser.cpp: parser.y
-	bison -d -o $@ $^
+	bison $(BFLAGS) -d -o $@ $^
 
 build/parser.hpp: build/parser.cpp
 

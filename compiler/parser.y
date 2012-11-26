@@ -97,8 +97,15 @@
 
 
 /* Operator precedence for mathematical operators */
+%left T_NOT
+%left T_AND T_OR
+%left T_EQ T_NE
+%left T_LT T_LE T_GT T_GE
 %left T_PLUS T_MINUS
+%left P_UMINUS
 %left T_MUL T_DIV T_MOD
+
+
 
 /* Starting expression of the grammar */
 %start program
@@ -116,7 +123,9 @@ classes:
 
 class:
     K_STATCLASS T_IDENTIFIER T_LBLOCK stat_class_entries T_RBLOCK {$$ = new NStatClass(); $$->name = $2; $$->entries = $4;}
+  | K_STATCLASS T_IDENTIFIER T_LBLOCK T_RBLOCK {$$ = new NStatClass(); $$->name = $2; $$->entries = new std::list<ClassEntry*>();}
   | K_CLASS class_inheritance T_LBLOCK dyn_class_entries T_RBLOCK {$$ = $2; $$->entries = $4;}
+  | K_CLASS class_inheritance T_LBLOCK T_RBLOCK {$$ = $2; $$->entries = new std::list<ClassEntry*>();}
 ;
 
 class_inheritance:
@@ -127,13 +136,11 @@ class_inheritance:
 stat_class_entries:
     stat_class_entry {$$ = new std::list<ClassEntry*>(); $$->push_back($1);}
   | stat_class_entries stat_class_entry {$$->push_back($2);}
-  | /* epsilon */ {$$ = new std::list<ClassEntry*>();}
 ;
 
 dyn_class_entries:
     dyn_class_entry {$$ = new std::list<ClassEntry*>(); $$->push_back($1);}
   | dyn_class_entries dyn_class_entry {$$->push_back($2);}
-  | /* epsilon */ {$$ = new std::list<ClassEntry*>();}
 ;
 
 stat_class_entry: 
@@ -277,6 +284,7 @@ relation_expr:
 artim_expr:
     artim_expr T_PLUS artim_expr2 {$$ = new EAdd(); ((EBOp*) $$)->left = $1; ((EBOp*) $$)->right = $3;}
   | artim_expr T_MINUS artim_expr2 {$$ = new ESub(); ((EBOp*) $$)->left = $1; ((EBOp*) $$)->right = $3;}
+/*| T_MINUS artim_expr %prec P_UMINUS {$$ = new ESub();} */
   | artim_expr2 {$$ = $1;}
 ;
 
