@@ -234,7 +234,6 @@ inline Instruction* Interpreter::performReturn(QuaValue retVal) {
 }
 
 
-// INCOMPLETE!
 inline Instruction* Interpreter::performThrow(QuaValue qex) {
 
 #ifdef TRACE
@@ -245,23 +244,22 @@ inline Instruction* Interpreter::performThrow(QuaValue qex) {
         if(ASP->FRAME_TYPE == EXIT) {
             // TODO: Attempt to extract qex.what
             throw runtime_error(string("Unhandled exception of class ") + getClass(qex)->getName());
+
+        } else if (ASP->FRAME_TYPE == EXCEPTION && instanceOf(qex, ASP->EXCEPTION_TYPE)) {
+            // correct handler
+            break;
         }
+
+        // ASP points to junk -> discard it
         if(ASP->FRAME_TYPE == METHOD) {
             // unwind
             functionEpilogue();
-            ++ASP;
-            continue;
         }
-        if(ASP->FRAME_TYPE == FINALLY || !instanceOf(qex, ASP->EXCEPTION_TYPE)) {
-            // discard junk
-            ++ASP;
-            continue;
-        }
-        // if execution is here, the frame is a correct handler
-        break;
+        ++ASP;
     }
 
-    //push qex
+    // push exception
+    *(--SP) = qex;
 
 #ifdef TRACE
     cout << " to a handler in class " << getThisClass()->getName() << endl;
@@ -373,17 +371,36 @@ inline Instruction* Interpreter::handleMOV(Instruction* insn) {
 
 
 inline Instruction* Interpreter::handleXCHG(Instruction* insn) {
+
+#ifdef TRACE
+    cout << "XCHG r" << insn->ARG0 << ", r" << insn->ARG1 << endl;
+#endif
+
+    QuaValue tmp = regs[insn->ARG0];
+    regs[insn->ARG0] = regs[insn->ARG1];
+    regs[insn->ARG1] = tmp;
     return ++insn;
 }
 
 
 inline Instruction* Interpreter::handlePUSH(Instruction* insn) {
 
+#ifdef TRACE
+    cout << "PUSH r" << insn->ARG0 << endl;
+#endif
+
+    *(--SP) = regs[insn->ARG0];
     return ++insn;
 }
 
 
 inline Instruction* Interpreter::handlePOP(Instruction* insn) {
+
+#ifdef TRACE
+    cout << "POP r" << insn->ARG0 << endl;
+#endif
+
+    regs[insn->ARG0] = *(SP++);
     return ++insn;
 }
 
@@ -405,11 +422,23 @@ inline Instruction* Interpreter::handlePUSHCT(Instruction* insn) {
 
 
 inline Instruction* Interpreter::handleLDS(Instruction* insn) {
+
+#ifdef TRACE
+    cout << "LDS r" << insn->ARG0 << ", " << insn->ARG1 << endl;
+#endif
+
+    regs[insn->ARG0] = *(BP + insn->ARG1);
     return ++insn;
 }
 
 
 inline Instruction* Interpreter::handleSTS(Instruction* insn) {
+
+#ifdef TRACE
+    cout << "STS " << insn->ARG0 << ", r" << insn->ARG1 << endl;
+#endif
+
+    *(BP + insn->ARG0) = regs[insn->ARG1];
     return ++insn;
 }
 
@@ -500,7 +529,12 @@ inline Instruction* Interpreter::handleCATCH(Instruction* insn) {
 
 
 inline Instruction* Interpreter::handleTHROW(Instruction* insn) {
-    return ++insn;
+
+#ifdef TRACE
+    cout << "THROW r" << insn->ARG0 << endl;
+#endif
+
+    return performThrow(regs[insn->ARG0]);
 }
 
 
