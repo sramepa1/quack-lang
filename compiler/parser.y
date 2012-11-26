@@ -127,41 +127,41 @@ class_inheritance:
 stat_class_entries:
     stat_class_entry {$$ = new std::list<ClassEntry*>(); $$->push_back($1);}
   | stat_class_entries stat_class_entry {$$->push_back($2);}
-  | /* epsilon */ {$$ = NULL;}
+  | /* epsilon */ {$$ = new std::list<ClassEntry*>();}
 ;
 
 dyn_class_entries:
     dyn_class_entry {$$ = new std::list<ClassEntry*>(); $$->push_back($1);}
   | dyn_class_entries dyn_class_entry {$$->push_back($2);}
-  | /* epsilon */ {$$ = NULL;}
+  | /* epsilon */ {$$ = new std::list<ClassEntry*>();}
 ;
 
 stat_class_entry: 
-    field {$$ = new ClassEntry(FIELD, $1);}
-  | stat_init {$$ = new ClassEntry(INIT, $1);}
-  | method {$$ = new ClassEntry(METHOD, $1);}
+    field {$$ = new NField($1);}
+  | stat_init {$1;}
+  | method {$1;}
 ;
 
 dyn_class_entry: 
-    field {$$ = new ClassEntry(FIELD, $1);}
-  | dyn_init {$$ = new ClassEntry(INIT, $1);}
-  | method {$$ = new ClassEntry(METHOD, $1);}
-;
-
-stat_init:
-    K_INIT block {$$ = new NMethod(); $$->parameters = NULL; $$->block = $2;}
-;
-
-dyn_init:
-    K_INIT parameters block {$$ = new NMethod(); $$->parameters = $2; $$->block = $3;}
+    field {$$ = new NField($1);}
+  | dyn_init {$1;}
+  | method {$1;}
 ;
 
 field:
     K_FIELD T_IDENTIFIER T_SEMICOLON {$$ = $2;}
 ;
 
+stat_init:
+    K_INIT block {$$ = new NMethod(new std::string("init"), NULL, $2);}
+;
+
+dyn_init:
+    K_INIT parameters block {$$ = new NMethod(new std::string("init"), $2, $3);}
+;
+
 method: 
-    K_METHOD T_IDENTIFIER parameters block {$$ = new NMethod(); $$->methodName = $2 ; $$->parameters = $3; $$->block = $4;}
+    K_METHOD T_IDENTIFIER parameters block {$$ = new NMethod($2, $3, $4);}
 ;
 
 parameters:

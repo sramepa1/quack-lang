@@ -8,6 +8,7 @@
 #ifndef NODES_H
 #define	NODES_H
 
+#include "ClassTable.h"
 #include "Compiler.h"
 
 #include <fstream>
@@ -17,7 +18,16 @@ public:
     virtual ~Node() {}
     
     //virtual void analyzeTree() = 0;
-    virtual void generateCode(Compiler&) = 0;
+    //virtual void generateCode(Compiler&) = 0;
+};
+
+class ClassEntry : public Node {
+public:
+    virtual ~ClassEntry() {}
+    
+    std::string* name;
+    
+    virtual void fillTableEntry(ClassTableEntry* entry) = 0;
 };
 
 class NStatement : public Node {
