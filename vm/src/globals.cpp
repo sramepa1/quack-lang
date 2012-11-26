@@ -8,9 +8,6 @@
 #include <cstring>
 #include <cstdlib>
 
-// TODO: move this include into globals.h when completed
-#include "NativeLoader.h"
-
 using namespace std;
 
 extern "C" {

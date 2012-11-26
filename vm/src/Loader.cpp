@@ -19,8 +19,6 @@ extern "C" {
 
 #include "NativeLoader.h"
 
-#define INVALID_TYPE 0xFFFF
-
 #define METHOD_FLAG_NATIVE 0x1
 
 #define FIELD_FLAG_HIDDEN 0x8000
@@ -182,17 +180,17 @@ QuaClass::QuaClass(void* constantPool, void* classDef, const string& className, 
 
     char* curPos = (char*)classDef;
 
-    // ancestor
-    uint16_t ancestorIndex = *((uint16_t *)getClassTableEntry(clsTabPtr, *(uint16_t*)curPos));
-    string ancestorName(getConstantPoolEntry(constantPool, ancestorIndex));
+    // parent
+    uint16_t parentNameIndex = *((uint16_t *)getClassTableEntry(clsTabPtr, *(uint16_t*)curPos));
+    string parentName(getConstantPoolEntry(constantPool, parentNameIndex));
 
-    if(className == ancestorName) {
+    if(className == parentName) {
         parent = NULL;
     } else {
-        if(!linkedTypes->count(ancestorName)) {
-            throw runtime_error("The ancestor of class " + className + " was not found!");
+        if(!linkedTypes->count(parentName)) {
+            throw runtime_error("The parent of class " + className + " was not found!");
         }
-        parent = typeArray[linkedTypes->at(ancestorName)];
+        parent = typeArray[linkedTypes->at(parentName)];
     }
 
     // flags

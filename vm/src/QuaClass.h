@@ -19,7 +19,6 @@ extern "C" {
 #define CLS_INCONSTRUCTIBLE 0x8000
 
 class Loader;
-class NativeLoader;
 
 class FieldNameComparator {
 public:
@@ -32,6 +31,9 @@ public:
     ~QuaClass();
 
     bool isStatic() { return flags & (uint16_t)CLS_STATIC; }
+    bool isInstanceOf(QuaClass* ancestorClass) {
+        return ancestorClass == this ? true : ( parent == NULL ? false : parent->isInstanceOf(ancestorClass) );
+    }
     uint16_t getFieldCount();
     void* getCP() { return relevantCP; }
     void* getCT() { return relevantCT; }
@@ -46,9 +48,7 @@ public:
 private:
     // !!! defined in Loader.cpp !!!
     QuaClass(void* constantPool, void* classDef, const std::string& className, void* clsTabPtr);
-    QuaClass();
     friend class Loader;
-    friend class NativeLoader;
 
     QuaValue (*deserializer)(const char* data);
     static QuaValue defaultDeserializer(const char* data);

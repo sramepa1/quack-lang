@@ -17,6 +17,7 @@
 #include "Heap.h"
 #include "Loader.h"
 #include "Interpreter.h"
+#include "NativeLoader.h"
 
 
 // These symbols might be needed from assembly sources -> disable mangling

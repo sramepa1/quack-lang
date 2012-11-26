@@ -30,6 +30,11 @@ private:
 
     Instruction* performCall(QuaClass* type, QuaSignature* sig);
     Instruction* performReturn(QuaValue retVal);
+    Instruction* performThrow(QuaValue qex);
+
+    void functionPrologue(QuaValue that, void* retAddr, bool interpreted, char argCount, uint16_t destReg);
+    void functionEpilogue();
+    Instruction* commonCall(uint16_t destReg, QuaValue that, uint16_t sigIndex, Instruction* retAddr);
 
     static Instruction* handleIllegalInstruction(Instruction* insn);
 

@@ -5,8 +5,6 @@
 
 using namespace std;
 
-QuaClass::QuaClass() : deserializer(&defaultDeserializer) { }
-
 QuaClass::~QuaClass() {
     for(map<QuaSignature*, QuaMethod*, QuaSignatureComp>::iterator it = methods.begin(); it != methods.end(); ++it) {
         delete (*it).second;

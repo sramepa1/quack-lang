@@ -63,7 +63,7 @@ void Interpreter::start() {
 
 
 
-Instruction* Interpreter::processInstruction(Instruction* insn) {
+inline Instruction* Interpreter::processInstruction(Instruction* insn) {
 
 
     /*
@@ -178,7 +178,7 @@ Instruction* Interpreter::processInstruction(Instruction* insn) {
 
 
 // may need ASM implementation
-Instruction* Interpreter::performCall(QuaClass* type, QuaSignature* sig) {
+inline Instruction* Interpreter::performCall(QuaClass* type, QuaSignature* sig) {
 
     QuaMethod* method = type->lookupMethod(sig);
 
@@ -190,12 +190,19 @@ Instruction* Interpreter::performCall(QuaClass* type, QuaSignature* sig) {
         case QuaMethod::INTERPRET:  return (Instruction*) method->code; //TODO set flag to compile
         case QuaMethod::COMPILE:    compiler->compile(method); // and fall-through
         case QuaMethod::JUMPTO:     throw runtime_error("Jumping to compiled code blobs is not yet implemented.");
-        case QuaMethod::C_CALL:     return performReturn( ( __extension__ (QuaValue (*)())method->code )() );
+        case QuaMethod::C_CALL:
+            try {
+                return performReturn( ( __extension__ (QuaValue (*)())method->code )() );
+            } catch (QuaValue qex) {
+                return performThrow(qex);
+            }
+
     }
     return NULL; // to make the compiler happy...
 }
 
-Instruction* Interpreter::performReturn(QuaValue retVal) {
+
+inline Instruction* Interpreter::performReturn(QuaValue retVal) {
 
     // discard adress stack junk
     while(ASP->FRAME_TYPE == EXCEPTION || ASP->FRAME_TYPE == FINALLY) {
@@ -210,8 +217,7 @@ Instruction* Interpreter::performReturn(QuaValue retVal) {
 #endif
 
     // The frame is a correct return address (frameType == METHOD)
-    SP = BP + (ASP->ARG_COUNT + 1);
-    BP = (QuaValue*)valStackHigh - ASP->BP_OFFSET;
+    functionEpilogue();
 
 #ifdef TRACE
     cout << " to class " << getThisClass()->getName() << endl;
@@ -228,7 +234,51 @@ Instruction* Interpreter::performReturn(QuaValue retVal) {
 }
 
 
-Instruction* Interpreter::handleIllegalInstruction(Instruction* insn) {
+// INCOMPLETE!
+inline Instruction* Interpreter::performThrow(QuaValue qex) {
+
+#ifdef TRACE
+    cout<<"# Throwing an exception of class "<<getClass(qex)->getName()<< " from class "<< getThisClass()->getName();
+#endif
+
+    while(1) {
+        if(ASP->FRAME_TYPE == EXIT) {
+            // TODO: Attempt to extract qex.what
+            throw runtime_error(string("Unhandled exception of class ") + getClass(qex)->getName());
+        }
+        if(ASP->FRAME_TYPE == METHOD) {
+            // unwind
+            functionEpilogue();
+            ++ASP;
+            continue;
+        }
+        if(ASP->FRAME_TYPE == FINALLY || !instanceOf(qex, ASP->EXCEPTION_TYPE)) {
+            // discard junk
+            ++ASP;
+            continue;
+        }
+        // if execution is here, the frame is a correct handler
+        break;
+    }
+
+    //push qex
+
+#ifdef TRACE
+    cout << " to a handler in class " << getThisClass()->getName() << endl;
+#endif
+
+    return (Instruction*)((ASP++)->code);
+}
+
+
+inline Instruction* Interpreter::commonCall(uint16_t destReg, QuaValue that, uint16_t sigIndex, Instruction* retAddr) {
+    QuaSignature* methSig = (QuaSignature*)getCurrentCPEntry(sigIndex);
+    functionPrologue(that, retAddr, true, methSig->argCnt, destReg);
+    return performCall(getClass(that), methSig);
+}
+
+
+inline Instruction* Interpreter::handleIllegalInstruction(Instruction* insn) {
 #ifdef TRACE
     cout << "Illegal instruction!" << endl; // terminate the open line from main loop
 #endif
@@ -239,7 +289,19 @@ Instruction* Interpreter::handleIllegalInstruction(Instruction* insn) {
 }
 
 
-Instruction* Interpreter::handleLDC(Instruction* insn) {
+inline void Interpreter::functionPrologue(QuaValue that,void* retAddr,bool interpreted,char argCount,uint16_t destReg) {
+    *(--SP) = that;                                                                                 // sub esp, 4
+    *(--ASP) = QuaFrame(retAddr, interpreted, argCount, destReg, (QuaValue*)valStackHigh - BP);     // push ebp
+    BP = SP;                                                                                        // mov ebp, esp
+}
+
+inline void Interpreter::functionEpilogue() {
+    SP = BP + (ASP->ARG_COUNT + 1);                 // mov esp, ebp
+    BP = (QuaValue*)valStackHigh - ASP->BP_OFFSET;  // pop ebp
+}
+
+
+inline Instruction* Interpreter::handleLDC(Instruction* insn) {
 
 #ifdef TRACE
     cout << "LDC r" << insn->ARG0 << ", " << insn->ARG1 << ", " << insn->ARG2 << endl;
@@ -250,7 +312,7 @@ Instruction* Interpreter::handleLDC(Instruction* insn) {
 }
 
 
-Instruction* Interpreter::handleLDF(Instruction* insn) {
+inline Instruction* Interpreter::handleLDF(Instruction* insn) {
 
 #ifdef TRACE
     cout << "LDF r" << insn->ARG0 << ", r" << insn->ARG1 << ", " << insn->ARG2 << endl;
@@ -261,7 +323,7 @@ Instruction* Interpreter::handleLDF(Instruction* insn) {
 }
 
 
-Instruction* Interpreter::handleLDSTAT(Instruction* insn) {
+inline Instruction* Interpreter::handleLDSTAT(Instruction* insn) {
 
 #ifdef TRACE
     cout << "LDSTAT r" << insn->ARG0 << ", " << insn->ARG1 << endl;
@@ -280,52 +342,53 @@ Instruction* Interpreter::handleLDSTAT(Instruction* insn) {
 }
 
 
-Instruction* Interpreter::handleLDCT(Instruction* insn) {
+inline Instruction* Interpreter::handleLDCT(Instruction* insn) {
     return ++insn;
 }
 
 
-Instruction* Interpreter::handleLDNULL(Instruction* insn) {
+inline Instruction* Interpreter::handleLDNULL(Instruction* insn) {
     return ++insn;
 }
 
 
-Instruction* Interpreter::handleSTF(Instruction* insn) {
+inline Instruction* Interpreter::handleSTF(Instruction* insn) {
     return ++insn;
 }
 
 
-Instruction* Interpreter::handleLDMYF(Instruction* insn) {
+inline Instruction* Interpreter::handleLDMYF(Instruction* insn) {
     return ++insn;
 }
 
 
-Instruction* Interpreter::handleSTMYF(Instruction* insn) {
+inline Instruction* Interpreter::handleSTMYF(Instruction* insn) {
     return ++insn;
 }
 
 
-Instruction* Interpreter::handleMOV(Instruction* insn) {
+inline Instruction* Interpreter::handleMOV(Instruction* insn) {
     return ++insn;
 }
 
 
-Instruction* Interpreter::handleXCHG(Instruction* insn) {
+inline Instruction* Interpreter::handleXCHG(Instruction* insn) {
     return ++insn;
 }
 
 
-Instruction* Interpreter::handlePUSH(Instruction* insn) {
+inline Instruction* Interpreter::handlePUSH(Instruction* insn) {
+
     return ++insn;
 }
 
 
-Instruction* Interpreter::handlePOP(Instruction* insn) {
+inline Instruction* Interpreter::handlePOP(Instruction* insn) {
     return ++insn;
 }
 
 
-Instruction* Interpreter::handlePUSHC(Instruction* insn) {
+inline Instruction* Interpreter::handlePUSHC(Instruction* insn) {
 
 #ifdef TRACE
     cout << "PUSHC " << insn->ARG0 << ", " << insn->ARG1 << endl;
@@ -336,114 +399,117 @@ Instruction* Interpreter::handlePUSHC(Instruction* insn) {
 }
 
 
-Instruction* Interpreter::handlePUSHCT(Instruction* insn) {
+inline Instruction* Interpreter::handlePUSHCT(Instruction* insn) {
     return ++insn;
 }
 
 
-Instruction* Interpreter::handleLDS(Instruction* insn) {
+inline Instruction* Interpreter::handleLDS(Instruction* insn) {
     return ++insn;
 }
 
 
-Instruction* Interpreter::handleSTS(Instruction* insn) {
+inline Instruction* Interpreter::handleSTS(Instruction* insn) {
     return ++insn;
 }
 
 
-Instruction* Interpreter::handleA3REG(Instruction* insn) {
+inline Instruction* Interpreter::handleA3REG(Instruction* insn) {
     return ++insn;
 }
 
 
-Instruction* Interpreter::handleAREGIMM(Instruction* insn) {
+inline Instruction* Interpreter::handleAREGIMM(Instruction* insn) {
     return ++insn;
 }
 
 
-Instruction* Interpreter::handleNEG(Instruction* insn) {
+inline Instruction* Interpreter::handleNEG(Instruction* insn) {
     return ++insn;
 }
 
 
-Instruction* Interpreter::handleLNOT(Instruction* insn) {
+inline Instruction* Interpreter::handleLNOT(Instruction* insn) {
     return ++insn;
 }
 
 
-Instruction* Interpreter::handleIDX(Instruction* insn) {
+inline Instruction* Interpreter::handleIDX(Instruction* insn) {
     return ++insn;
 }
 
 
-Instruction* Interpreter::handleIDXI(Instruction* insn) {
+inline Instruction* Interpreter::handleIDXI(Instruction* insn) {
     return ++insn;
 }
 
 
-Instruction* Interpreter::handleJMP(Instruction* insn) {
+inline Instruction* Interpreter::handleJMP(Instruction* insn) {
     return ++insn;
 }
 
 
-Instruction* Interpreter::handleJCC(Instruction* insn) {
+inline Instruction* Interpreter::handleJCC(Instruction* insn) {
     return ++insn;
 }
 
 
-Instruction* Interpreter::handleCALL(Instruction* insn) {
+inline Instruction* Interpreter::handleCALL(Instruction* insn) {
 
 #ifdef TRACE
     cout << "CALL r" << insn->ARG0 << ", r" << insn->ARG1 << ", " << insn->ARG2 << endl;
 #endif
 
-    QuaSignature* methSig = (QuaSignature*)getCurrentCPEntry(insn->ARG2);
-    functionPrologue(regs[insn->ARG1], insn + 1, true, methSig->argCnt, insn->ARG0);
-    return performCall(getClass(regs[insn->ARG1]), methSig);
+    return commonCall(insn->ARG0, regs[insn->ARG1], insn->ARG2, insn + 1);
 }
 
 
-Instruction* Interpreter::handleCALLMY(Instruction* insn) {
+inline Instruction* Interpreter::handleCALLMY(Instruction* insn) {
+
+#ifdef TRACE
+    cout << "CALLMY r" << insn->ARG0 << ", " << insn->ARG1 << endl;
+#endif
+
+    return commonCall(insn->ARG0, *BP, insn->ARG1, insn + 1);
+}
+
+
+inline Instruction* Interpreter::handleNEW(Instruction* insn) {
     return ++insn;
 }
 
 
-Instruction* Interpreter::handleNEW(Instruction* insn) {
+inline Instruction* Interpreter::handleRET(Instruction* insn) {
     return ++insn;
 }
 
 
-Instruction* Interpreter::handleRET(Instruction* insn) {
+inline Instruction* Interpreter::handleRETT(Instruction* insn) {
     return ++insn;
 }
 
 
-Instruction* Interpreter::handleRETT(Instruction* insn) {
+inline Instruction* Interpreter::handleTRY(Instruction* insn) {
     return ++insn;
 }
 
 
-Instruction* Interpreter::handleTRY(Instruction* insn) {
+inline Instruction* Interpreter::handleCATCH(Instruction* insn) {
     return ++insn;
 }
 
 
-Instruction* Interpreter::handleCATCH(Instruction* insn) {
+inline Instruction* Interpreter::handleTHROW(Instruction* insn) {
     return ++insn;
 }
 
 
-Instruction* Interpreter::handleTHROW(Instruction* insn) {
+inline Instruction* Interpreter::handleTHROWT(Instruction* insn) {
     return ++insn;
 }
 
 
-Instruction* Interpreter::handleTHROWT(Instruction* insn) {
-    return ++insn;
-}
-
-
-Instruction* Interpreter::handleFIN(Instruction* insn) {
+inline Instruction* Interpreter::handleFIN(Instruction* insn) {
     return ++insn;
 }
 

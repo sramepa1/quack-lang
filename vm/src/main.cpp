@@ -58,8 +58,8 @@ int main(int argc, char* argv[]) {
     }
 
     try {
-        initGlobals(2*getpagesize(), 2*getpagesize(), 2*getpagesize()); // super-tight for testing
         if(sigsetjmp(jmpEnv,1) == 0) {
+            initGlobals(2*getpagesize(), 2*getpagesize(), 2*getpagesize()); // super-tight for testing
             initSigsegv();
             loader->loadClassFile(argv[1]);
             interpreter->start();

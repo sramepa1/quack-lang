@@ -49,7 +49,7 @@ classtable:
 .cls0:
 	dw 0						; CP index 0 = "Main"
 	dw .endmain-.mainclass		; Size of Main's definition (without alignment)
-	dd .mainclass				; Main definition's offset in the file
+	dd .mainclass-classtable	; Main definition's offset from start of class table
 .cls1:
 	dw 2						; CP index 2 = "System"
 	dw 0						; external

@@ -37,27 +37,27 @@ classtable:
 .cls0:
 	dw 0						; CP index 0 = "_DataBlob"
 	dw .endblob-.blobclass		; Size of Blob's definition (without alignment)
-	dd .blobclass				; Blob definition's offset in the file
+	dd .blobclass-classtable	; Blob definition's offset from start of class table
 .cls1:
 	dw 1						; CP index 1 = "System"
 	dw .endsys-.sysclass
-	dd .sysclass
+	dd .sysclass-classtable
 .cls2:
 	dw 2						; CP index 2 = "File"
 	dw .endfile-.fileclass
-	dd .fileclass
+	dd .fileclass-classtable
 .cls3:
 	dw 3						; CP index 3 = "OutFile"
 	dw .endout-.outclass
-	dd .outclass
+	dd .outclass-classtable
 .cls4:
 	dw 4						; CP index 4 = "InFile"
 	dw .endin-.inclass
-	dd .inclass
+	dd .inclass-classtable
 .cls5:
 	dw 5						; CP index 5 = "String"
 	dw .endstring-.stringclass
-	dd .stringclass
+	dd .stringclass-classtable
 
 ; === CLASS DEFINITIONS ===
 

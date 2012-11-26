@@ -71,10 +71,9 @@ inline QuaValue& getFieldByName(QuaValue that, const char* fieldName) {
     return getFieldByIndex(that, getFieldIndex(that, fieldName));
 }
 
-inline void functionPrologue(QuaValue that, void* retAddr, bool interpreted, char argCount, uint16_t destReg) {
-    *(--SP) = that;                                                                                 // sub esp, 4
-    *(--ASP) = QuaFrame(retAddr, interpreted, argCount, destReg, (QuaValue*)valStackHigh - BP);     // push ebp
-    BP = SP;                                                                                        // mov ebp, esp
+// use resolved types only
+inline bool instanceOf(QuaValue inst, uint16_t ofWhatType) {
+    return getClass(inst)->isInstanceOf(typeArray[ofWhatType]);
 }
 
 #endif // HELPERS_H
