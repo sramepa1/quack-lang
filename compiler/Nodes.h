@@ -26,6 +26,7 @@ public:
     virtual ~ClassEntry() {}
     
     std::string* name;
+    uint16_t flags;
     
     virtual void fillTableEntry(ClassTableEntry* entry) = 0;
 };

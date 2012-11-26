@@ -13,8 +13,20 @@
 #include <list>
 
 
+struct FieldData {
+    uint16_t flags;
+    uint16_t cpNameIndex;
+};
 
-class ClassTableEntry{
+
+struct MethodData {
+    uint16_t flags;
+    uint16_t cpSigIndex;
+    uint16_t cpBytecodeIndex;
+};
+
+
+class ClassTableEntry {
 public:
     ClassTableEntry();
     virtual ~ClassTableEntry() {}
@@ -25,11 +37,11 @@ public:
     uint16_t ancestor;
     uint16_t flags;
     
-    std::vector<uint16_t> fieldIndicies;
-    std::vector<uint32_t> methodIndicies;
+    std::vector<FieldData> fieldIndicies;
+    std::vector<MethodData> methodIndicies;
     
-    void addField(uint16_t cpNameIndex);
-    void addMethod(uint16_t cpSigIndex, uint16_t cpCodeIndex);
+    void addField(uint16_t cpNameIndex, uint16_t flags);
+    void addMethod(uint16_t cpSigIndex, uint16_t flags, uint16_t cpCodeIndex);
     
     void writeTable(Compiler& compiler, uint32_t offset);
     void writeDef(Compiler& compiler);

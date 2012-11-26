@@ -44,6 +44,7 @@ public:
 class NClass : public Node {
 public:
     std::string* name;
+    uint16_t flags;
     
     std::list<ClassEntry*>* entries;
     

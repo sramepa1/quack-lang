@@ -13,7 +13,7 @@ using namespace std;
 #define EMPTY_POOL_SIZE 8
 
 
-ConstantPool::ConstantPool() : totalSize(EMPTY_POOL_SIZE), nextOffset(EMPTY_POOL_SIZE) {}
+ConstantPool::ConstantPool() : totalSize(EMPTY_POOL_SIZE), nextOffset(0) {}
 
 ConstantPool::~ConstantPool() {}
 
@@ -62,8 +62,9 @@ void ConstantPool::write(Compiler& compiler) {
     // write offset table
     uint32_t offset = EMPTY_POOL_SIZE + Compiler::sizeToAlign8(entries.size() * 4);
     for(std::list<ConstantPoolEntry*>::iterator it = entries.begin(); it != entries.end(); ++it) {
-        compiler.write((char*) &offset, 4);
-        offset += (*it)->offset;
+        uint32_t tmp = (*it)->offset + offset;
+        compiler.write((char*) &tmp, 4);
+      //  offset += (*it)->offset;
     }
     
     compiler.writeAlign8();

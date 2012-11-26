@@ -94,13 +94,13 @@ void NMethod::fillTableEntry(ClassTableEntry* entry) {
     char* code = new char[1];
     code[0] = 0x57;
     uint16_t codeIndex = constantPool.addConstant(code, 1); 
-    
-    entry->addMethod(sigIndex, codeIndex);
+     
+    entry->addMethod(sigIndex, flags, codeIndex); 
 }
 
 
 void NField::fillTableEntry(ClassTableEntry* entry) {
-    entry->addField(constantPool.addString(*name));
+    entry->addField(constantPool.addString(*name), flags);
 }
 
 

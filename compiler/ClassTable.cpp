@@ -17,19 +17,26 @@
 ClassTableEntry::ClassTableEntry() : defSize(EMPTY_ENTRY_SIZE) {}
 
 
-void ClassTableEntry::addField(uint16_t cpNameIndex) {
-    defSize += 2;
+void ClassTableEntry::addField(uint16_t cpNameIndex, uint16_t flags) {
+    defSize += 4;
     
-    fieldIndicies.push_back(cpNameIndex);
+    struct FieldData data;
+    data.cpNameIndex = cpNameIndex;
+    data.flags = flags;
+    
+    fieldIndicies.push_back(data);
 }
 
 
-void ClassTableEntry::addMethod(uint16_t cpSigIndex, uint16_t cpCodeIndex) {
-    defSize += 4;
+void ClassTableEntry::addMethod(uint16_t cpSigIndex, uint16_t flags, uint16_t cpCodeIndex) {
+    defSize += 6;
     
-    uint32_t tmp = cpSigIndex;
-    tmp = (tmp << 16) | cpCodeIndex;
-    methodIndicies.push_back(tmp);
+    struct MethodData data;
+    data.cpSigIndex = cpSigIndex;
+    data.flags = flags;
+    data.cpBytecodeIndex = cpCodeIndex;
+    ;
+    methodIndicies.push_back(data);
 }
 
 
@@ -46,15 +53,14 @@ void ClassTableEntry::writeDef(Compiler& compiler) {
     compiler.write((char*) &ancestor, 2);
     compiler.write((char*) &flags, 2);
     
-    uint16_t tmp16; uint32_t tmp32;
+    uint16_t tmp16;
     
     //fields
     tmp16 = fieldIndicies.size();
     compiler.write((char*) &tmp16, 2);
     
-    for (unsigned int i = 0; i < fieldIndicies.size(); i++) {
-        tmp16 = fieldIndicies[i];
-        compiler.write((char*) &tmp16, 2);
+    for (unsigned int i = 0; i < fieldIndicies.size(); i++) {        
+        compiler.write((char*) &fieldIndicies[i], 4);
     }
     
     //methods
@@ -62,8 +68,7 @@ void ClassTableEntry::writeDef(Compiler& compiler) {
     compiler.write((char*) &tmp16, 2);
     
     for (unsigned int i = 0; i < methodIndicies.size(); i++) {
-        tmp32 = methodIndicies[i];
-        compiler.write((char*) &tmp32, 4);
+        compiler.write((char*) &methodIndicies[i], 6);
     }
     
     compiler.writeAlign8();
