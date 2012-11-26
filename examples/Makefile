@@ -1,12 +1,14 @@
-all: hello
+QOBJECTS = hello.qc rt.qc
 
-hello: hello.qc
+all: $(QOBJECTS)
+	cp rt.qc ../vm
 
-hello.qc: hello.asm
+%.qc: %.asm
 	nasm -f bin -o $@ $^
 
 .PHONY: clean
 
 clean:
-	rm -f hello.qc
+	rm -f $(QOBJECTS)
+	rm -f ../vm/rt.qc
 

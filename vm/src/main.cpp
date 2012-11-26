@@ -49,11 +49,11 @@ void initSigsegv() {
 int main(int argc, char* argv[]) {
 
 #ifdef DEBUG
-    cout << "This is Daisy version 0.0, a Quack virtual machine." << endl;
+    cout << "This is Daisy version " << VM_VERSION << ", a Quack virtual machine." << endl;
 #endif
 
     if(argc < 2) {
-        cerr << "usage: daisy <classfile>" << endl;
+        cerr << "Usage: " << argv[0] << " <classfile>" << endl;
         return 2;
     }
 
@@ -62,20 +62,20 @@ int main(int argc, char* argv[]) {
         if(sigsetjmp(jmpEnv,1) == 0) {
             initSigsegv();
             loader->loadClassFile(argv[1]);
-            Interpreter interpreter;
-            interpreter.start(loader->getEntryPoint());
+            interpreter->start();
         } else {
             // SIGSEGV handler long jump landing
             throw runtime_error("QUACK OVERFLOW!");
         }
 
     } catch(runtime_error& e) {
-        cerr << "Something bad has happened: " << e.what() << endl;
+        cerr << "Something bad has happened:" << endl << e.what() << endl;
         return 1;
 
     } catch(ExitException) {
         // OK, terminate correctly
     }
+
 #ifdef DEBUG
     cout << "Quack quack. Good bye." << endl;
 #endif

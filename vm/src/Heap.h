@@ -7,6 +7,7 @@ extern "C" {
 
 #include <cstdlib>
 #include <vector>
+#include <stdexcept>
 
 #include "QuaObject.h"
 
@@ -28,6 +29,15 @@ public:
     void* getBase();
     void* getEnd();
 
+    const ObjRecord& dereference(QuaValue ref) {
+        if(ref.value == 0) {
+            throw std::runtime_error("TODO This should throw a Quack NullReferenceException!");
+        }
+        // TODO type check, autobox
+        return objTable[ref.value];
+    }
+
+    QuaValue allocateNew(uint16_t type, uint32_t size);
 
 private:
     void* heapBase;
@@ -35,9 +45,10 @@ private:
 
     void* freePtr;
 
+    uint32_t temporaryObjTableFreeIndex;
+
     std::vector<ObjRecord> objTable;
 
-    QuaValue allocateNew(uint16_t type, uint32_t size);
 };
 
 

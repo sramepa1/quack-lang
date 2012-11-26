@@ -10,33 +10,58 @@ extern "C" {
 
 #include "QuaSignature.h"
 #include "QuaMethod.h"
+#include "QuaValue.h"
 
-#define CLS_STATIC 1;
+#define CLS_STATIC 0x1;
+#define CLS_DESTRUCTIBLE 0x2;
+
+#define CLS_VARIABLE_LENGTH 0x4000
+#define CLS_INCONSTRUCTIBLE 0x8000
 
 class Loader;
+class NativeLoader;
+
+class FieldNameComparator {
+public:
+    bool operator()(const char* first, const char* second) const { return std::strcmp(first, second) < 0; }
+};
 
 class QuaClass
 {
 public:
-
     ~QuaClass();
 
     bool isStatic() { return flags & (uint16_t)CLS_STATIC; }
     uint16_t getFieldCount();
+    void* getCP() { return relevantCP; }
+    void* getCT() { return relevantCT; }
     QuaMethod* lookupMethod(QuaSignature* sig);
-    uint16_t lookupFieldIndex(std::string fieldName);
+    uint16_t lookupFieldIndex(const char* fieldName);
+    QuaValue getInstance();
+    void setInstance(QuaValue newInstance);
+    const char* getName();
+
+    QuaValue deserialize(const char* data) { return deserializer(data); }
 
 private:
     // !!! defined in Loader.cpp !!!
-    QuaClass(void* constantPool, void* classDef, const std::string& className);
+    QuaClass(void* constantPool, void* classDef, const std::string& className, void* clsTabPtr);
+    QuaClass();
     friend class Loader;
+    friend class NativeLoader;
 
+    QuaValue (*deserializer)(const char* data);
+    static QuaValue defaultDeserializer(const char* data);
+
+    std::string className;
     QuaClass* parent;
     void* relevantCP;
-    std::map<std::string, uint16_t> fieldIndices;
+    void* relevantCT;
+    std::map<const char*, uint16_t, FieldNameComparator> fieldIndices;
     std::map<QuaSignature*, QuaMethod*, QuaSignatureComp> methods;
     uint16_t myFieldCount;
     uint16_t flags;
+    QuaValue instance; // default "null"
 };
 
 #endif // QUACLASS_H

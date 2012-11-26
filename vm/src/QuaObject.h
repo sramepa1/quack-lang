@@ -8,7 +8,7 @@
 
 struct QuaObject
 {
-    QuaValue fields[];
+    __extension__ QuaValue fields[];
 };
 
 #endif // QUAOBJECT_H
