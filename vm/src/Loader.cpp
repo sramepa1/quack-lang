@@ -7,6 +7,8 @@
 #include <iostream>
 #endif
 
+#include "classfile.h"
+
 #include "globals.h"
 #include "helpers.h"
 
@@ -18,10 +20,6 @@ extern "C" {
 }
 
 #include "NativeLoader.h"
-
-#define METHOD_FLAG_NATIVE 0x1
-
-#define FIELD_FLAG_HIDDEN 0x8000
 
 using namespace std;
 
@@ -75,7 +73,6 @@ void Loader::loadClassFile(const char* cfName) {
 #endif
 
     char* parsingStartPoint = NULL;
-    char magicNum[] = {0xD, 'U', 0xC, 'K'};
 
     // this is needed for class files smaller then 1024 bytes
     uint64_t* magicNumBound;
@@ -87,7 +84,7 @@ void Loader::loadClassFile(const char* cfName) {
 
     // find magic number
     for(uint64_t* p = (uint64_t*)classFileBase; p < magicNumBound; ++p) {
-        if(*(uint32_t*)magicNum == *(uint32_t*)p) {
+        if(MAGIC_NUM == *(uint32_t*)p) {
             parsingStartPoint = (char*)((uint32_t*)p + 1);
             break;
         }
@@ -164,9 +161,7 @@ void Loader::parseClass(char* start, void* poolPtr, void* clsTablePtr) {
     cout << "Constructing class " << className << endl;
 #endif
 
-    typeArray[linkedTypes->size()] =
-            new QuaClass(poolPtr, (char*)mmapedClsFiles->back().first + classOffset, className, clsTablePtr);
-
+    typeArray[linkedTypes->size()] = new QuaClass(poolPtr, (char*)clsTablePtr + classOffset, className, clsTablePtr);
     linkedTypes->insert(make_pair(className, linkedTypes->size()));
 
 #ifdef DEBUG
