@@ -2,6 +2,7 @@
 #include "AST.h"
 
 #include <iostream>
+#include <string.h>
 
 using namespace std;
 
@@ -80,7 +81,21 @@ void NClass::fillTableEntry(ClassTableEntry* entry) {
 
 
 void NMethod::fillTableEntry(ClassTableEntry* entry) {
+    // signature
+    int size = name->size() + 2;
+    char* signature = new char[size];
+    signature[0] = (char) parameters->size();
+    name->copy(signature + 1, name->size());
+    uint16_t sigIndex = constantPool.addConstant(signature, size); 
+    
+    // code
     // TODO
+    
+    char* code = new char[1];
+    code[0] = 0x57;
+    uint16_t codeIndex = constantPool.addConstant(code, 1); 
+    
+    entry->addMethod(sigIndex, codeIndex);
 }
 
 

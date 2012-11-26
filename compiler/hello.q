@@ -1,4 +1,4 @@
-
+/*
 class foo {}
 
 class Main extends foo {
@@ -9,12 +9,12 @@ class Main extends foo {
         a = 1 + 1;
     }
 }
+*/
 
 
-/*
 statclass Main {
     fun main(args) {
         //System.out->writeLine("Hello, world!");
     }
 }
-*/
+
