@@ -22,7 +22,7 @@ extern NProgram* quackProgram;
 using namespace std;
 
 
-Compiler::Compiler() : outputFileName("a.q"), offset(0) {}
+Compiler::Compiler() : outputFileName("a.qc"), offset(0) {}
 
 Compiler::~Compiler() {}
 
