@@ -22,7 +22,7 @@ QuaValue FileNative::writeLineNativeImpl() {
 
     if(getFieldByIndex(*BP, 0).value & FILE_FLAG_CLOSED) {
         // TODO: throw IOException - file is already closed
-        return QuaValue();
+        throw QuaValue();
     }
 
     ostream* thisStream = (ostream*)ptrFromQuaValues(getFieldByIndex(*BP, 1), getFieldByIndex(*BP, 2));

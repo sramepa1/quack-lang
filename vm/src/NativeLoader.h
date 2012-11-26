@@ -3,7 +3,6 @@
 
 #include <map>
 
-#include "globals.h"
 #include "QuaClass.h"
 
 class NativeLoader {

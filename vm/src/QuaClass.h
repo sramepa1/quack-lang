@@ -39,6 +39,7 @@ public:
     void setInstance(QuaValue newInstance);
     const char* getName();
 
+    static QuaValue defaultDeserializer(const char* data);
     QuaValue deserialize(const char* data) { return deserializer(data); }
 
 private:
@@ -47,7 +48,6 @@ private:
     friend class Loader;
 
     QuaValue (*deserializer)(const char* data);
-    static QuaValue defaultDeserializer(const char* data);
 
     std::string className;
     QuaClass* parent;
