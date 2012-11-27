@@ -35,6 +35,7 @@ private:
     void functionPrologue(QuaValue that, void* retAddr, bool interpreted, char argCount, uint16_t destReg);
     void functionEpilogue();
 
+    Instruction* directCall(uint16_t destReg, QuaValue& that, QuaSignature* sig, Instruction* retAddr);
     Instruction* commonCall(uint16_t destReg, QuaValue& that, uint16_t sigIndex, Instruction* retAddr);
     Instruction* commonException(const char* className, const char* what);
 

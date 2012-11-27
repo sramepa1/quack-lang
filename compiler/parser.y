@@ -23,6 +23,7 @@
     std::list<ClassEntry*>* classEntries;
     ClassEntry* nclassEntry;
 
+    NField* nfield;
     NMethod* nmethod;
     std::list<NExpression*>* parameters;
 
@@ -78,6 +79,7 @@
 %type <classEntries> stat_class_entries dyn_class_entries
 %type <nclassEntry> stat_class_entry dyn_class_entry 
 
+%type <nfield> field
 %type <nmethod> method stat_init dyn_init
 %type <parameters> parameters parameter_list
 
@@ -93,7 +95,7 @@
 %type <nexpression> parameter expression logic_expr compare_expr string_expr relation_expr artim_expr artim_expr2 artim_expr3
 %type <nexpression> artim_const boolean_const string_const value variable
 
-%type <string> field
+/* %type <string> */
 
 
 
@@ -147,19 +149,20 @@ dyn_class_entries:
 ;
 
 stat_class_entry: 
-    field {$$ = new NField($1);}
-  | stat_init {$1;}
-  | method {$1;}
+    field {$$ = $1;}
+  | stat_init {$$ = $1;}
+  | method {$$ = $1;}
 ;
 
 dyn_class_entry: 
-    field {$$ = new NField($1);}
-  | dyn_init {$1;}
-  | method {$1;}
+    field {$$ = $1;}
+  | dyn_init {$$ = $1;}
+  | method {$$ = $1;}
 ;
 
 field:
-    K_FIELD T_IDENTIFIER T_SEMICOLON {$$ = $2;}
+    K_FIELD T_IDENTIFIER T_SEMICOLON {$$ = new NField($2);}
+  | K_FIELD T_IDENTIFIER K_FLAGS C_HEX_INTEGER T_SEMICOLON {$$ = new NField($2, (uint16_t) strtol($4->c_str(), NULL, 16)); delete $4;}
 ;
 
 stat_init:
@@ -172,6 +175,7 @@ dyn_init:
 
 method: 
     K_METHOD T_IDENTIFIER parameters block {$$ = new NMethod($2, $3, $4);}
+  | K_METHOD T_IDENTIFIER parameters K_FLAGS C_HEX_INTEGER  block {$$ = new NMethod($2, $3, $6, (uint16_t) strtol($5->c_str(), NULL, 16)); delete $5;}
 ;
 
 parameters:

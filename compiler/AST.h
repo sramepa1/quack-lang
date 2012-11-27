@@ -79,16 +79,18 @@ public:
 
 class NField : public ClassEntry {
 public:
-    virtual ~NField() {}
     NField(std::string* _name) {name = _name;}
+    NField(std::string* _name, uint16_t _flags) {name = _name; flags = _flags;}
+    virtual ~NField() {}
     
     virtual void fillTableEntry(ClassTableEntry* entry);
 };
 
 class NMethod : public ClassEntry {
 public:
-    virtual ~NMethod() {}
     NMethod(std::string* _name, std::list<NExpression*>* _parameters, NBlock* _block) : parameters(_parameters), block(_block) {name = _name;}
+    NMethod(std::string* _name, std::list<NExpression*>* _parameters, NBlock* _block, uint16_t _flags) : parameters(_parameters), block(_block) {name = _name; flags = _flags;}
+    virtual ~NMethod() {}
     
     std::list<NExpression*>* parameters;
     NBlock* block;

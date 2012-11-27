@@ -266,7 +266,7 @@ QuaClass::QuaClass(void* constantPool, void* classDef, const string& className, 
             method->insnCount = 0;
 
 #ifdef DEBUG
-            cout << " - native" << endl;
+            cout << "- native" << endl;
 #endif
         } else {
             method->action = QuaMethod::INTERPRET;
@@ -274,7 +274,7 @@ QuaClass::QuaClass(void* constantPool, void* classDef, const string& className, 
             method->insnCount = insnCount;
 
 #ifdef DEBUG
-            cout << " - " << insnCount << " instruction(s)" << endl;
+            cout << "- " << insnCount << " instruction(s)" << endl;
 #endif
         }
 
