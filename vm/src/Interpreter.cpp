@@ -16,6 +16,8 @@ using namespace std;
 #define CLASS_NO_SUCH_METHOD_EXCEPTION "NoSuchMethodException"
 #define CLASS_STRING "String"
 
+#define REG_DEV_NULL 0xFFFF
+
 Interpreter::Interpreter() : regs(vector<QuaValue>(65536)), compiler(new JITCompiler())
 {
 }
@@ -246,6 +248,7 @@ inline Instruction* Interpreter::performThrow(QuaValue& qex) {
 
         } else if (ASP->FRAME_TYPE == EXCEPTION && instanceOf(qex, ASP->EXCEPTION_TYPE)) { // TODO: how to Pokemon?
             // correct handler
+            ++ASP;
             break;
         }
 
@@ -278,10 +281,14 @@ inline Instruction* Interpreter::commonException(const char* className, const ch
 }
 
 
+inline Instruction* Interpreter::directCall(uint16_t destReg, QuaValue& that, QuaSignature* sig, Instruction* retAddr) {
+    functionPrologue(that, retAddr, true, sig->argCnt, destReg);
+    return performCall(getClassFromValue(that), sig);
+}
+
+
 inline Instruction* Interpreter::commonCall(uint16_t destReg, QuaValue& that, uint16_t sigIndex, Instruction* retAddr) {
-    QuaSignature* methSig = (QuaSignature*)getCurrentCPEntry(sigIndex);
-    functionPrologue(that, retAddr, true, methSig->argCnt, destReg);
-    return performCall(getClassFromValue(that), methSig);
+    return directCall(destReg, that, (QuaSignature*)getCurrentCPEntry(sigIndex), retAddr);
 }
 
 
@@ -508,7 +515,7 @@ inline Instruction* Interpreter::handlePOP(Instruction* insn) {
 
         case SOP_STACK_2:
 #ifdef TRACE
-            cout << "POP r" << insn->ARG0 << ", r" << insn->ARG1 << endl;
+            cout << "POP2 r" << insn->ARG0 << ", r" << insn->ARG1 << endl;
 #endif
             regs[insn->ARG1] = *(SP++);
             regs[insn->ARG0] = *(SP++);
@@ -516,7 +523,7 @@ inline Instruction* Interpreter::handlePOP(Instruction* insn) {
 
         case SOP_STACK_3:
 #ifdef TRACE
-            cout << "POP r" << insn->ARG0 << ", r" << insn->ARG1 << ", r" << insn->ARG2 << endl;
+            cout << "POP3 r" << insn->ARG0 << ", r" << insn->ARG1 << ", r" << insn->ARG2 << endl;
 #endif
             regs[insn->ARG2] = *(SP++);
             regs[insn->ARG1] = *(SP++);
@@ -525,7 +532,7 @@ inline Instruction* Interpreter::handlePOP(Instruction* insn) {
 
         case SOP_STACK_RANGE:
 #ifdef TRACE
-            cout << "POP r" << insn->ARG0 << ", r" << insn->ARG1 << endl;
+            cout << "POPA r" << insn->ARG0 << ", r" << insn->ARG1 << endl;
 #endif
             for(unsigned int i = insn->ARG1; i >= insn->ARG0; i--) {
                 regs[i] = *(SP++);
@@ -577,6 +584,8 @@ inline Instruction* Interpreter::handleSTS(Instruction* insn) {
 
 
 inline Instruction* Interpreter::handleA3REG(Instruction* insn) {
+
+
     return ++insn;
 }
 
@@ -587,17 +596,37 @@ inline Instruction* Interpreter::handleAREGIMM(Instruction* insn) {
 
 
 inline Instruction* Interpreter::handleNEG(Instruction* insn) {
-    return ++insn;
+
+#ifdef TRACE
+    cout << "NEG r" << insn->ARG0 << ", r" << insn->ARG1 << endl;
+#endif
+
+    // TODO handle tagged values!
+
+    return directCall(insn->ARG0, regs[insn->ARG1], (QuaSignature*)"\0_opUnMinus", insn + 1);
 }
 
 
 inline Instruction* Interpreter::handleLNOT(Instruction* insn) {
-    return ++insn;
+
+#ifdef TRACE
+    cout << "LNOT r" << insn->ARG0 << ", r" << insn->ARG1 << endl;
+#endif
+
+    // TODO handle tagged values!
+
+    return directCall(insn->ARG0, regs[insn->ARG1], (QuaSignature*)"\0_opLNot", insn + 1);
 }
 
 
 inline Instruction* Interpreter::handleIDX(Instruction* insn) {
-    return ++insn;
+
+#ifdef TRACE
+    cout << "IDX r" << insn->ARG0 << ", r" << insn->ARG1 << endl;
+#endif
+
+    *(--SP) = regs[insn->ARG2];
+    return directCall(insn->ARG0, regs[insn->ARG1], (QuaSignature*)"\1_opIndex", insn + 1);
 }
 
 
@@ -617,7 +646,9 @@ inline Instruction* Interpreter::handleJMP(Instruction* insn) {
 
 
 inline Instruction* Interpreter::handleJCC(Instruction* insn) {
-    return ++insn;
+
+    bool condition; // TODO: !!!!
+    return condition ? insn + insn->ARG2 : ++insn;
 }
 
 
@@ -649,7 +680,7 @@ inline Instruction* Interpreter::handleNEW(Instruction* insn) {
 #endif
 
     regs[insn->ARG0] = newRawInstance(insn->ARG1);
-    return commonCall(65535, regs[insn->ARG0], insn->ARG2, insn + 1); // temporarily use CP index
+    return commonCall(REG_DEV_NULL, regs[insn->ARG0], insn->ARG2, insn + 1); // temporarily use CP index
     // TODO: discuss if using the last register as /dev/null is OK
 }
 
