@@ -23,6 +23,7 @@ public:
 
 class ClassEntry : public Node {
 public:
+    ClassEntry() : name(NULL), flags(0) {}
     virtual ~ClassEntry() {}
     
     std::string* name;
