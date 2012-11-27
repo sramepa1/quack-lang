@@ -31,7 +31,7 @@ QuaValue Heap::allocateNew(uint16_t type, uint32_t size) {
         rec.instance = NULL;
     } else {
         size_t bytes = size*sizeof(QuaValue);
-        rec.instance = (QuaObject*)memset(freePtr, 0, bytes);  // TODO what about the types of the QuaValues?
+        rec.instance = (QuaObject*)memset(freePtr, 0, bytes);  // will be null references to _Null
         freePtr = (void*)((char*)freePtr + bytes);
     }
     rec.flags = 0;

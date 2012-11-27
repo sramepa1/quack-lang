@@ -72,6 +72,7 @@ private:
     Instruction* handleRET(Instruction* insn);
     Instruction* handleRETT(Instruction* insn);
     Instruction* handleRETNULL();
+    Instruction* handleRETPOP(Instruction* insn);
     Instruction* handleTRY(Instruction* insn);
     Instruction* handleCATCH(Instruction* insn);
     Instruction* handleTHROW(Instruction* insn);

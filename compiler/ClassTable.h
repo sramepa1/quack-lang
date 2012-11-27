@@ -12,6 +12,7 @@
 
 #include <list>
 
+#pragma pack(1)
 
 struct FieldData {
     uint16_t flags;
@@ -23,7 +24,10 @@ struct MethodData {
     uint16_t flags;
     uint16_t cpSigIndex;
     uint16_t cpBytecodeIndex;
+    uint16_t insnCount;
 };
+
+#pragma pack()
 
 
 class ClassTableEntry {
@@ -35,13 +39,13 @@ public:
     
     uint16_t nameIndex;
     uint16_t ancestor;
-    uint16_t flags;
+    uint16_t flags;    
     
     std::vector<FieldData> fieldIndicies;
     std::vector<MethodData> methodIndicies;
     
     void addField(uint16_t cpNameIndex, uint16_t flags);
-    void addMethod(uint16_t cpSigIndex, uint16_t flags, uint16_t cpCodeIndex);
+    void addMethod(uint16_t cpSigIndex, uint16_t flags, uint16_t cpCodeIndex, uint16_t insnCount);
     
     void writeTable(Compiler& compiler, uint32_t offset);
     void writeDef(Compiler& compiler);

@@ -1,6 +1,10 @@
 #ifndef QUAMETHOD_H
 #define QUAMETHOD_H
 
+extern "C" {
+    #include <stdint.h>
+}
+
 struct QuaMethod
 {
 public:
@@ -12,6 +16,7 @@ public:
         C_CALL = 3
     } action;
     void* code;
+    uint16_t insnCount;
 
 };
 

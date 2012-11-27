@@ -121,12 +121,13 @@
 #define OP_RET 0x55
 #define OP_RETT 0x56
 #define OP_RETNULL 0x57
+#define OP_RETPOP 0x58
 
-#define OP_TRY 0x58
-#define OP_CATCH 0x59
-#define OP_THROW 0x5A
-#define OP_THROWT 0x5B
-#define OP_FIN 0x5C
+#define OP_TRY 0x59
+#define OP_CATCH 0x5A
+#define OP_THROW 0x5B
+#define OP_THROWT 0x5C
+#define OP_FIN 0x5D
 
 
 // And that's all, folks.

@@ -49,7 +49,8 @@ void Interpreter::start() {
     Instruction* pc = (Instruction*)(mainClass->lookupMethod((QuaSignature*)"\1main")->code);
 
 #ifdef DEBUG
-    cout << "Entering interpreter loop, entry point address is " << pc << endl;
+    cout << "Entering interpreter loop, entry point address is " << pc
+         << ", opcode 0x" << hex << setw(2) << setfill('0') << (int)pc->op << endl << dec;
 #endif
 
     while(1) {
@@ -152,6 +153,7 @@ inline Instruction* Interpreter::processInstruction(Instruction* insn) {
             case OP_RET:	return handleRET(insn);
             case OP_RETT:	return handleRETT(insn);
             case OP_RETNULL:return handleRETNULL();
+            case OP_RETPOP:	return handleRETPOP(insn);
             case OP_TRY:	return handleTRY(insn);
             case OP_CATCH:	return handleCATCH(insn);
             case OP_THROW:	return handleTHROW(insn);
@@ -496,12 +498,43 @@ inline Instruction* Interpreter::handlePUSH(Instruction* insn) {
 
 inline Instruction* Interpreter::handlePOP(Instruction* insn) {
 
+    switch(insn->subop) {
+        case SOP_STACK_1:
 #ifdef TRACE
-    cout << "POP r" << insn->ARG0 << endl;
+            cout << "POP r" << insn->ARG0 << endl;
 #endif
+            regs[insn->ARG0] = *(SP++);
+            return ++insn;
 
-    regs[insn->ARG0] = *(SP++);
-    return ++insn;
+        case SOP_STACK_2:
+#ifdef TRACE
+            cout << "POP r" << insn->ARG0 << ", r" << insn->ARG1 << endl;
+#endif
+            regs[insn->ARG1] = *(SP++);
+            regs[insn->ARG0] = *(SP++);
+            return ++insn;
+
+        case SOP_STACK_3:
+#ifdef TRACE
+            cout << "POP r" << insn->ARG0 << ", r" << insn->ARG1 << ", r" << insn->ARG2 << endl;
+#endif
+            regs[insn->ARG2] = *(SP++);
+            regs[insn->ARG1] = *(SP++);
+            regs[insn->ARG0] = *(SP++);
+            return ++insn;
+
+        case SOP_STACK_RANGE:
+#ifdef TRACE
+            cout << "POP r" << insn->ARG0 << ", r" << insn->ARG1 << endl;
+#endif
+            for(unsigned int i = insn->ARG1; i >= insn->ARG0; i--) {
+                regs[i] = *(SP++);
+            }
+            return ++insn;
+
+        default:
+            return handleIllegalSubOp(insn);
+    }
 }
 
 
@@ -610,12 +643,25 @@ inline Instruction* Interpreter::handleCALLMY(Instruction* insn) {
 
 // TODO: make ARG2 param count to hard-coded "init" or use it as constructor signature CP index?
 inline Instruction* Interpreter::handleNEW(Instruction* insn) {
-    return ++insn;
+
+#ifdef TRACE
+    cout << "NEW r" << insn->ARG0 << ", " << insn->ARG1 << ", " << insn->ARG2 << endl;
+#endif
+
+    regs[insn->ARG0] = newRawInstance(insn->ARG1);
+    return commonCall(65535, regs[insn->ARG0], insn->ARG2, insn + 1); // temporarily use CP index
+    // TODO: discuss if using the last register as /dev/null is OK
 }
 
 
+// Compiler writers beware: RET does not restore any saved context!
 inline Instruction* Interpreter::handleRET(Instruction* insn) {
-    return ++insn;
+
+#ifdef TRACE
+    cout << "RET r" << insn->ARG0 << endl;
+#endif
+
+    return performReturn(regs[insn->ARG0]);
 }
 
 
@@ -630,6 +676,22 @@ inline Instruction* Interpreter::handleRETNULL() {
 #endif
 
     return performReturn(QuaValue());
+}
+
+
+// Fused POPA and RET to allow returning a value while restoring context
+inline Instruction* Interpreter::handleRETPOP(Instruction* insn) {
+
+#ifdef TRACE
+    cout << "RETPOP r" << insn->ARG0 << ", r" << insn->ARG1 << ", r" << insn->ARG2 << endl;
+#endif
+    QuaValue retVal = regs[insn->ARG0];
+
+    for(unsigned int i = insn->ARG2; i >= insn->ARG1; i--) {
+        regs[i] = *(SP++);
+    }
+
+    return performReturn(retVal);
 }
 
 

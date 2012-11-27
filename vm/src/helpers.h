@@ -99,7 +99,7 @@ inline QuaValue nativeCall(QuaValue& instance, QuaSignature* natSig) {
     }
     QuaValue retVal = ( __extension__ (QuaValue (*)())natMeth->code )();
     BP = oldBP;
-    SP = SP + 1 /*this*/ + (unsigned int)natSig->argCnt;
+    SP += (unsigned int)natSig->argCnt + 1 /*this*/;
 
     return retVal;
 }

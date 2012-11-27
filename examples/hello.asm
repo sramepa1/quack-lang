@@ -73,6 +73,7 @@ classtable:
 	dw 0						; flags      = empty (normal, fully accessible method)
 	dw 1						; CP index 1 = signature of main(args)
 	dw 7						; CP index 6 = bytecode of main(args)
+	dw 5						; Bytecode instruction count
 .endmain:
 	alignb 8, db 0
 .classdeftotalsize:	equ $-.classdefs	; classdef size calculation (nasm pseudoinstruction)

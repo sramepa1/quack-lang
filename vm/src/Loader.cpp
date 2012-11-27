@@ -238,9 +238,10 @@ QuaClass::QuaClass(void* constantPool, void* classDef, const string& className, 
 
     curPos += 2;
     for(uint16_t i = 0; i < methodCount; ++i) {
-        uint16_t methodFlags = ((uint16_t*)curPos)[3 * i];
-        uint16_t signatureIndex = ((uint16_t*)curPos)[3 * i + 1];
-        uint16_t codeIndex = ((uint16_t*)curPos)[3 * i + 2];
+        uint16_t methodFlags = ((uint16_t*)curPos)[4 * i];
+        uint16_t signatureIndex = ((uint16_t*)curPos)[4 * i + 1];
+        uint16_t codeIndex = ((uint16_t*)curPos)[4 * i + 2];
+        uint16_t insnCount = ((uint16_t*)curPos)[4 * i + 3];
         QuaSignature* signature = (QuaSignature*)getConstantPoolEntry(constantPool, signatureIndex);
 
         if(!Loader::checkIdentifier(signature->name)) {
@@ -248,16 +249,26 @@ QuaClass::QuaClass(void* constantPool, void* classDef, const string& className, 
         }
 
 #ifdef DEBUG
-        cout << "Constructing method " << signature->name << " with " << (int)signature->argCnt << " arg(s)"<< endl;
+        cout << "Constructing method " << signature->name << " with " << (int)signature->argCnt << " arg(s) ";
 #endif
 
         QuaMethod* method = new QuaMethod();
         if(methodFlags & METHOD_FLAG_NATIVE) {
             method->action = QuaMethod::C_CALL;
             method->code = nativeLoader->getNativeMethod(className, signature);
+            method->insnCount = 0;
+
+#ifdef DEBUG
+            cout << " - native" << endl;
+#endif
         } else {
             method->action = QuaMethod::INTERPRET;
             method->code = (void*)getConstantPoolEntry(constantPool, codeIndex);
+            method->insnCount = insnCount;
+
+#ifdef DEBUG
+            cout << " - " << insnCount << " instruction(s)" << endl;
+#endif
         }
 
         methods.insert(make_pair(signature, method));

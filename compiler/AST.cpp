@@ -93,9 +93,10 @@ void NMethod::fillTableEntry(ClassTableEntry* entry) {
     
     char* code = new char[1];
     code[0] = 0x57;
-    uint16_t codeIndex = constantPool.addConstant(code, 1); 
+    uint16_t codeIndex = constantPool.addConstant(code, 1);
+    uint16_t insnCount = 1;
      
-    entry->addMethod(sigIndex, flags, codeIndex); 
+    entry->addMethod(sigIndex, flags, codeIndex, insnCount); 
 }
 
 
