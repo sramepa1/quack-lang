@@ -50,5 +50,14 @@ extern "C" {
 
     extern sigjmp_buf jmpEnv;
 
+    // Chache for popular types
+    // Loader is responsible to fill it
+    extern struct TypeCache {
+        uint16_t typeNull;
+        uint16_t typeDataBlob;
+        uint16_t typeString;
+        uint16_t typeNotFoundException;
+        uint16_t typeIOException;
+    } typeCache;
 
 #endif // GLOBALS_H

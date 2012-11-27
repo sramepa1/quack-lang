@@ -7,6 +7,9 @@
 #include <stdexcept>
 #include <sstream>
 
+#include "globals.h"
+#include "helpers.h"
+
 #include "FileNative.h"
 #include "SystemNative.h"
 #include "StringNative.h"
@@ -85,4 +88,12 @@ void NativeLoader::registerClassDeserializer(string className, QuaValue (*deseri
         throw runtime_error("Class " + className + " has already registered a deserializer!");
     }
     deserializers->insert(make_pair(className, deserializer));
+}
+
+QuaValue createException(uint16_t type, const char* msg) {
+    QuaValue msgRef = stringDeserializer(msg);
+    *(--SP) = msgRef;                               // Push argument for constructor
+    QuaValue exRef = newRawInstance(type);
+    nativeCall(exRef, (QuaSignature*)"\1initN");    // Call native constructor
+    return exRef;
 }

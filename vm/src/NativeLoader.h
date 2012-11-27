@@ -35,5 +35,7 @@ inline void quaValuesFromPtr(void* ptr, QuaValue& first, QuaValue& second) {
     second.value = (uint32_t)((uint64_t)ptr & 0xFFFFFFFF);
 }
 
+QuaValue createException(uint16_t type, const char*msg);
+
 
 #endif // NATIVELOADER_H

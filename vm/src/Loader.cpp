@@ -32,6 +32,13 @@ Loader::Loader() : mmapedClsFiles(new vector<pair<void*, size_t> >()) {
     // This will be replaced by resource embedded into VM's binary
     loadClassFile("./rt.qc");
 
+    typeCache.typeNull = linkedTypes->at("_Null");
+    typeCache.typeDataBlob = linkedTypes->at("_DataBlob");
+    typeCache.typeString = linkedTypes->at("String");
+    // TODO: uncomennt them when completed the standard runtime classes
+//    typeCache.typeNotFoundException = linkedTypes->at("NotFoundException");
+//    typeCache.typeIOException = linkedTypes->at("IOException");
+
 #ifdef DEBUG
     cout << "Native classes loaded!" << endl;
 #endif

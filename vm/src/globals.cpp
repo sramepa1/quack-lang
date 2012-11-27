@@ -40,6 +40,7 @@ extern "C" {
     Interpreter* interpreter;
 
     sigjmp_buf jmpEnv;
+    TypeCache typeCache;
 
 
 void initGlobals(size_t valStackSize, size_t addrStackSize, size_t heapSize) {
