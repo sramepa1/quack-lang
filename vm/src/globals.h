@@ -55,6 +55,9 @@ extern "C" {
     extern struct TypeCache {
         uint16_t typeNull;
         uint16_t typeDataBlob;
+        uint16_t typeBool;
+        uint16_t typeInteger;
+        uint16_t typeFloat;
         uint16_t typeString;
         uint16_t typeNotFoundException;
         uint16_t typeIOException;

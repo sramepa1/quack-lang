@@ -42,6 +42,9 @@ private:
     static Instruction* handleIllegalInstruction(Instruction* insn);
     static Instruction* handleIllegalSubOp(Instruction* insn);
 
+    static bool isNull(QuaValue v);
+    static bool parseTaggedBool(QuaValue v);
+
     Instruction* handleNOP(Instruction* insn);
     Instruction* handleLDC(Instruction* insn);
     Instruction* handleLDF(Instruction* insn);
@@ -65,6 +68,7 @@ private:
     Instruction* handleLNOT(Instruction* insn);
     Instruction* handleIDX(Instruction* insn);
     Instruction* handleIDXI(Instruction* insn);
+    Instruction* handleCNVT(Instruction* insn);
     Instruction* handleJMP(Instruction* insn);
     Instruction* handleJCC(Instruction* insn);
     Instruction* handleCALL(Instruction* insn);
@@ -81,6 +85,8 @@ private:
     Instruction* handleFIN(Instruction* insn);
     Instruction* handleHCF();
     Instruction* handleHLT();
+
+    Instruction* commonIDX(Instruction* insn);
 };
 
 #endif // INTERPRETER_H

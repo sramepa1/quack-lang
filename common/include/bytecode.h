@@ -95,24 +95,21 @@
 #define OP_IDX 0x42
 #define OP_IDXI 0x43
 
+// conversion (required for conditional jumps if the compiler is not sure, uses SOP_ tags)
+#define OP_CNVT 0x4F
 
 // CODE FLOW
 
 #define OP_JMP 0x50
 #define OP_JCC 0x51
 
-// conditional jump takes a sub-op with values shared with relational operator PART_s
 #define SOP_CC_NULL 0x0
 #define SOP_CC_NNULL 0x1
+
+// these require a TAGGED bool (use CNVT if unsure)
 #define SOP_CC_TRUE 0x2
 #define SOP_CC_FALSE 0x3
 
-#define SOP_CC_EQ PART_EQ
-#define SOP_CC_NEQ PART_NEQ
-#define SOP_CC_GT PART_GT
-#define SOP_CC_GE PART_GE
-#define SOP_CC_LT PART_LT
-#define SOP_CC_LE PART_LE
 
 #define OP_CALL 0x52
 #define OP_CALLMY 0x53

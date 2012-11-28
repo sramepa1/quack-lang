@@ -3,6 +3,7 @@
 
 #include <string>
 #include <sstream>
+#include <iomanip>
 #include <stdexcept>
 #include <cerrno>
 extern "C" {
@@ -102,6 +103,12 @@ inline QuaValue nativeCall(QuaValue& instance, QuaSignature* natSig) {
     SP += (unsigned int)natSig->argCnt + 1 /*this*/;
 
     return retVal;
+}
+
+__attribute__ ((noreturn)) inline void errorUnknownTag(uint8_t tag) {
+    std::ostringstream os;
+    os << "Unknown value tag encountered: 0x" << std::hex << std::setw(2) << std::setfill('0') << (int)tag << ".";
+    throw std::runtime_error(os.str());
 }
 
 #endif // HELPERS_H

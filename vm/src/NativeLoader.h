@@ -29,9 +29,9 @@ inline void* ptrFromQuaValues(QuaValue first, QuaValue second) {
     return (void*)((uint64_t)first.value << 32 | (uint64_t)second.value);
 }
 inline void quaValuesFromPtr(void* ptr, QuaValue& first, QuaValue& second) {
-    first.flags = TAG_INT;
+    first.tag = TAG_INT;
     first.value = (uint32_t)((uint64_t)ptr >> 32);
-    second.flags = TAG_INT;
+    second.tag = TAG_INT;
     second.value = (uint32_t)((uint64_t)ptr & 0xFFFFFFFF);
 }
 
