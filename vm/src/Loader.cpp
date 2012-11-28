@@ -1,5 +1,6 @@
 #include "Loader.h"
 
+#include <sstream>
 #include <stdexcept>
 #include <cctype>
 
@@ -33,6 +34,11 @@ Loader::Loader() : mmapedClsFiles(new vector<pair<void*, size_t> >()) {
     loadClassFile("./rt.qc");
 
     typeCache.typeNull = linkedTypes->at("_Null");
+    if(typeCache.typeNull != 0) {
+        ostringstream os;
+        os<<"Corrupted runtime class file detected - _Null must be type 0 but was loaded as "<<typeCache.typeNull<<'.';
+        throw runtime_error(os.str());
+    }
     typeCache.typeDataBlob = linkedTypes->at("_DataBlob");
     // TODO: uncomennt them when completed the standard runtime classes
 //    typeCache.typeBool = linkedTypes->at("Bool");

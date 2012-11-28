@@ -111,4 +111,39 @@ __attribute__ ((noreturn)) inline void errorUnknownTag(uint8_t tag) {
     throw std::runtime_error(os.str());
 }
 
+inline uint16_t getTaggedType(uint8_t tag) {
+    switch(tag) {
+        case SOP_TAG_BOOL:  return typeCache.typeBool;
+        case SOP_TAG_INT:   return typeCache.typeInteger;
+        case SOP_TAG_FLOAT: return typeCache.typeFloat;
+        default: errorUnknownTag(tag);
+    }
+}
+
+// These are not actual QuaValue constructors to avoid including globals.h in QuaValue.h (dependency on typeCache)
+
+inline QuaValue createBool(bool value) {
+    return QuaValue((uint32_t)value, typeCache.typeBool, TAG_BOOL);
+}
+
+inline QuaValue createInteger(int32_t value) {
+    return QuaValue(*((uint32_t*)&value), typeCache.typeInteger, TAG_INT);
+}
+
+inline QuaValue createFloat(float value) {
+    return QuaValue(*((uint32_t*)&value), typeCache.typeFloat, TAG_FLOAT);
+}
+
+// moved from NativeLoader.h to allow usage of QuaValue constructors which set type correctly
+// NativeLoader.h didn't (and shouldn't) have access to typeCache.
+// Tag and type must be kept coherent or horrible things start happening :)
+inline void quaValuesFromPtr(void* ptr, QuaValue& first, QuaValue& second) {
+    first = createInteger((uint32_t)((uint64_t)ptr >> 32));
+    second = createInteger((uint32_t)((uint64_t)ptr & 0xFFFFFFFF));
+}
+
+inline void* ptrFromQuaValues(QuaValue first, QuaValue second) {
+    return (void*)((uint64_t)first.value << 32 | (uint64_t)second.value);
+}
+
 #endif // HELPERS_H
