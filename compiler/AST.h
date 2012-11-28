@@ -98,13 +98,60 @@ public:
     virtual void fillTableEntry(ClassTableEntry* entry);
 };
 
-class NBlock : public Node {
+////////////////////////////////////////
+
+class NBlock : public NStatement {
 public:
     virtual ~NBlock() {}
     
     std::list<NStatement*>* statements;
     
-    virtual void generateCode(Compiler&) {}
+    virtual void generateCode(BlockTranslator* translator);
+};
+
+class SAssignment : public NStatement {
+public:
+    virtual ~SAssignment() {}
+    
+    EVarible* variable;
+    NExpression* expression;
+    
+    virtual void generateCode(BlockTranslator* translator);
+};
+
+class NCall : public NStatement, public NExpression {
+public:
+    virtual ~NCall() {}
+    
+    //TODO zařadi čí meoda se volá
+    std::string* methodName;
+    std::list<NExpression*>* parameters;
+
+    virtual void generateCode(BlockTranslator* translator) {}
+};
+
+class SIf : public NStatement {
+public:
+    SIf() : elseBlock(NULL) {}
+    virtual ~SIf() {}
+
+    NExpression* condition;
+    NBlock* thenBlock;
+    NBlock* elseBlock;
+    
+    virtual void generateCode(BlockTranslator* translator) {}
+};
+
+class SFor : public NStatement {
+public:
+    virtual ~SFor() {}
+    
+    NStatement* init;
+    NExpression* condition;
+    NStatement* increment;
+    NBlock* body;
+
+    virtual void generateCode(BlockTranslator* translator) {}
 };
 
 
@@ -128,85 +175,85 @@ public:
 class EAnd : public EBOp {
 public:
     virtual ~EAnd() {}
-    virtual void generateCode(Compiler&) {}
+    virtual void generateCode(BlockTranslator* translator) {}
 };
 
 class EOr : public EBOp {
 public:
     virtual ~EOr() {}
-    virtual void generateCode(Compiler&) {}
+    virtual void generateCode(BlockTranslator* translator) {}
 };
 
 class ENot : public EUOp {
 public:
     virtual ~ENot() {}
-    virtual void generateCode(Compiler&) {}
+    virtual void generateCode(BlockTranslator* translator) {}
 };
 
 class EAdd : public EBOp {
 public:
     virtual ~EAdd() {}
-    virtual void generateCode(Compiler&) {}
+    virtual void generateCode(BlockTranslator* translator) {}
 };
 
 class ESub : public EBOp {
 public:
     virtual ~ESub() {}
-    virtual void generateCode(Compiler&) {}
+    virtual void generateCode(BlockTranslator* translator) {}
 };
 
 class EMul : public EBOp {
 public:
     virtual ~EMul() {}
-    virtual void generateCode(Compiler&) {}
+    virtual void generateCode(BlockTranslator* translator) {}
 };
 
 class EDiv : public EBOp {
 public:
     virtual ~EDiv() {}
-    virtual void generateCode(Compiler&) {}
+    virtual void generateCode(BlockTranslator* translator) {}
 };
 
 class EMod : public EBOp {
 public:
     virtual ~EMod() {}
-    virtual void generateCode(Compiler&) {}
+    virtual void generateCode(BlockTranslator* translator) {}
 };
 
 class EEq : public EBOp {
 public:
     virtual ~EEq() {}
-    virtual void generateCode(Compiler&) {}
+    virtual void generateCode(BlockTranslator* translator) {}
 };
 
 class ENe : public EBOp {
 public:
     virtual ~ENe() {}
-    virtual void generateCode(Compiler&) {}
+    virtual void generateCode(BlockTranslator* translator) {}
 };
 
 class ELt : public EBOp {
 public:
     virtual ~ELt() {}
-    virtual void generateCode(Compiler&) {}
+    virtual void generateCode(BlockTranslator* translator) {}
 };
 
 class ELe : public EBOp {
 public:
     virtual ~ELe() {}
-    virtual void generateCode(Compiler&) {}
+    virtual void generateCode(BlockTranslator* translator) {}
 };
 
 class EGt : public EBOp {
 public:
     virtual ~EGt() {}
-    virtual void generateCode(Compiler&) {}
+    virtual void generateCode(BlockTranslator* translator) {}
 };
 
 class EGe : public EBOp {
 public:
     virtual ~EGe() {}
-    virtual void generateCode(Compiler&) {}
+    virtual void generateCode(BlockTranslator* translator) {}
 };
 
 
@@ -216,7 +263,7 @@ public:
     
     std::string* value;
     
-    virtual void generateCode(Compiler&) {}
+    virtual void generateCode(BlockTranslator* translator) {}
 };
 
 class CInt : public NExpression {
@@ -225,7 +272,7 @@ public:
     
     int value;
     
-    virtual void generateCode(Compiler&) {}
+    virtual void generateCode(BlockTranslator* translator) {}
 };
 
 class CFloat : public NExpression {
@@ -234,7 +281,7 @@ public:
     
     float value;
     
-    virtual void generateCode(Compiler&) {}
+    virtual void generateCode(BlockTranslator* translator) {}
 };
 
 class CBool : public NExpression {
@@ -243,7 +290,7 @@ public:
     
     bool value;
     
-    virtual void generateCode(Compiler&) {}
+    virtual void generateCode(BlockTranslator* translator) {}
 };
 
 
@@ -255,58 +302,7 @@ public:
     std::string* className;
     std::string* variableName;
     
-    virtual void generateCode(Compiler&) {}
-};
-
-
-
-
-
-////////////////////////////////////////
-
-class SAssignment : public NStatement {
-public:
-    virtual ~SAssignment() {}
-    
-    EVarible* variable;
-    NExpression* expression;
-    
-    virtual void generateCode(Compiler&) {}
-};
-
-class NCall : public NStatement, public NExpression {
-public:
-    virtual ~NCall() {}
-    
-    //TODO zařadi čí meoda se volá
-    std::string* methodName;
-    std::list<NExpression*>* parameters;
-
-    virtual void generateCode(Compiler&) {}
-};
-
-class SIf : public NStatement {
-public:
-    SIf() : elseBlock(NULL) {}
-    virtual ~SIf() {}
-
-    NExpression* condition;
-    NBlock* thenBlock;
-    NBlock* elseBlock;
-    
-    virtual void generateCode(Compiler&) {}
-};
-
-class SFor : public NStatement {
-public:
-    virtual ~SFor() {}
-    
-    NStatement* init;
-    NExpression* condition;
-    NStatement* increment;
-    NBlock* body;
-
-    virtual void generateCode(Compiler&) {}
+    virtual void generateCode(BlockTranslator* translator) {}
 };
 
 

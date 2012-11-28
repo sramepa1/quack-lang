@@ -8,6 +8,7 @@
 #ifndef NODES_H
 #define	NODES_H
 
+#include "BlockTranslator.h"
 #include "ClassTable.h"
 #include "Compiler.h"
 
@@ -35,6 +36,8 @@ public:
 class NStatement : public Node {
 public:
     virtual ~NStatement() {}
+    
+    virtual void generateCode(BlockTranslator* translator) = 0;
 };
 
 class NExpression : public Node {
@@ -72,6 +75,8 @@ class NStatClass;
 class NMethod;
 class NBlock;
 class NStatement;
+
+class EVarible;
 
 
 #endif	/* NODES_H */

@@ -82,8 +82,9 @@ void ConstantPool::write(Compiler& compiler) {
     for(std::list<ConstantPoolEntry*>::iterator it = entries.begin(); it != entries.end(); ++it) {
         (*it)->writable->write(compiler);
         compiler.writeAlign8();
+        
+        delete (*it);
     }
-    
 }
 
 

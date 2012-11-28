@@ -32,7 +32,6 @@ public:
                 uint32_t imm,
                 uint16_t reg = 0);
     
-    
     virtual int size();
     virtual void write(Compiler& compiler);
 

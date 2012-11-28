@@ -34,6 +34,9 @@ int BlockTranslator::size() {
 void BlockTranslator::write(Compiler& compiler) {
     for(vector<Instruction*>::iterator it = instructions.begin(); it != instructions.end(); ++it) {
         compiler.write((char*) (*it), sizeof(Instruction));
+        delete (*it);
     }
+    
+    instructions.clear();
 }
 

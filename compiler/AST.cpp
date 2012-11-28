@@ -89,14 +89,11 @@ void NMethod::fillTableEntry(ClassTableEntry* entry) {
     uint16_t sigIndex = constantPool.addConstant(signature, size); 
     
     // code
-    // TODO
+    BlockTranslator* translator = new BlockTranslator();
+    block->generateCode(translator);
+    uint16_t codeIndex = constantPool.addCode(translator);
     
-    char* code = new char[1];
-    code[0] = 0x57;
-    uint16_t codeIndex = constantPool.addConstant(code, 1);
-    uint16_t insnCount = 1;
-     
-    entry->addMethod(sigIndex, flags, codeIndex, insnCount); 
+    entry->addMethod(sigIndex, flags, codeIndex, translator->size()); 
 }
 
 
@@ -105,21 +102,24 @@ void NField::fillTableEntry(ClassTableEntry* entry) {
 }
 
 
+////////////////////////////////////////////////////////////////////////////////
+
+
+void NBlock::generateCode(BlockTranslator* translator) {
+    for(list<NStatement*>::iterator it = statements->begin(); it !=  statements->end(); ++it) {
+        (*it)->generateCode(translator);
+    }
+}
+
+
+void SAssignment::generateCode(BlockTranslator* translator) {
+    
+}
+
+
 /*
-
-void NDynClass::generateCode(ofstream& ofs) {
-    cout << "NDynClass::generateCode(ofstream& ofs)" << endl;
+void generateCode(BlockTranslator* translator) {
+    
 }
 
-void NStatClass::generateCode(ofstream& ofs) {
-    cout << "NStatClass::generateCode(ofstream& ofs)" << endl;
-}
-
-void NMethod::generateCode(ofstream& ofs) {
-    cout << "NMethod::generateCode(ofstream& ofs)" << endl;
-}
-
-void NBlock::generateCode(ofstream& ofs) {
-    cout << "NMethod::generateCode(ofstream& ofs)" << endl;
-}
 */
