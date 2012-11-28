@@ -1,6 +1,8 @@
 
 #include "AST.h"
 
+#include "bytecode.h"
+
 #include <iostream>
 #include <string.h>
 
@@ -93,6 +95,9 @@ void NMethod::fillTableEntry(ClassTableEntry* entry) {
     block->generateCode(translator);
     uint16_t codeIndex = constantPool.addCode(translator);
     
+    // return - in case there is no at the end of method
+    translator->addInstruction(OP_RETNULL, OP_NOP); // we do not optimize !!!
+    
     entry->addMethod(sigIndex, flags, codeIndex, translator->size()); 
 }
 
@@ -111,6 +116,13 @@ void NBlock::generateCode(BlockTranslator* translator) {
     }
 }
 
+void NReturn::generateCode(BlockTranslator* translator) {
+    if(expression == NULL) {
+        translator->addInstruction(OP_RETNULL, OP_NOP);
+    } else {
+        //TODO
+    }
+}
 
 void SAssignment::generateCode(BlockTranslator* translator) {
     

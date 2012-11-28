@@ -109,6 +109,16 @@ public:
     virtual void generateCode(BlockTranslator* translator);
 };
 
+class NReturn : public NStatement {
+public:
+    NReturn(NExpression* _expression = NULL) : expression(_expression) {}
+    virtual ~NReturn() {}
+    
+    NExpression* expression;
+    
+    virtual void generateCode(BlockTranslator* translator);
+};
+
 class SAssignment : public NStatement {
 public:
     virtual ~SAssignment() {}

@@ -19,6 +19,7 @@ class Main #flags 0x0001 {
     fun main(args) #flags 0x0000 {
         //out = @System.out;
         //out->writeLine("Hello, world!");
+        return;
     }
     
 }

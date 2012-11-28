@@ -40,6 +40,8 @@ extern "C" int yywrap() { return 1; }
 "for"                                   return TOKEN(K_FOR);
 "="                                     return TOKEN(T_ASSIGN);
 
+"instanceof"                            return TOKEN(K_INSTANCEOF);
+"return"                                return TOKEN(K_RETURN);
 "this"                                  return TOKEN(K_THIS);
 "null"                                  return TOKEN(K_NULL);
 "new"                                   return TOKEN(K_NEW);

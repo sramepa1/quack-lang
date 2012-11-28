@@ -50,7 +50,7 @@
    they represent.
  */
 %token <token> K_STATCLASS K_CLASS K_EXTENDS K_FIELD K_INIT K_METHOD K_FLAGS
-%token <token> K_THIS K_NULL K_NEW
+%token <token> K_THIS K_NULL K_NEW K_INSTANCEOF K_RETURN
 
 %token <token> K_THROW K_TRY K_CATCH K_AS
 %token <token> T_ASSIGN K_IF K_ELSE K_FOR
@@ -92,6 +92,9 @@
 %type <ncall> call
 %type <sif> if
 %type <sfor> for
+%type <sstatement> return
+
+
 
 %type <nexpression> parameter expression logic_expr compare_expr string_expr relation_expr artim_expr artim_expr2 artim_expr3
 %type <nexpression> artim_const boolean_const string_const value variable
@@ -195,7 +198,7 @@ parameter:
 
 block:
     T_LBLOCK statement_list T_RBLOCK {$$ = new NBlock(); $$->statements = $2;}
-  | T_LBLOCK T_RBLOCK {$$ = NULL;}
+  | T_LBLOCK T_RBLOCK {$$ = new NBlock(); $$->statements = new std::list<NStatement*>();}
 ;
 
 statement_list:
@@ -208,6 +211,7 @@ block_statement:
   | if {$$ = $1;}
   | for {$$ = $1;}
   | throw T_SEMICOLON
+  | return T_SEMICOLON {$$ = $1;}
   | assignment T_SEMICOLON {$$ = $1;}
   | call T_SEMICOLON {$$ = $1;}
   | T_SEMICOLON {$$ = NULL;}
@@ -236,6 +240,11 @@ catches:
 catch:
     K_CATCH T_IDENTIFIER block
   | K_CATCH T_IDENTIFIER K_AS T_IDENTIFIER block
+;
+
+return:
+    K_RETURN {$$ = new NReturn();}
+  | K_RETURN expression {$$ = new NReturn($2);}
 ;
 
 assignment:
