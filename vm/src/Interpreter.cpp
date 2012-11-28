@@ -319,7 +319,7 @@ inline Instruction* Interpreter::handleIllegalSubOp(Instruction* insn) {
 
 
 inline void Interpreter::functionPrologue(QuaValue that,void* retAddr,bool interpreted,char argCount,uint16_t destReg) {
-    *(--SP) = that;                                                                                 // sub esp, 4
+    *(--SP) = that;
     *(--ASP) = QuaFrame(retAddr, interpreted, argCount, destReg, (QuaValue*)valStackHigh - BP);     // push ebp
     BP = SP;                                                                                        // mov ebp, esp
 }
@@ -328,6 +328,22 @@ inline void Interpreter::functionEpilogue() {
     SP = BP + (ASP->ARG_COUNT + 1);                 // mov esp, ebp
     BP = (QuaValue*)valStackHigh - ASP->BP_OFFSET;  // pop ebp
 }
+
+inline QuaValue Interpreter::extractTaggedValue(Instruction* insn) {
+    return QuaValue(insn->IMM, getTaggedType(insn->subop), insn->subop);
+}
+
+
+#ifdef TRACE
+char getTagMnemonic(uint8_t tag) {
+    switch(tag) {
+        case SOP_TAG_BOOL: return 'B';
+        case SOP_TAG_INT: return 'I';
+        case SOP_TAG_FLOAT: return 'F';
+        default: return '?';
+    }
+}
+#endif
 
 
 inline Instruction* Interpreter::handleNOP(Instruction* insn) {
@@ -352,6 +368,12 @@ inline Instruction* Interpreter::handleLDC(Instruction* insn) {
 
 
 inline Instruction* Interpreter::handleLDCT(Instruction* insn) {
+
+#ifdef TRACE
+    cout << "LDC" << getTagMnemonic(insn->subop) << " r" << insn->REG << ", 0x" << hex << insn->IMM << dec << endl;
+#endif
+
+    regs[insn->REG] = extractTaggedValue(insn);
     return ++insn;
 }
 
@@ -561,6 +583,12 @@ inline Instruction* Interpreter::handlePUSHC(Instruction* insn) {
 
 
 inline Instruction* Interpreter::handlePUSHCT(Instruction* insn) {
+
+#ifdef TRACE
+    cout << "PUSHC" << getTagMnemonic(insn->subop) << ", 0x" << hex << insn->IMM << dec << endl;
+#endif
+
+    *(--SP) = extractTaggedValue(insn);
     return ++insn;
 }
 
@@ -589,12 +617,17 @@ inline Instruction* Interpreter::handleSTS(Instruction* insn) {
 
 inline Instruction* Interpreter::handleA3REG(Instruction* insn) {
 
+    // TODO: Arithmetics (don't forget tagged values!)
 
     return ++insn;
 }
 
 
 inline Instruction* Interpreter::handleAREGIMM(Instruction* insn) {
+
+    // TODO: Discuss ditching Reg-Imm arithmetics, as they have different semantics
+    //                                             ( ADD is not + but +=, etc. )
+
     return ++insn;
 }
 
@@ -605,9 +638,18 @@ inline Instruction* Interpreter::handleNEG(Instruction* insn) {
     cout << "NEG r" << insn->ARG0 << ", r" << insn->ARG1 << endl;
 #endif
 
-    // TODO handle tagged values!
+    switch(regs[insn->ARG1].tag) {
+        case TAG_BOOL:  break;
+            // pretty much a guaranteed NoSuchMethodException, but included for consistency and future additions.
+        case TAG_INT:   regs[insn->ARG0] = createInteger( - *((int32_t*) &(regs[insn->ARG1].value)) );
+                        return ++insn;
+        case TAG_FLOAT: regs[insn->ARG0] = createFloat( - *((float*) &(regs[insn->ARG1].value)) );
+                        return ++insn;
+        case TAG_REF:   break;
+        default: errorUnknownTag(regs[insn->ARG1].tag);
+    }
 
-    return directCall(insn->ARG0, regs[insn->ARG1], (QuaSignature*)"\0_opUnMinus", insn + 1);
+    return directCall(insn->ARG0, regs[insn->ARG1], (QuaSignature*)"\0_opUnMinus", insn + 1);;
 }
 
 
@@ -617,7 +659,20 @@ inline Instruction* Interpreter::handleLNOT(Instruction* insn) {
     cout << "LNOT r" << insn->ARG0 << ", r" << insn->ARG1 << endl;
 #endif
 
-    // TODO handle tagged values!
+    switch(regs[insn->ARG1].tag) {
+        case TAG_BOOL:  regs[insn->ARG0] = createBool( ! (bool) regs[insn->ARG1].value );
+                        return ++insn;
+
+        case TAG_INT:   break;
+            // This one may actually work after autoboxing, if someone implements the ! operator for it, like C does
+            // if that ever happens, that implementation should probably be called from here for speedup.
+
+        case TAG_FLOAT: break;
+            // NoSuchMethodException for consistency
+
+        case TAG_REF:   break;
+        default: errorUnknownTag(regs[insn->ARG1].tag);
+    }
 
     return directCall(insn->ARG0, regs[insn->ARG1], (QuaSignature*)"\0_opLNot", insn + 1);
 }
@@ -756,7 +811,12 @@ inline Instruction* Interpreter::handleRET(Instruction* insn) {
 
 
 inline Instruction* Interpreter::handleRETT(Instruction* insn) {
-    return ++insn;
+
+#ifdef TRACE
+    cout << "RET" << getTagMnemonic(insn->subop) << ", 0x" << hex << insn->IMM << dec << endl;
+#endif
+
+    return performReturn(extractTaggedValue(insn));
 }
 
 inline Instruction* Interpreter::handleRETNULL() {
@@ -818,7 +878,13 @@ inline Instruction* Interpreter::handleTHROW(Instruction* insn) {
 
 
 inline Instruction* Interpreter::handleTHROWT(Instruction* insn) {
-    return ++insn;
+
+#ifdef TRACE
+    cout << "THROW" << getTagMnemonic(insn->subop) << ", 0x" << hex << insn->IMM << dec << endl;
+#endif
+
+    QuaValue qex = extractTaggedValue(insn);
+    return performThrow(qex);
 }
 
 

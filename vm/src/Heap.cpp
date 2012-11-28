@@ -31,10 +31,10 @@ const ObjRecord& Heap::dereference(QuaValue ref) {
         default: errorUnknownTag(ref.tag);
     }
 
-    if(ref.value == 0) {
+    if(ref.type == 0 /*guaranteed Null type*/ || ref.value == 0) {
         throw runtime_error("TODO This should throw a Quack NullReferenceException!");
     }
-    // TODO type check, autobox
+
     return objTable[ref.value];
 }
 
@@ -48,7 +48,7 @@ QuaValue Heap::allocateNew(uint16_t type, uint32_t size) {
         rec.instance = NULL;
     } else {
         size_t bytes = size*sizeof(QuaValue);
-        rec.instance = (QuaObject*)memset(freePtr, 0, bytes);  // will be null references to _Null
+        rec.instance = (QuaObject*)memset(freePtr, 0, bytes);  // will be null references to _Null (guaranteed zero)
         freePtr = (void*)((char*)freePtr + bytes);
     }
     rec.flags = 0;
