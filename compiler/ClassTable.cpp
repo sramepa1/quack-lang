@@ -7,8 +7,8 @@
 
 #include <vector>
 
-#include "ClassTable.h"
 #include "AST.h"
+#include "ClassTable.h"
 
 #define EMPTY_ENTRY_SIZE 8
 #define EMPTY_TABLE_SIZE 8

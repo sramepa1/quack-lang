@@ -8,6 +8,7 @@
 #ifndef CONSTANTPOOL_H
 #define	CONSTANTPOOL_H
 
+#include "BlockTranslator.h"
 #include "Compiler.h"
 
 #include <list>
@@ -19,11 +20,24 @@ extern "C" {
    #include <stdint.h>
 }
 
+class BlockTranslator;
 
 struct ConstantPoolEntry{
     uint32_t offset;
-    int size;
+    IWritable* writable;
+};
+
+
+class ByteArray : public IWritable {
+public:
+    ByteArray(char* _data, int _lenght) : data(_data), lenght(_lenght) {}
+    virtual ~ByteArray() {delete [] data;}
+    
     char* data;
+    int lenght;
+    
+    virtual int size() {return lenght;}
+    virtual void write(Compiler& compiler);
 };
 
 
@@ -38,12 +52,15 @@ public:
     std::list<ConstantPoolEntry*> entries;
     std::map<std::string, uint16_t> stringLookup;
     
-    int addConstant(char* content, int size);
+    uint16_t addCode(BlockTranslator* translator);
+    uint16_t addConstant(char* content, int size);
     uint16_t addString(std::string str);
     
     void write(Compiler& compiler);
     
 private:
+    
+    uint16_t updateCounters(IWritable* writable);
 
     // DISABLED
     ConstantPool(const ConstantPool& orig) {}

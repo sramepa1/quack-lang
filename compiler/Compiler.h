@@ -17,7 +17,7 @@ extern "C" {
    #include <stdint.h>
 }
 
-
+#define ALLIGN_BYTE_VALUE 0
 
 class Compiler {
 public:
@@ -48,7 +48,18 @@ public:
     Compiler(const Compiler& orig);
 };
 
-#define BYTE_ALLIGN 0
+
+class IWritable {
+public:
+    virtual ~IWritable() {}
+    
+    virtual int size() = 0;
+    virtual void write(Compiler& compiler) = 0;
+};
+
+
+
+
 
 #endif	/* COMPILER_H */
 

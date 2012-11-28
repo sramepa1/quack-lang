@@ -93,7 +93,7 @@ void Compiler::write(const char byte) {
 
 void Compiler::writeAlign8() {
     while(offset % 8 != 0) {
-        write((char) BYTE_ALLIGN);
+        write((char) ALLIGN_BYTE_VALUE);
     }
 }
 
