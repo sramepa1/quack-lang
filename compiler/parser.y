@@ -50,8 +50,9 @@
    they represent.
  */
 %token <token> K_STATCLASS K_CLASS K_EXTENDS K_FIELD K_INIT K_METHOD K_FLAGS
-%token <token> K_THIS K_NULL
+%token <token> K_THIS K_NULL K_NEW
 
+%token <token> K_THROW K_TRY K_CATCH K_AS
 %token <token> T_ASSIGN K_IF K_ELSE K_FOR
 
 %token <token> T_AND T_OR T_NOT
@@ -203,45 +204,43 @@ statement_list:
 ;
 
 block_statement:
-    assignment T_SEMICOLON {$$ = $1;}
-  | call T_SEMICOLON {$$ = $1;}
+    try {$$ = NULL;}
   | if {$$ = $1;}
   | for {$$ = $1;}
+  | throw T_SEMICOLON
+  | assignment T_SEMICOLON {$$ = $1;}
+  | call T_SEMICOLON {$$ = $1;}
   | T_SEMICOLON {$$ = NULL;}
 ;
 
 standalone_statement:
-    assignment  {$$ = $1;}
+    assignment {$$ = $1;}
   | call {$$ = $1;}
   | if {$$ = $1;}
   | for {$$ = $1;}
 ;   
 
+throw:
+    K_THROW expression
+;
+
+try:
+    K_TRY block catches
+;
+
+catches:
+    catch
+  | catches catch
+;
+
+catch:
+    K_CATCH T_IDENTIFIER block
+  | K_CATCH T_IDENTIFIER K_AS T_IDENTIFIER block
+;
+
 assignment:
     variable T_ASSIGN expression {$$ = new SAssignment(); $$->variable = (EVarible*) $1; $$->expression = $3;}
 ;
-
-call:
-    T_IDENTIFIER parameters {$$ = new NCall(); $$->methodName = $1; $$->parameters = $2;}
-;
-
-/*
-dynamic_access:
-    K_THIS
-  | T_IDENTIFIER access
-  | T_IDENTIFIER access
-;
-
-static_access:
-    T_STATIC T_IDENTIFIER T_FACCESS
-  | T_STATIC T_IDENTIFIER T_MACCESS
-;
-
-access:
-    T_FACCESS
-  | T_MACCESS
-;
-*/
 
 if:
     K_IF T_LPAREN expression T_RPAREN block {$$ = new SIf(); $$->condition = $3; $$->thenBlock = $5;}
@@ -324,25 +323,45 @@ string_const:
 ;
 
 value: 
-    call {$$ = $1;}
-  | variable {$$ = $1;}
+    variable {$$ = $1;}
+  | call {$$ = $1;}
+ /* | method_access
+  | K_NEW T_IDENTIFIER parameters */
 ;
 
 variable:
     T_IDENTIFIER {$$ = new EVarible(); ((EVarible*) $$)->variableName = $1;}
   | T_IDENTIFIER T_FACCESS T_IDENTIFIER {$$ = new EVarible(); ((EVarible*) $$)->className = $1; ((EVarible*) $$)->variableName = $3;}
-/*  | T_STATIC T_IDENTIFIER T_FACCESS T_IDENTIFIER {$$ = new EVarible(); ((EVarible*) $$)->className = $2; ((EVarible*) $$)->variableName = $4;} */
+  | T_STATIC T_IDENTIFIER T_FACCESS T_IDENTIFIER {$$ = new EVarible(); ((EVarible*) $$)->className = $2; ((EVarible*) $$)->variableName = $4;} 
+
+
+call:
+    T_IDENTIFIER parameters {$$ = new NCall(); $$->methodName = $1; $$->parameters = $2;}
 ;
+/*
+variable:
+    var_access
+  | static_var_access
+;
+
+var_access:
+    var_access T_FACCESS T_IDENTIFIER
+  | T_IDENTIFIER
+;
+
+method_access:
+    T_IDENTIFIER parameters
+  | var_access T_MACCESS T_IDENTIFIER parameters
+;
+
+static_var_access:
+    T_STATIC var_accesses
+;
+
+static_method_access:
+    T_STATIC method_access
+;
+*/
 
 
 %%
-
-
-/*
-
-    assignment T_SEMICOLON
-    if
-    for
-  | T_SEMICOLON
-
-*/

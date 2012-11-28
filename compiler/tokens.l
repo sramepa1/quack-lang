@@ -30,6 +30,11 @@ extern "C" int yywrap() { return 1; }
 "fun"                                   return TOKEN(K_METHOD);
 "#flags"                                return TOKEN(K_FLAGS);
 
+"throw"                                 return TOKEN(K_THROW);
+"try"                                   return TOKEN(K_TRY);
+"catch"                                 return TOKEN(K_CATCH);
+"as"                                    return TOKEN(K_AS);
+
 "if"                                    return TOKEN(K_IF);
 "else"                                  return TOKEN(K_ELSE);
 "for"                                   return TOKEN(K_FOR);
@@ -37,6 +42,8 @@ extern "C" int yywrap() { return 1; }
 
 "this"                                  return TOKEN(K_THIS);
 "null"                                  return TOKEN(K_NULL);
+"new"                                   return TOKEN(K_NEW);
+
 "true"                                  return TOKEN(K_TRUE);
 "false"                                 return TOKEN(K_FALSE);
 

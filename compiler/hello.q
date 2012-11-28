@@ -17,7 +17,9 @@ class Main #flags 0x0001 {
     field test #flags 0x0000;
     
     fun main(args) #flags 0x0000 {
-        //@System.out->writeLine("Hello, world!");
+        out = @System.out;
+        //out->writeLine("Hello, world!");
     }
+    
 }
 
