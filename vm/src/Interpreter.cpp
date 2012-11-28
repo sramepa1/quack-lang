@@ -147,6 +147,7 @@ inline Instruction* Interpreter::processInstruction(Instruction* insn) {
             case OP_LNOT:	return handleLNOT(insn);
             case OP_IDX:	return handleIDX(insn);
             case OP_IDXI:	return handleIDXI(insn);
+            case OP_CNVT:   return handleCNVT(insn);
             case OP_JMP:	return handleJMP(insn);
             case OP_JCC:	return handleJCC(insn);
             case OP_CALL:	return handleCALL(insn);
@@ -170,7 +171,8 @@ inline Instruction* Interpreter::processInstruction(Instruction* insn) {
 
 
 // may need ASM implementation
-inline Instruction* Interpreter::performCall(QuaClass* type, QuaSignature* sig) {
+// if not, must not be inline to allow RET to work correctly (JITted code may run in this stack frame)
+__attribute__ ((noinline)) Instruction* Interpreter::performCall(QuaClass* type, QuaSignature* sig) {
 
     QuaMethod* method;
     try {
@@ -200,7 +202,9 @@ inline Instruction* Interpreter::performCall(QuaClass* type, QuaSignature* sig) 
 }
 
 
-inline Instruction* Interpreter::performReturn(QuaValue retVal) {
+// may need ASM implementation
+// if not, must not be inline to allow RET to work correctly (JITted code may run in this stack frame)
+__attribute__ ((noinline)) inline Instruction* Interpreter::performReturn(QuaValue retVal) {
 
     // discard adress stack junk
     while(ASP->FRAME_TYPE == EXCEPTION || ASP->FRAME_TYPE == FINALLY) {
@@ -619,19 +623,51 @@ inline Instruction* Interpreter::handleLNOT(Instruction* insn) {
 }
 
 
-inline Instruction* Interpreter::handleIDX(Instruction* insn) {
 
-#ifdef TRACE
-    cout << "IDX r" << insn->ARG0 << ", r" << insn->ARG1 << endl;
-#endif
-
-    *(--SP) = regs[insn->ARG2];
+inline Instruction* Interpreter::commonIDX(Instruction* insn) {
     return directCall(insn->ARG0, regs[insn->ARG1], (QuaSignature*)"\1_opIndex", insn + 1);
 }
 
 
+inline Instruction* Interpreter::handleIDX(Instruction* insn) {
+
+#ifdef TRACE
+    cout << "IDX r" << insn->ARG0 << ", r" << insn->ARG1 << ", r" << insn->ARG2 << endl;
+#endif
+
+    *(--SP) = regs[insn->ARG2];
+    return commonIDX(insn);
+}
+
+
 inline Instruction* Interpreter::handleIDXI(Instruction* insn) {
-    return ++insn;
+
+#ifdef TRACE
+    cout << "IDXI r" << insn->ARG0 << ", r" << insn->ARG1 << ", " << insn->ARG2 << endl;
+#endif
+
+    *(--SP) = QuaValue(insn->ARG2, typeCache.typeInteger, TAG_INT);
+    return commonIDX(insn);
+}
+
+
+inline Instruction* Interpreter::handleCNVT(Instruction* insn) {
+
+    if(regs[insn->ARG1].tag == insn->subop) {
+        regs[insn->ARG0] = regs[insn->ARG1];
+        return ++insn;
+    } else {
+        QuaSignature* sig = NULL;
+        switch(insn->subop) {
+            case SOP_TAG_BOOL:  sig = (QuaSignature*)"\0boolValue"; break;
+            case SOP_TAG_FLOAT:  sig = (QuaSignature*)"\0floatValue"; break;
+            case SOP_TAG_INT:  sig = (QuaSignature*)"\0intValue"; break;
+            case SOP_TAG_NONE: return ++insn;
+                // Nothing to convert, ignore this situation silently. Heap will handle autoboxing.
+            default: errorUnknownTag(insn->subop);
+        }
+        return directCall(insn->ARG0, regs[insn->ARG1], sig, insn + 1);
+    }
 }
 
 
@@ -645,9 +681,32 @@ inline Instruction* Interpreter::handleJMP(Instruction* insn) {
 }
 
 
+inline bool Interpreter::isNull(QuaValue v) {
+    return (v.tag == TAG_REF) && ( v.value == 0 || v.type == 0 );
+}
+
+inline bool Interpreter::parseTaggedBool(QuaValue v) {
+    if(v.tag != TAG_BOOL) {
+        ostringstream os;
+        os << "Expected a tagged boolean, but the tag was 0x" << hex << setw(2) << setfill('0')
+           << v.tag << '.' << endl << "This is most likely a compiler bug." << endl;
+        throw runtime_error(os.str());
+    }
+    return (bool)v.value;
+}
+
+
 inline Instruction* Interpreter::handleJCC(Instruction* insn) {
 
-    bool condition; // TODO: !!!!
+    bool condition;
+    QuaValue v = regs[insn->ARG0];
+    switch(insn->subop) {
+        case SOP_CC_NULL: condition = isNull(v); break;
+        case SOP_CC_NNULL: condition = !isNull(v); break;
+        case SOP_CC_TRUE: condition = parseTaggedBool(v); break;
+        case SOP_CC_FALSE: condition = !parseTaggedBool(v); break;
+        default: return handleIllegalSubOp(insn);
+    }
     return condition ? insn + insn->ARG2 : ++insn;
 }
 

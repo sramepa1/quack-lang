@@ -13,12 +13,12 @@ QuaValue stringDeserializer(const char* data) {
     QuaValue blobRef = heap->allocateNew(typeCache.typeDataBlob, length);
 
     for(uint32_t i = 0; i < length; i++) {
-        getFieldByIndex(blobRef, i).flags = TAG_INT;
+        getFieldByIndex(blobRef, i).tag = TAG_INT;
         getFieldByIndex(blobRef, i).value = (unsigned char)data[i];
     }
 
     getFieldByIndex(strRef, 0) = blobRef;
-    getFieldByIndex(strRef, 1).flags = TAG_INT;
+    getFieldByIndex(strRef, 1).tag = TAG_INT;
     getFieldByIndex(strRef, 1).value = length;
 
     return strRef;

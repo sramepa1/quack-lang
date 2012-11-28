@@ -21,6 +21,23 @@ Heap::Heap(size_t size) : temporaryObjTableFreeIndex(1)
     objTable.push_back(ObjRecord()); // "null"
 }
 
+const ObjRecord& Heap::dereference(QuaValue ref) {
+
+    switch(ref.tag) {   // TODO: Autobox code (needs runtime class layouts or constructors)
+        case TAG_BOOL: throw runtime_error("Autoboxing Bool is not yet supported.");
+        case TAG_INT: throw runtime_error("Autoboxing Integer is not yet supported.");
+        case TAG_FLOAT: throw runtime_error("Autoboxing Float is not yet supported.");
+        case TAG_REF: break;
+        default: errorUnknownTag(ref.tag);
+    }
+
+    if(ref.value == 0) {
+        throw runtime_error("TODO This should throw a Quack NullReferenceException!");
+    }
+    // TODO type check, autobox
+    return objTable[ref.value];
+}
+
 QuaValue Heap::allocateNew(uint16_t type, uint32_t size) {
 
     // TODO replace this prototype with an actual allocator
@@ -39,7 +56,7 @@ QuaValue Heap::allocateNew(uint16_t type, uint32_t size) {
     rec.type = type;
     objTable.push_back(rec);
 
-    return QuaValue(id, type, 0);
+    return QuaValue(id, type, TAG_REF);
 }
 
 

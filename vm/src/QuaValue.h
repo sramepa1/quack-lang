@@ -21,11 +21,14 @@ extern "C" {
 struct QuaValue {
     uint32_t value;
     uint16_t type;
-    uint16_t flags;
+    uint8_t tag;
+    uint8_t flags;
 
     // constructs a null QuaValue (type 0 must be null in rt.qc and dereferencing value 0 will also fail)
-    QuaValue() : value(0), type(0), flags(0) {}
-    QuaValue(uint32_t value, uint16_t type, uint16_t flags) : value(value), type(type), flags(flags) {}
+    QuaValue() : value(0), type(0), tag(0), flags(0) {}
+
+    // constructs a user-defined QuaValue with default flags
+    QuaValue(uint32_t value, uint16_t type, uint8_t tag) : value(value), type(type), tag(tag), flags(0) {}
 };
 
 #pragma pack()
