@@ -13,6 +13,7 @@
 #include "Compiler.h"
 
 #include <fstream>
+#include <map>
 
 class Node {
 public:
@@ -33,14 +34,21 @@ public:
     virtual void fillTableEntry(ClassTableEntry* entry) = 0;
 };
 
-class NStatement : public Node {
+class Scope {
+public:
+    virtual ~Scope() {}
+
+    virtual void findLocals(std::map<std::string, uint16_t>*) = 0;
+};
+
+class NStatement : public Node, public Scope {
 public:
     virtual ~NStatement() {}
     
     virtual void generateCode(BlockTranslator* translator) = 0;
 };
 
-class NExpression : public Node {
+class NExpression : public Node, public Scope {
 public:
     NExpression() : registerAssigned(false) {}
     virtual ~NExpression() {}

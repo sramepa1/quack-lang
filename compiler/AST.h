@@ -88,8 +88,10 @@ public:
 
 class NMethod : public ClassEntry {
 public:
-    NMethod(std::string* _name, std::list<NExpression*>* _parameters, NBlock* _block) : parameters(_parameters), block(_block) {name = _name;}
-    NMethod(std::string* _name, std::list<NExpression*>* _parameters, NBlock* _block, uint16_t _flags) : parameters(_parameters), block(_block) {name = _name; flags = _flags;}
+    NMethod(std::string* _name, std::list<NExpression*>* _parameters, NBlock* _block)
+        : parameters(_parameters), block(_block) {name = _name;}
+    NMethod(std::string* _name, std::list<NExpression*>* _parameters, NBlock* _block, uint16_t _flags)
+        : parameters(_parameters), block(_block) {name = _name; flags = _flags;}
     virtual ~NMethod() {}
     
     std::list<NExpression*>* parameters;
@@ -107,6 +109,11 @@ public:
     std::list<NStatement*>* statements;
     
     virtual void generateCode(BlockTranslator* translator);
+    virtual void findLocals(map<string, uint16_t>* locals) {
+        for(std::list<NStatement*>::iterator it = statements->begin(); it != statements->end(); ++it) {
+            (*it)->findLocals(locals);
+        }
+    }
 };
 
 class NReturn : public NStatement {
@@ -117,6 +124,11 @@ public:
     NExpression* expression;
     
     virtual void generateCode(BlockTranslator* translator);
+    virtual void findLocals(map<string, uint16_t>* locals) {
+        if(expression) {
+            expression->findLocals(locals);
+        }
+    }
 };
 
 class SAssignment : public NStatement {
@@ -127,6 +139,10 @@ public:
     NExpression* expression;
     
     virtual void generateCode(BlockTranslator* translator);
+    virtual void findLocals(map<string, uint16_t>* locals) {
+        ((NExpression*)variable)->findLocals(locals);
+        expression->findLocals(locals);
+    }
 };
 
 class NCall : public NStatement, public NExpression {
@@ -138,6 +154,11 @@ public:
     std::list<NExpression*>* parameters;
 
     virtual void generateCode(BlockTranslator* translator) {}
+    virtual void findLocals(map<string, uint16_t>* locals) {
+        for(std::list<NExpression*>::iterator it = parameters->begin(); it != parameters->end(); ++it) {
+            (*it)->findLocals(locals);
+        }
+    }
 };
 
 class SIf : public NStatement {
@@ -150,6 +171,11 @@ public:
     NBlock* elseBlock;
     
     virtual void generateCode(BlockTranslator* translator) {}
+    virtual void findLocals(map<string, uint16_t>* locals) {
+        condition->findLocals(locals);
+        thenBlock->findLocals(locals);
+        elseBlock->findLocals(locals);
+    }
 };
 
 class SFor : public NStatement {
@@ -162,6 +188,12 @@ public:
     NBlock* body;
 
     virtual void generateCode(BlockTranslator* translator) {}
+    virtual void findLocals(map<string, uint16_t>* locals) {
+        init->findLocals(locals);
+        condition->findLocals(locals);
+        increment->findLocals(locals);
+        body->findLocals(locals);
+    }
 };
 
 
@@ -173,6 +205,11 @@ public:
     
     NExpression* left;
     NExpression* right;
+
+    virtual void findLocals(map<string, uint16_t>* locals) {
+        left->findLocals(locals);
+        right->findLocals(locals);
+    }
 };
 
 class EUOp : public NExpression {
@@ -180,6 +217,8 @@ public:
     virtual ~EUOp() {}
     
     NExpression* expr;
+
+    virtual void findLocals(map<string, uint16_t>* locals) { expr->findLocals(locals); }
 };
 
 class EAnd : public EBOp {
@@ -274,6 +313,7 @@ public:
     std::string* value;
     
     virtual void generateCode(BlockTranslator* translator) {}
+    virtual void findLocals(map<string, uint16_t>*) {}
 };
 
 class CInt : public NExpression {
@@ -283,6 +323,7 @@ public:
     int value;
     
     virtual void generateCode(BlockTranslator* translator) {}
+    virtual void findLocals(map<string, uint16_t>*) {}
 };
 
 class CFloat : public NExpression {
@@ -292,6 +333,7 @@ public:
     float value;
     
     virtual void generateCode(BlockTranslator* translator) {}
+    virtual void findLocals(map<string, uint16_t>*) {}
 };
 
 class CBool : public NExpression {
@@ -301,9 +343,10 @@ public:
     bool value;
     
     virtual void generateCode(BlockTranslator* translator) {}
+    virtual void findLocals(map<string, uint16_t>*) {}
 };
 
-// TODO: local vars should have a filled result register
+// TODO: split into local variable and field
 class EVarible : public NExpression {
 public:
     EVarible() : className(NULL), local(true) {}
@@ -315,6 +358,19 @@ public:
     bool local;
     
     virtual void generateCode(BlockTranslator* translator) {}
+
+    virtual void findLocals(map<string, uint16_t>* locals) {
+        if(local) {
+            registerAssigned = true;
+            map<string, uint16_t>::iterator it = locals->find(*variableName);
+            if(it == locals->end()) {
+                resultRegister = locals->size();
+                locals->insert(make_pair(*variableName, locals->size()));
+            } else {
+                resultRegister = it->second;
+            }
+        }
+    }
 };
 
 

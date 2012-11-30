@@ -90,8 +90,16 @@ void NMethod::fillTableEntry(ClassTableEntry* entry) {
     name->copy(signature + 1, name->size());
     uint16_t sigIndex = constantPool.addConstant(signature, size); 
     
+    cout << "Prepared to count locals" << endl;
+
+    // count of local variables
+    map<string, uint16_t> locals;
+    block->findLocals(&locals);
+
+    cout << "Locals counted (" << locals.size() << ")" << endl;
+
     // code
-    BlockTranslator* translator = new BlockTranslator();
+    BlockTranslator* translator = new BlockTranslator(locals.size());
     block->generateCode(translator);
     uint16_t codeIndex = constantPool.addCode(translator);
     
@@ -130,7 +138,7 @@ void SAssignment::generateCode(BlockTranslator* translator) {
         expression->registerAssigned = true;
         expression->resultRegister = translator->getFreeRegister();
     }
-    expression->generateCode();
+    expression->generateCode(translator);
 
     if(variable->local) {
         translator->addInstruction(OP_MOV, 0, variable->resultRegister, expression->resultRegister, 0);
