@@ -303,19 +303,19 @@ public:
     virtual void generateCode(BlockTranslator* translator) {}
 };
 
-
+// TODO: local vars should have a filled result register
 class EVarible : public NExpression {
 public:
-    EVarible() : className(NULL) {}
+    EVarible() : className(NULL), local(true) {}
     virtual ~EVarible() {}
     
     std::string* className;
     std::string* variableName;
+
+    bool local;
     
     virtual void generateCode(BlockTranslator* translator) {}
 };
-
-
 
 
 #endif	/* AST_H */

@@ -14,12 +14,27 @@
 
 #include <vector>
 
-class BlockTranslator : public IWritable{
+class BlockTranslator : public IWritable {
 public:
     BlockTranslator();
     virtual ~BlockTranslator();
     
     std::vector<Instruction*> instructions;
+
+    // this is the first register which is not used for local variables
+    uint16_t initialRegister;
+
+    // register which is available for temporary purpurose (e.g. in expressions)
+    uint16_t firstUnusedRegister;
+
+    uint16_t getFreeRegister() {
+        // TODO: test for register overflow
+        return firstUnusedRegister++;
+    }
+
+    uint16_t resetRegisters() {
+        firstUnusedRegister = initialRegister;
+    }
     
     int addInstruction(unsigned char op,
                 unsigned char subop,
@@ -33,7 +48,7 @@ public:
                 uint16_t reg = 0);
     
     void addTranslator(BlockTranslator* translator);
-    
+
     virtual int size();
     virtual void write(Compiler& compiler);
 

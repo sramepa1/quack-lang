@@ -9,7 +9,10 @@
 
 using namespace std;
 
-BlockTranslator::BlockTranslator() {}
+BlockTranslator::BlockTranslator() {
+    initialRegister = 0;                // TODO: fill them appropriate
+    firstUnusedRegister = initialRegister;
+}
 BlockTranslator::~BlockTranslator() {}
 
 

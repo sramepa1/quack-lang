@@ -42,7 +42,13 @@ public:
 
 class NExpression : public Node {
 public:
+    NExpression() : registerAssigned(false) {}
     virtual ~NExpression() {}
+
+    bool registerAssigned;
+    uint16_t resultRegister;
+
+    virtual void generateCode(BlockTranslator* translator) = 0;
 };
 
 class NValue : public NExpression {

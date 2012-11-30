@@ -125,7 +125,19 @@ void NReturn::generateCode(BlockTranslator* translator) {
 }
 
 void SAssignment::generateCode(BlockTranslator* translator) {
-    
+
+    if(!expression->registerAssigned) {
+        expression->registerAssigned = true;
+        expression->resultRegister = translator->getFreeRegister();
+    }
+    expression->generateCode();
+
+    if(variable->local) {
+        translator->addInstruction(OP_MOV, 0, variable->resultRegister, expression->resultRegister, 0);
+    } else {
+        // TODO: assignment to field
+    }
+
 }
 
 

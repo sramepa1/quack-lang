@@ -1,3 +1,9 @@
+*.config
+*.files
+*.creator
+*.user
+*.includes
+*.pro
 build
 build/*
 nbproject
