@@ -115,39 +115,11 @@ inline Instruction* Interpreter::processInstruction(Instruction* insn) {
             case OP_PUSHCT:	return handlePUSHCT(insn);
             case OP_LDS:	return handleLDS(insn);
             case OP_STS:	return handleSTS(insn);
-            case PART_A3REG|PART_ADD:
-            case PART_A3REG|PART_SUB:
-            case PART_A3REG|PART_MUL:
-            case PART_A3REG|PART_DIV:
-            case PART_A3REG|PART_MOD:
-            case PART_A3REG|PART_EQ:
-            case PART_A3REG|PART_NEQ:
-            case PART_A3REG|PART_GT:
-            case PART_A3REG|PART_GE:
-            case PART_A3REG|PART_LT:
-            case PART_A3REG|PART_LE:
-            case PART_A3REG|PART_LAND:
-            case PART_A3REG|PART_LOR:
-                            return handleA3REG(insn);
-            case PART_AREGIMM|PART_ADD:
-            case PART_AREGIMM|PART_SUB:
-            case PART_AREGIMM|PART_MUL:
-            case PART_AREGIMM|PART_DIV:
-            case PART_AREGIMM|PART_MOD:
-            case PART_AREGIMM|PART_EQ:
-            case PART_AREGIMM|PART_NEQ:
-            case PART_AREGIMM|PART_GT:
-            case PART_AREGIMM|PART_GE:
-            case PART_AREGIMM|PART_LT:
-            case PART_AREGIMM|PART_LE:
-            case PART_AREGIMM|PART_LAND:
-            case PART_AREGIMM|PART_LOR:
-                            return handleAREGIMM(insn);
+            case OP_A3REG:  return handleA3REG(insn);
             case OP_NEG:	return handleNEG(insn);
             case OP_LNOT:	return handleLNOT(insn);
             case OP_IDX:	return handleIDX(insn);
             case OP_IDXI:	return handleIDXI(insn);
-            case OP_CNVT:   return handleCNVT(insn);
             case OP_JMP:	return handleJMP(insn);
             case OP_JCC:	return handleJCC(insn);
             case OP_CALL:	return handleCALL(insn);
@@ -156,7 +128,6 @@ inline Instruction* Interpreter::processInstruction(Instruction* insn) {
             case OP_RET:	return handleRET(insn);
             case OP_RETT:	return handleRETT(insn);
             case OP_RETNULL:return handleRETNULL();
-            case OP_RETPOP:	return handleRETPOP(insn);
             case OP_TRY:	return handleTRY(insn);
             case OP_CATCH:	return handleCATCH(insn);
             case OP_THROW:	return handleTHROW(insn);
@@ -164,6 +135,9 @@ inline Instruction* Interpreter::processInstruction(Instruction* insn) {
             case OP_FIN:	return handleFIN(insn);
             case OP_HCF:    return handleHCF();
             case OP_HLT:    return handleHLT();
+            case OP_INSTOF: return handleINSTOF(insn);
+            case OP_ISTYPE: return handleISTYPE(insn);
+            case OP_CNVT:   return handleCNVT(insn);
 
             default:        return handleIllegalInstruction(insn);
     }
@@ -204,7 +178,7 @@ __attribute__ ((noinline)) Instruction* Interpreter::performCall(QuaClass* type,
 
 // may need ASM implementation
 // if not, must not be inline to allow RET to work correctly (JITted code may run in this stack frame)
-__attribute__ ((noinline)) inline Instruction* Interpreter::performReturn(QuaValue retVal) {
+__attribute__ ((noinline)) Instruction* Interpreter::performReturn(QuaValue retVal) {
 
     // discard adress stack junk
     while(ASP->FRAME_TYPE == EXCEPTION || ASP->FRAME_TYPE == FINALLY) {
@@ -227,7 +201,7 @@ __attribute__ ((noinline)) inline Instruction* Interpreter::performReturn(QuaVal
 
     if(ASP->INTERPRETED) {
         regs[ASP->DEST_REG] = retVal;
-        return (Instruction*)((ASP++)->code);
+        return (Instruction*)((ASP++)->retAddr);
     } else {
         ++ASP;
         // TODO where to put return value?
@@ -239,7 +213,8 @@ __attribute__ ((noinline)) inline Instruction* Interpreter::performReturn(QuaVal
 inline Instruction* Interpreter::performThrow(QuaValue& qex) {
 
 #ifdef TRACE
-    cout<<"# Throwing an exception of class "<<getClassFromValue(qex)->getName()<< " from class "<< getThisClass()->getName();
+    cout << "# Throwing an exception of class " << getClassFromValue(qex)->getName()
+       << " from class "<< getThisClass()->getName();
 #endif
 
     while(1) {
@@ -258,7 +233,7 @@ inline Instruction* Interpreter::performThrow(QuaValue& qex) {
 
         // ASP points to junk -> discard it
         if(ASP->FRAME_TYPE == METHOD) {
-            // unwind
+            // unwind value stack and restore saved context:
             functionEpilogue();
         }
         ++ASP;
@@ -271,7 +246,7 @@ inline Instruction* Interpreter::performThrow(QuaValue& qex) {
     cout << " to a handler in class " << getThisClass()->getName() << endl;
 #endif
 
-    return (Instruction*)((ASP++)->code);
+    return (Instruction*)((ASP++)->retAddr);
 }
 
 
@@ -319,14 +294,21 @@ inline Instruction* Interpreter::handleIllegalSubOp(Instruction* insn) {
 
 
 inline void Interpreter::functionPrologue(QuaValue that,void* retAddr,bool interpreted,char argCount,uint16_t destReg) {
+
     *(--SP) = that;
+
+    // TODO: Save context here!
+
     *(--ASP) = QuaFrame(retAddr, interpreted, argCount, destReg, (QuaValue*)valStackHigh - BP);     // push ebp
     BP = SP;                                                                                        // mov ebp, esp
 }
 
 inline void Interpreter::functionEpilogue() {
-    SP = BP + (ASP->ARG_COUNT + 1);                 // mov esp, ebp
-    BP = (QuaValue*)valStackHigh - ASP->BP_OFFSET;  // pop ebp
+
+    // TODO: Restore saved context here!
+
+    SP = BP + (ASP->ARG_COUNT + 1 /* + ASP->method->getContextSize()*/);                            // mov esp, ebp
+    BP = (QuaValue*)valStackHigh - ASP->BP_OFFSET;                                                  // pop ebp
 }
 
 inline QuaValue Interpreter::extractTaggedValue(Instruction* insn) {
@@ -623,15 +605,6 @@ inline Instruction* Interpreter::handleA3REG(Instruction* insn) {
 }
 
 
-inline Instruction* Interpreter::handleAREGIMM(Instruction* insn) {
-
-    // TODO: Discuss ditching Reg-Imm arithmetics, as they have different semantics
-    //                                             ( ADD is not + but +=, etc. )
-
-    return ++insn;
-}
-
-
 inline Instruction* Interpreter::handleNEG(Instruction* insn) {
 
 #ifdef TRACE
@@ -703,26 +676,6 @@ inline Instruction* Interpreter::handleIDXI(Instruction* insn) {
 
     *(--SP) = QuaValue(insn->ARG2, typeCache.typeInteger, TAG_INT);
     return commonIDX(insn);
-}
-
-
-inline Instruction* Interpreter::handleCNVT(Instruction* insn) {
-
-    if(regs[insn->ARG1].tag == insn->subop) {
-        regs[insn->ARG0] = regs[insn->ARG1];
-        return ++insn;
-    } else {
-        QuaSignature* sig = NULL;
-        switch(insn->subop) {
-            case SOP_TAG_BOOL:  sig = (QuaSignature*)"\0boolValue"; break;
-            case SOP_TAG_FLOAT:  sig = (QuaSignature*)"\0floatValue"; break;
-            case SOP_TAG_INT:  sig = (QuaSignature*)"\0intValue"; break;
-            case SOP_TAG_NONE: return ++insn;
-                // Nothing to convert, ignore this situation silently. Heap will handle autoboxing.
-            default: errorUnknownTag(insn->subop);
-        }
-        return directCall(insn->ARG0, regs[insn->ARG1], sig, insn + 1);
-    }
 }
 
 
@@ -829,22 +782,6 @@ inline Instruction* Interpreter::handleRETNULL() {
 }
 
 
-// Fused POPA and RET to allow returning a value while restoring context
-inline Instruction* Interpreter::handleRETPOP(Instruction* insn) {
-
-#ifdef TRACE
-    cout << "RETPOP r" << insn->ARG0 << ", r" << insn->ARG1 << ", r" << insn->ARG2 << endl;
-#endif
-    QuaValue retVal = regs[insn->ARG0];
-
-    for(unsigned int i = insn->ARG2; i >= insn->ARG1; i--) {
-        regs[i] = *(SP++);
-    }
-
-    return performReturn(retVal);
-}
-
-
 inline Instruction* Interpreter::handleTRY(Instruction* insn) {
 
 #ifdef TRACE
@@ -902,7 +839,53 @@ inline Instruction* Interpreter::handleFIN(Instruction* insn) {
         throw runtime_error("FINALLY instruction used without a preceding TRY.");
     }
 
-    return (Instruction*)((ASP++)->code);
+    return (Instruction*)((ASP++)->retAddr);
+}
+
+
+inline Instruction* Interpreter::handleINSTOF(Instruction* insn) {
+
+#ifdef TRACE
+    cout << "INSTOF r" << insn->ARG0 << ", r" << insn->ARG1 << ", "  << insn->ARG2 << endl;
+#endif
+
+    regs[insn->ARG0] = createBool(instanceOf(regs[insn->ARG1], insn->ARG2));
+    return ++insn;
+}
+
+
+inline Instruction* Interpreter::handleISTYPE(Instruction* insn) {
+
+#ifdef TRACE
+    cout << "ISTYPE r" << insn->ARG0 << ", r" << insn->ARG1 << ", "  << insn->ARG2 << endl;
+#endif
+
+    regs[insn->ARG0] = createBool(resolveType(regs[insn->ARG1].type) == resolveType(insn->ARG2));
+    return ++insn;
+}
+
+
+inline Instruction* Interpreter::handleCNVT(Instruction* insn) {
+
+#ifdef TRACE
+    cout << "CNVT r" << insn->ARG0 << ", r" << insn->ARG1 << " -> "  << getTagMnemonic(insn->subop) << endl;
+#endif
+
+    if(regs[insn->ARG1].tag == insn->subop) {
+        regs[insn->ARG0] = regs[insn->ARG1];
+        return ++insn;
+    } else {
+        QuaSignature* sig = NULL;
+        switch(insn->subop) {
+            case SOP_TAG_BOOL:  sig = (QuaSignature*)"\0boolValue"; break;
+            case SOP_TAG_FLOAT:  sig = (QuaSignature*)"\0floatValue"; break;
+            case SOP_TAG_INT:  sig = (QuaSignature*)"\0intValue"; break;
+            case SOP_TAG_NONE: return ++insn;
+                // Nothing to convert, ignore this situation silently. Heap will handle autoboxing.
+            default: errorUnknownTag(insn->subop);
+        }
+        return directCall(insn->ARG0, regs[insn->ARG1], sig, insn); // return here again
+    }
 }
 
 

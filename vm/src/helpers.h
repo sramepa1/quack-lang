@@ -81,7 +81,7 @@ inline QuaValue& getFieldByName(QuaValue& that, const char* fieldName) {
 }
 
 inline bool instanceOf(QuaValue& inst, uint16_t ofWhatType) {
-    return getClassFromValue(inst)->isInstanceOf(typeArray[ofWhatType]);
+    return getClassFromValue(inst)->isInstanceOf(getClassFromType(ofWhatType));
 }
 
 // Call a native method from another one. Push args on value stack, call this, and the rest should happen automagically.

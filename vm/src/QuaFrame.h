@@ -1,5 +1,7 @@
-#ifndef _QUA_FRAME_H_ 
+#ifndef _QUA_FRAME_H_
 #define _QUA_FRAME_H_
+
+#include "QuaMethod.h"
 
 extern "C" {
     #include <stdint.h>
@@ -23,7 +25,9 @@ extern "C" {
 
 struct QuaFrame {
 
-    void* code;
+    void* retAddr;
+    QuaMethod* currMeth;  // TODO: Initialize and use
+
     struct {
         unsigned frameType : 2;
         unsigned interpreted : 1;
@@ -36,12 +40,12 @@ struct QuaFrame {
             uint16_t destReg;
             uint32_t bpOffset;
         } methodFrame;
-    
+
         uint16_t exceptionType;
     } typeData;
 
     // creates method frame
-    QuaFrame(void* code, bool interpreted, char argCount, uint16_t destReg, uint32_t bpOffset) : code(code) {
+    QuaFrame(void* code, bool interpreted, char argCount, uint16_t destReg, uint32_t bpOffset) : retAddr(code) {
         FRAME_TYPE = METHOD;
         INTERPRETED = interpreted;
         ARG_COUNT = argCount;
@@ -50,14 +54,14 @@ struct QuaFrame {
     }
 
     // creates exception handler
-    QuaFrame(void* code, bool interpreted, uint16_t exceptionType) : code(code) {
+    QuaFrame(void* code, bool interpreted, uint16_t exceptionType) : retAddr(code) {
         FRAME_TYPE = EXCEPTION;
         INTERPRETED = interpreted;
         EXCEPTION_TYPE = exceptionType;
     }
 
     // creates finally or exit handler (it depends on third parameter)
-    QuaFrame(void* code, bool interpreted, bool finally) : code(code) {
+    QuaFrame(void* code, bool interpreted, bool finally) : retAddr(code) {
         FRAME_TYPE = finally ? FINALLY : EXIT;
         INTERPRETED = interpreted;
     }

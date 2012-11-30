@@ -10,11 +10,18 @@
 // For example, PUSH3 is OP_PUSH, SOP_STACK_3
 // and LDCI is OP_LDCT, SOP_TAG_INT
 
+#define NO_SOP 0x0
 
 // specials
 #define OP_NOP 0x0
 #define OP_HLT 0xFF
 #define OP_HCF 0xFE
+
+// Tagged type sub-ops for <T> instructions
+#define SOP_TAG_NONE 0x0
+#define SOP_TAG_INT 0x1
+#define SOP_TAG_FLOAT 0x2
+#define SOP_TAG_BOOL 0x3
 
 
 // DATA MANIPULATION
@@ -54,40 +61,30 @@
 
 // ARITHMETICS
 
-// To avoid duplicities, arithmetic instructions have form in higher nybble of the OP_ byte
-// and operation in its lower nybble. These two PART_s should be or'd together to form an OP_
-// For example, "MULI reg, imm32" is op=(PART_AREGIMM | PART_MUL), subop = SOP_TAG_INT
-
-#define PART_A3REG 0x20
-#define PART_AREGIMM 0x30
-
-// Tagged types for the Reg-Immediate variant
-#define SOP_TAG_NONE 0x0
-#define SOP_TAG_INT 0x1
-#define SOP_TAG_FLOAT 0x2
-#define SOP_TAG_BOOL 0x3
+// binary operator in 3AC
+#define OP_A3REG 0x20
 
 // basic math
-#define PART_ADD 0x0
-#define PART_SUB 0x1
-#define PART_MUL 0x2
-#define PART_DIV 0x3
-#define PART_MOD 0x4
+#define SOP_ADD 0x0
+#define SOP_SUB 0x1
+#define SOP_MUL 0x2
+#define SOP_DIV 0x3
+#define SOP_MOD 0x4
 
 // relations
 // these are also used in conditional jumps
-#define PART_EQ 0x5
-#define PART_NEQ 0x6
-#define PART_GT 0x7
-#define PART_GE 0x8
-#define PART_LT 0x9
-#define PART_LE 0xA
+#define SOP_EQ 0x5
+#define SOP_NEQ 0x6
+#define SOP_GT 0x7
+#define SOP_GE 0x8
+#define SOP_LT 0x9
+#define SOP_LE 0xA
 
 // logical operators
-#define PART_LAND 0xB
-#define PART_LOR 0xC
+#define SOP_LAND 0xB
+#define SOP_LOR 0xC
 
-// unary operators
+// unary operators (no need for subops here)
 #define OP_NEG 0x40
 #define OP_LNOT 0x41
 
@@ -95,8 +92,6 @@
 #define OP_IDX 0x42
 #define OP_IDXI 0x43
 
-// conversion (required for conditional jumps if the compiler is not sure, uses SOP_ tags)
-#define OP_CNVT 0x4F
 
 // CODE FLOW
 
@@ -118,13 +113,23 @@
 #define OP_RET 0x55
 #define OP_RETT 0x56
 #define OP_RETNULL 0x57
-#define OP_RETPOP 0x58
 
 #define OP_TRY 0x59
 #define OP_CATCH 0x5A
 #define OP_THROW 0x5B
 #define OP_THROWT 0x5C
 #define OP_FIN 0x5D
+
+
+// TYPE MANIPULATION
+
+// "classic" instanceof
+#define OP_INSTOF 0x60
+// "exact" instanceof
+#define OP_ISTYPE 0x61
+
+// conversion (required for conditional jumps if the compiler is not sure, uses SOP_ tags)
+#define OP_CNVT 0x62
 
 
 // And that's all, folks.
