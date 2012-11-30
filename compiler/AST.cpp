@@ -110,7 +110,7 @@ void NField::fillTableEntry(ClassTableEntry* entry) {
 ////////////////////////////////////////////////////////////////////////////////
 
 
-void NBlock::generateCode(BlockTranslator* translator) {
+void NBlock::generateCode(BlockTranslator* translator) {    
     for(list<NStatement*>::iterator it = statements->begin(); it !=  statements->end(); ++it) {
         (*it)->generateCode(translator);
     }

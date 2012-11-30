@@ -21,16 +21,18 @@ public:
     
     std::vector<Instruction*> instructions;
     
-    Instruction* addInstruction(unsigned char op,
+    int addInstruction(unsigned char op,
                 unsigned char subop,
                 uint16_t arg0 = 0,
                 uint16_t arg1 = 0,
                 uint16_t arg2 = 0);
     
-    Instruction* addInstruction(unsigned char op,
+    int addInstruction(unsigned char op,
                 unsigned char subop,
                 uint32_t imm,
                 uint16_t reg = 0);
+    
+    void addTranslator(BlockTranslator* translator);
     
     virtual int size();
     virtual void write(Compiler& compiler);
