@@ -20,7 +20,7 @@ using namespace std;
 
 #define REG_DEV_NULL 0xFFFF
 
-Interpreter::Interpreter() : regs(vector<QuaValue>(65536)), compiler(new JITCompiler())
+Interpreter::Interpreter(bool jit) : regs(vector<QuaValue>(65536)), compiler(new JITCompiler(jit))
 {
 }
 
@@ -28,6 +28,7 @@ Interpreter::Interpreter() : regs(vector<QuaValue>(65536)), compiler(new JITComp
 #define CURRENT_METHOD_SIG getThisClass()->getName() << "::"	\
 	<< ASP->currMeth->sig->name << '(' << (int)ASP->currMeth->sig->argCnt << ')'
 #endif
+
 
 void Interpreter::start(vector<char*>& args) {
 
@@ -37,9 +38,9 @@ void Interpreter::start(vector<char*>& args) {
 	}
 	uint16_t mainClassType = mainIt->second;
 
-#ifdef DEBUG
-	cout << "Initializing interpreter environment, Main class has type " << mainClassType << endl;
-#endif
+	#ifdef DEBUG
+		cout << "Initializing interpreter environment, Main class has type " << mainClassType << endl;
+	#endif
 
 	QuaClass* mainClass = getClassFromType(mainClassType);
 
@@ -49,9 +50,9 @@ void Interpreter::start(vector<char*>& args) {
 
 	QuaValue qargs; // TODO construct Array.
 
-#ifdef DEBUG
-	cout << "Prparing value stack, argument count for main method is: " << args.size() << endl;
-#endif
+	#ifdef DEBUG
+		cout << "Preparing value stack, argument count for main method is: " << args.size() << endl;
+	#endif
 	for(vector<char*>::iterator it = args.begin(); it != args.end(); ++it) {
 		QuaValue argString = stringDeserializer(*it);
 		//temporary
@@ -63,9 +64,9 @@ void Interpreter::start(vector<char*>& args) {
 	*(--SP) = newRawInstance(mainClassType);
 	BP = SP;
 
-#ifdef DEBUG
-	cout << "Value stack ready, looking up main(1) and preparing address stack" << endl;
-#endif
+	#ifdef DEBUG
+		cout << "Value stack ready, looking up main(1) and preparing address stack" << endl;
+	#endif
 
 	QuaMethod* mainMethod = mainClass->lookupMethod((QuaSignature*)"\1main");
 
@@ -75,16 +76,16 @@ void Interpreter::start(vector<char*>& args) {
 	// get entry point
 	Instruction* pc = (Instruction*)(mainMethod->code);
 
-#ifdef DEBUG
-	cout << "Entering interpreter loop, entry point address is " << pc
-		 << ", opcode 0x" << hex << setw(2) << setfill('0') << (int)pc->op << endl << dec;
-#endif
+	#ifdef DEBUG
+		cout << "Entering interpreter loop, entry point address is " << pc
+			 << ", opcode 0x" << hex << setw(2) << setfill('0') << (int)pc->op << endl << dec;
+	#endif
 
 	while(1) {
 
-#ifdef TRACE
-		cout << "# " << CURRENT_METHOD_SIG << ":\t";
-#endif
+		#ifdef TRACE
+				cout << "# " << CURRENT_METHOD_SIG << ":\t";
+		#endif
 		pc = processInstruction(pc);
 	}
 }
@@ -170,8 +171,20 @@ inline Instruction* Interpreter::processInstruction(Instruction* insn) {
 
 
 // may need ASM implementation
-// if not, must not be inline to allow RET to work correctly (JITted code may run in this stack frame)
-__attribute__ ((noinline)) Instruction* Interpreter::performCall(QuaMethod* method) {
+__attribute__ ((noinline, regparm(0))) Instruction* jumpToMachineCode(void* code) {
+
+	throw runtime_error("Jumping to compiled code blobs is not yet implemented.");
+
+	// PROTOTYPE, TODO: think out, test or rework!
+
+	asm volatile ("jmp *(%0)": : "r" (code) : "memory");
+
+	return NULL;	// unreachable, but G++ doesn't know it.
+					// Actually, compiled VM RETs will execute equivalent code with an address in rax
+}
+
+
+Instruction* Interpreter::performCall(QuaMethod* method) {
 
 #ifdef TRACE
 	cout << "# Calling " << CURRENT_METHOD_SIG << " [";
@@ -179,46 +192,61 @@ __attribute__ ((noinline)) Instruction* Interpreter::performCall(QuaMethod* meth
 
 	switch(method->action) {
 		case QuaMethod::INTERPRET:
-#ifdef TRACE
-			cout << "interpreting]" << endl;
-#endif
-			return (Instruction*) method->code; //TODO set flag to compile
+			#ifdef TRACE
+				cout << "interpreting]" << endl;
+			#endif
+			method->action = QuaMethod::COMPILE; // next time
+			return (Instruction*) method->code;
 
 		case QuaMethod::COMPILE:
-#ifdef TRACE
-			cout << "compiling...";
-#endif
+			#ifdef TRACE
+				cout << "compiling... ";
+			#endif
 
-			compiler->compile(method);
+			if(compiler->compile(method)) {
+				method->action = QuaMethod::JUMPTO;
 
-#ifdef TRACE
-			cout << " and ";
-#endif
-			// and fall-through
+			} else {
+			#ifdef TRACE
+				cout << " giving up]" << endl;
+			#endif
+				method->action = QuaMethod::ALWAYS_INTERPRET;
+				return (Instruction*) method->code; // No further setting of compile flag
+			}
+
+			// success = fall-through to execution
+
 		case QuaMethod::JUMPTO:
-#ifdef TRACE
-			cout << "jumping to start]" << endl;
-#endif
-			throw runtime_error("Jumping to compiled code blobs is not yet implemented.");
+			#ifdef TRACE
+				cout << "jumping to start]" << endl;
+			#endif
+			return jumpToMachineCode(method->code);
 
 		case QuaMethod::C_CALL:
-#ifdef TRACE
-			cout << "native call]" << endl;
-#endif
+			#ifdef TRACE
+				cout << "native call]" << endl;
+			#endif
 			try {
 				return performReturn( ( __extension__ (QuaValue (*)())method->code )() );
 			} catch (QuaValue qex) {
 				return performThrow(qex);
 			}
 
+		case QuaMethod::ALWAYS_INTERPRET:
+			#ifdef TRACE
+				cout << "interpreting - forced]" << endl;
+			#endif
+			return (Instruction*) method->code; // No further setting of compile flag
+
+		default:
+			ostringstream os;
+			os << "Corrupted method action detected: " << method->action;
+			throw runtime_error(os.str());
 	}
-	return NULL; // to make the compiler happy...
 }
 
 
-// may need ASM implementation
-// if not, must not be inline to allow RET to work correctly (JITted code may run in this stack frame)
-__attribute__ ((noinline)) Instruction* Interpreter::performReturn(QuaValue retVal) {
+inline Instruction* Interpreter::performReturn(QuaValue retVal) {
 
 #ifdef TRACE
 	cout << "# Returning from " << CURRENT_METHOD_SIG;
@@ -248,13 +276,16 @@ __attribute__ ((noinline)) Instruction* Interpreter::performReturn(QuaValue retV
 		return retAddr;
 
 	} else {
+
 		// TODO where to put return value?
+		// TODO distinguish Interpreter and JIT saved contexts!
+
 		++ASP;
 
 #ifdef TRACE
 		cout << " to " << CURRENT_METHOD_SIG << " [jumping]" << endl;
 #endif
-		throw runtime_error("Returning to machine code is not yet implemented");
+		return jumpToMachineCode((ASP++)->retAddr);
 	}
 }
 

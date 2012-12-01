@@ -4,6 +4,7 @@
 *.user
 *.includes
 *.pro
+*.autosave
 nbproject
 nbproject/*
 daisy

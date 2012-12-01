@@ -3,77 +3,88 @@
 #ifdef DEBUG
 #include <iostream>
 extern "C" {
-    #include <unistd.h>
-    void* jumpto;
+	#include <unistd.h>
+	void* jumpto;
 }
 #endif
 
 #include <cstring>
 
 extern "C" {
-    #include <sys/mman.h>
+	#include <sys/mman.h>
 }
 
 using namespace std;
 
-JITCompiler::JITCompiler()
+JITCompiler::JITCompiler(bool enabled) : enabled(enabled)
 {
 }
 
 
-void JITCompiler::compile(QuaMethod* method) {
+bool JITCompiler::compile(QuaMethod* method) {
 
-    #ifdef PLEASE_CHANGE_THIS_TO_JUST_DEBUG
-        if(method->action != QuaMethod::COMPILE) {
-            cerr << "Attempted to compile a method with action=" << method->action << " !" << endl;
-        }
-    #endif
+	if(!enabled) {
+		return false;
+	}
 
-    vector<unsigned char> buffer(4096);
+	#ifdef DEBUG
+		if(method->action != QuaMethod::COMPILE) {
+			cerr << "Warning: Attempted to compile a method with action=" << method->action << " !" << endl;
+		}
+	#endif
 
-    list<Instruction> insns = buildObjects(method); //signature may change
-    allocateRegisters(insns);
-    generate(insns, buffer);
+	vector<unsigned char> buffer(4096);
+	void* memblob;
 
-    void* memblob = mmap(NULL, buffer.size(), PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    #ifdef DEBUG
-        memset(memblob, 0xCC, (buffer.size() / getpagesize() + 1) * getpagesize());
-    #endif
-    memcpy(memblob, buffer.data(), buffer.size());
-    mprotect(memblob, buffer.size(), PROT_READ | PROT_EXEC);
+	try {
+		list<Instruction> insns = buildObjects(method); //signature may change
+		allocateRegisters(insns);
+		generate(insns, buffer);
 
-    // TODO enable!
-    //method->code = memblob;
+		memblob = mmap(NULL, buffer.size(), PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+		#ifdef DEBUG
+			memset(memblob, 0xCC, (buffer.size() / getpagesize() + 1) * getpagesize());
+		#endif
+		memcpy(memblob, buffer.data(), buffer.size());
+		mprotect(memblob, buffer.size(), PROT_READ | PROT_EXEC);
 
-    #ifdef DEBUG
-        //test
-        jumpto = memblob;
+	} catch(GiveUpException) {
+		return false;
+	}
 
-        asm volatile(".intel_syntax noprefix \n\t");
-        asm volatile("lea eax, jumpto \n\t");
-        asm volatile("call [eax] \n\t");
-        asm volatile(".att_syntax noprefix \n\t");
+	method->code = memblob;
+	return true;
+	#if 0
+		//old test
+		jumpto = memblob;
 
-        cout << "Generated machine code executed successfully!" << endl;
-    #endif
+		asm volatile(".intel_syntax noprefix \n\t");
+		asm volatile("lea eax, jumpto \n\t");
+		asm volatile("call [eax] \n\t");
+		asm volatile(".att_syntax noprefix \n\t");
+
+		cout << "Generated machine code executed successfully!" << endl;
+	#endif
 }
 
 
 list<Instruction> JITCompiler::buildObjects(QuaMethod* method) {
-    //TODO
-    return list<Instruction>();
+
+	throw GiveUpException();
 }
 
 
 void JITCompiler::allocateRegisters(list<Instruction> insns) {
-    //TODO
+
+	throw GiveUpException();
 }
 
 
 void JITCompiler::generate(list<Instruction> insns, vector<unsigned char> & buffer) {
-    #ifdef DEBUG
-        buffer[0] = 0xC3;
-    #endif
-    //TODO
+	#ifdef DEBUG
+		buffer[0] = 0xC3;
+	#endif
+
+	throw GiveUpException();
 }
 

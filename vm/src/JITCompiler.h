@@ -7,17 +7,22 @@
 #include "Instruction.h"
 #include "QuaMethod.h"
 
+class GiveUpException {};
+
 class JITCompiler
 {
 public:
-    JITCompiler();
+	JITCompiler(bool enabled);
 
-    void compile(QuaMethod* method);
+	bool compile(QuaMethod* method);
 
 private:
-    std::list<Instruction> buildObjects(QuaMethod* method);
-    void allocateRegisters(std::list<Instruction> insns);
-    void generate(std::list<Instruction> insns, std::vector<unsigned char> & buffer);
+
+	bool enabled;
+
+	std::list<Instruction> buildObjects(QuaMethod* method);
+	void allocateRegisters(std::list<Instruction> insns);
+	void generate(std::list<Instruction> insns, std::vector<unsigned char> & buffer);
 };
 
 #endif // JITCOMPILER_H

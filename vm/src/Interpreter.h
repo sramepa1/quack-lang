@@ -19,7 +19,7 @@ class ExitException {};
 class Interpreter
 {
 public:
-	Interpreter();
+	Interpreter(bool jit);
 	void start(std::vector<char*>& args);
 	Instruction* processInstruction(Instruction* insn);
 

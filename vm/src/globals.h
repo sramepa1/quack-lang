@@ -24,43 +24,43 @@
 
 extern "C" {
 
-    #include <stdint.h>
+	#include <stdint.h>
 
-    extern void* valStackLow;
-    extern void* valStackHigh;
-    extern QuaValue* SP;
-    extern QuaValue* BP;
+	extern void* valStackLow;
+	extern void* valStackHigh;
+	extern QuaValue* SP;
+	extern QuaValue* BP;
 
-    extern void* addrStackLow;
-    extern void* addrStackHigh;
-    extern QuaFrame* ASP;
+	extern void* addrStackLow;
+	extern void* addrStackHigh;
+	extern QuaFrame* ASP;
 
-    extern QuaClass** typeArray;
-    extern std::map<std::string, uint16_t>* linkedTypes;
+	extern QuaClass** typeArray;
+	extern std::map<std::string, uint16_t>* linkedTypes;
 
-    extern Heap* heap;
+	extern Heap* heap;
 
 }
 
-    extern NativeLoader* nativeLoader;
-    extern Loader* loader;
-    extern Interpreter* interpreter;
+	extern NativeLoader* nativeLoader;
+	extern Loader* loader;
+	extern Interpreter* interpreter;
 
-    void initGlobals(size_t valStackSize, size_t addrStackSize, size_t heapSize);
+	void initGlobals(bool jit, size_t valStackSize, size_t addrStackSize, size_t heapSize);
 
-    extern sigjmp_buf jmpEnv;
+	extern sigjmp_buf jmpEnv;
 
-    // Chache for popular types
-    // Loader is responsible to fill it
-    extern struct TypeCache {
-        uint16_t typeNull;
-        uint16_t typeDataBlob;
-        uint16_t typeBool;
-        uint16_t typeInteger;
-        uint16_t typeFloat;
-        uint16_t typeString;
-        uint16_t typeNotFoundException;
-        uint16_t typeIOException;
-    } typeCache;
+	// Chache for popular types
+	// Loader is responsible to fill it
+	extern struct TypeCache {
+		uint16_t typeNull;
+		uint16_t typeDataBlob;
+		uint16_t typeBool;
+		uint16_t typeInteger;
+		uint16_t typeFloat;
+		uint16_t typeString;
+		uint16_t typeNotFoundException;
+		uint16_t typeIOException;
+	} typeCache;
 
 #endif // GLOBALS_H

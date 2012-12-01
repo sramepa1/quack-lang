@@ -61,8 +61,20 @@ int main(int argc, char* argv[]) {
 
 		if(sigsetjmp(jmpEnv,1) == 0) {
 			initSigsegv();
-			initGlobals(2*getpagesize(), 2*getpagesize(), 2*getpagesize()); // super-tight for testing
+
 			int i;
+			bool jit = true;
+			if(strcmp(argv[1],"-nojit") == 0) {
+				jit = false;
+				i = 2;
+			} else {
+				i = 1;
+			}
+			if(i == argc) {
+				throw invalid_argument("Expected class file name.");
+			}
+
+			initGlobals(jit, 2*getpagesize(), 2*getpagesize(), 2*getpagesize()); // super-tight for testing
 			for(i = 1; i < argc && strcmp(argv[i], "-args") != 0; i++) {
 				loader->loadClassFile(argv[i]);	// TODO: Are we fully ready for this? What about cross-CF inheritance?
 			}
@@ -78,7 +90,7 @@ int main(int argc, char* argv[]) {
 
 	} catch(invalid_argument& e) {
 		cerr << e.what() << endl;
-		cerr << "Usage: " << argv[0] << " <classfile> [<classfile>...] [-args arg1 arg2 ...]" << endl;
+		cerr << "Usage: " << argv[0] << " [-nojit] <classfile> [<classfile> ...] [-args <arg1> <arg2> ...]" << endl;
 		return 2;
 
 	} catch(runtime_error& e) {

@@ -15,7 +15,8 @@ public:
 		INTERPRET = 0,
 		COMPILE = 1,
 		JUMPTO = 2,
-		C_CALL = 3
+		C_CALL = 3,
+		ALWAYS_INTERPRET = 4
 	} action;
 
 	void* code;
