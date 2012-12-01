@@ -25,6 +25,7 @@ struct MethodData {
     uint16_t cpSigIndex;
     uint16_t cpBytecodeIndex;
     uint16_t insnCount;
+    uint16_t regCount;
 };
 
 #pragma pack()

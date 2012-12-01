@@ -18,7 +18,7 @@ ClassTableEntry::ClassTableEntry() : defSize(EMPTY_ENTRY_SIZE) {}
 
 
 void ClassTableEntry::addField(uint16_t cpNameIndex, uint16_t flags) {
-    defSize += 4;   // TODO use sizeof?
+    defSize += sizeof(FieldData);
     
     struct FieldData data;
     data.cpNameIndex = cpNameIndex;
@@ -29,7 +29,7 @@ void ClassTableEntry::addField(uint16_t cpNameIndex, uint16_t flags) {
 
 
 void ClassTableEntry::addMethod(uint16_t cpSigIndex, uint16_t flags, uint16_t cpCodeIndex, uint16_t insnCount) {
-    defSize += 8;   // TODO use sizeof?
+    defSize += sizeof(MethodData);
     
     struct MethodData data;
     data.cpSigIndex = cpSigIndex;
@@ -61,7 +61,7 @@ void ClassTableEntry::writeDef(Compiler& compiler) {
     compiler.write((char*) &tmp16, 2);
     
     for (unsigned int i = 0; i < fieldIndicies.size(); i++) {        
-        compiler.write((char*) &fieldIndicies[i], 4); // TODO use sizeof?
+        compiler.write((char*) &fieldIndicies[i], sizeof(FieldData));
     }
     
     //methods
@@ -69,7 +69,7 @@ void ClassTableEntry::writeDef(Compiler& compiler) {
     compiler.write((char*) &tmp16, 2);
     
     for (unsigned int i = 0; i < methodIndicies.size(); i++) {
-        compiler.write((char*) &methodIndicies[i], 8); // TODO use sizeof?
+        compiler.write((char*) &methodIndicies[i], sizeof(MethodData));
     }
     
     compiler.writeAlign8();
@@ -80,8 +80,7 @@ ClassTable::ClassTable() : totalSize(EMPTY_TABLE_SIZE) {}
 
 
 void ClassTable::addClass(ClassTableEntry* entry) {
-    // table entry size + definition size + alignement
-    totalSize += 8 +  Compiler::sizeToAlign8(entry->defSize);
+    totalSize += sizeof(FieldData) + Compiler::sizeToAlign8(entry->defSize);
     
     classTableEntries.push_back(entry);
 }
@@ -97,11 +96,10 @@ void ClassTable::write(Compiler& compiler) {
     compiler.writeAlign8();
     
     // write table
-    uint32_t offset = EMPTY_TABLE_SIZE + classTableEntries.size() * 8;
+    uint32_t offset = EMPTY_TABLE_SIZE + classTableEntries.size() * 8; // 8 is size of table entry
     for(std::list<ClassTableEntry*>::iterator it = classTableEntries.begin(); it != classTableEntries.end(); ++it) {
         (*it)->writeTable(compiler, offset);
         offset += Compiler::sizeToAlign8((*it)->defSize);
-        
     }
     
     // write definition
