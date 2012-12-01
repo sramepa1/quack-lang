@@ -108,3 +108,14 @@ void ClassTable::write(Compiler& compiler) {
         (*it)->writeDef(compiler);
     }
 }
+
+uint16_t ClassTable::getClassIndex(uint16_t nameIndex) {
+    uint16_t currentIndex = 0;
+    for(list<ClassTableEntry*>::iterator it = classTableEntries.begin(); it != classTableEntries.end(); ++it) {
+        if((*it)->nameIndex == nameIndex) {
+            break;
+        }
+        currentIndex++;
+    }
+    return currentIndex;
+}

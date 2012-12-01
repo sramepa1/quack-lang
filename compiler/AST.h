@@ -1,4 +1,4 @@
-/* 
+/*
  * File:   AST.h
  * Author: rusty
  *
@@ -143,7 +143,7 @@ public:
     
     NExpression* expression;
     
-    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void generateCode(BlockTranslator* translator);
     virtual void findLocals(map<string, uint16_t>* locals) {
         expression->findLocals(locals);
     }
@@ -152,7 +152,8 @@ public:
 
 class NCatch : public Node, public Scope {
 public:
-    NCatch(std::string* _className, std::string* _variableName, NBlock* _block) : className(_className), variableName(_variableName), block(_block) {}
+    NCatch(std::string* _className, std::string* _variableName, NBlock* _block)
+        : className(_className), variableName(_variableName), block(_block) {}
     virtual ~NCatch() {}
     
     std::string* className; // care, can be NULL
@@ -199,13 +200,14 @@ public:
 
 class NThisCall : public NCall {
 public:
-    NThisCall(std::string* _methodName, std::list<NExpression*>* _parameters) : methodName(_methodName), parameters(_parameters) {}
+    NThisCall(std::string* _methodName, std::list<NExpression*>* _parameters)
+        : methodName(_methodName), parameters(_parameters) {}
     virtual ~NThisCall() {}
     
     std::string* methodName;
     std::list<NExpression*>* parameters;
 
-    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void generateCode(BlockTranslator* translator);
     virtual void findLocals(map<string, uint16_t>* locals) {
         for(std::list<NExpression*>::iterator it = parameters->begin(); it != parameters->end(); ++it) {
             (*it)->findLocals(locals);
@@ -215,16 +217,26 @@ public:
 
 class NVariableCall : public NCall {
 public:
-    NVariableCall(std::string* _variableName, std::string* _methodName, std::list<NExpression*>* _parameters) : variableName(_variableName), methodName(_methodName), parameters(_parameters) {}
+    NVariableCall(std::string* _variableName, std::string* _methodName, std::list<NExpression*>* _parameters)
+        : variableName(_variableName), methodName(_methodName), parameters(_parameters) {}
     virtual ~NVariableCall() {}
     
+    // The instance which the method belongs to is held in this register
+    // It is not the same register as resultRegister!!!
+    uint16_t variableRegister;
     std::string* variableName;
     std::string* methodName;
     std::list<NExpression*>* parameters;
 
-    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void generateCode(BlockTranslator* translator);
     virtual void findLocals(map<string, uint16_t>* locals) {
-        //TODO add variable to the locals - thought form the context it must be already there
+        map<string, uint16_t>::iterator it = locals->find(*variableName);
+        if(it == locals->end()) {
+            variableRegister = locals->size();
+            locals->insert(make_pair(*variableName, locals->size()));
+        } else {
+            variableRegister = it->second;
+        }
         
         for(std::list<NExpression*>::iterator it = parameters->begin(); it != parameters->end(); ++it) {
             (*it)->findLocals(locals);
@@ -234,14 +246,15 @@ public:
 
 class NStaticCall : public NCall {
 public:
-    NStaticCall(std::string* _className, std::string* _methodName, std::list<NExpression*>* _parameters) : className(_className), methodName(_methodName), parameters(_parameters) {}
+    NStaticCall(std::string* _className, std::string* _methodName, std::list<NExpression*>* _parameters)
+        : className(_className), methodName(_methodName), parameters(_parameters) {}
     virtual ~NStaticCall() {}
     
     std::string* className;
     std::string* methodName;
     std::list<NExpression*>* parameters;
 
-    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void generateCode(BlockTranslator* translator);
     virtual void findLocals(map<string, uint16_t>* locals) {
         for(std::list<NExpression*>::iterator it = parameters->begin(); it != parameters->end(); ++it) {
             (*it)->findLocals(locals);
@@ -474,8 +487,12 @@ public:
     std::string* className;
     std::list<NExpression*>* parameters;
     
-    virtual void generateCode(BlockTranslator* translator) {}
-    virtual void findLocals(map<string, uint16_t>*) {}
+    virtual void generateCode(BlockTranslator* translator);
+    virtual void findLocals(map<string, uint16_t>* locals) {
+        for(std::list<NExpression*>::iterator it = parameters->begin(); it != parameters->end(); ++it) {
+            (*it)->findLocals(locals);
+        }
+    }
 };
 
 class EStaticField : public NVariable {
@@ -486,29 +503,34 @@ public:
     std::string* className;
     std::string* fieldName;
 
-    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void generateCode(BlockTranslator* translator);
     virtual void findLocals(map<string, uint16_t>* locals) {}
+    virtual NVariableType getVarType() { return STATIC_FIELD; }
 };
 
-class EVaribleField : public NVariable {
+class EVariableField : public NVariable {
 public:
-    EVaribleField(std::string* _variableName, std::string* _fieldName) : variableName(_variableName), fieldName(_fieldName) {}
-    virtual ~EVaribleField() {}
+    EVariableField(std::string* _variableName, std::string* _fieldName)
+        : variableName(_variableName), fieldName(_fieldName) {}
+    virtual ~EVariableField() {}
     
+    // The instance which the field belongs to is held in this register
+    // It is not the same register as resultRegister!!!
+    uint16_t variableRegister;
     std::string* variableName;
     std::string* fieldName;
 
-    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void generateCode(BlockTranslator* translator);
     virtual void findLocals(map<string, uint16_t>* locals) {
-        registerAssigned = true;
         map<string, uint16_t>::iterator it = locals->find(*variableName);
         if(it == locals->end()) {
-            resultRegister = locals->size();
+            variableRegister = locals->size();
             locals->insert(make_pair(*variableName, locals->size()));
         } else {
-            resultRegister = it->second;
+            variableRegister = it->second;
         }
     }
+    virtual NVariableType getVarType() { return FIELD; }
 };
 
 class EThisField : public NVariable {
@@ -518,14 +540,15 @@ public:
     
     std::string* fieldName;
 
-    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void generateCode(BlockTranslator* translator);
     virtual void findLocals(map<string, uint16_t>* locals) {}
+    virtual NVariableType getVarType() { return THIS_FIELD; }
 };
 
-class ELocalVarible : public NVariable {
+class ELocalVariable : public NVariable {
 public:
-    ELocalVarible(std::string* _variableName) : variableName(_variableName) {}
-    virtual ~ELocalVarible() {}
+    ELocalVariable(std::string* _variableName) : variableName(_variableName) {}
+    virtual ~ELocalVariable() {}
     
     std::string* variableName;
 
@@ -540,6 +563,7 @@ public:
             resultRegister = it->second;
         }
     }
+    virtual NVariableType getVarType() { return LOCAL; }
 };
 
 

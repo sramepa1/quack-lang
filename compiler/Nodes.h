@@ -61,9 +61,14 @@ public:
     virtual ~NCall() {}
 };
 
+enum NVariableType {
+    LOCAL, FIELD, THIS_FIELD, STATIC_FIELD
+};  // don't better way to do this :-(
+
 class NVariable : public NExpression {
 public:
     virtual ~NVariable() {}
+    virtual NVariableType getVarType() = 0;
 };
 
 class Environment {

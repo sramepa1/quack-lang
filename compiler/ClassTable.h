@@ -73,7 +73,8 @@ public:
     
     void write(Compiler& compiler);
     
-    
+    uint16_t getClassIndex(uint16_t nameIndex);
+
 private:
 
     // DISABLED

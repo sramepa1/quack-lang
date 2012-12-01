@@ -363,8 +363,8 @@ value:
 ;
 
 variable:
-    T_IDENTIFIER {$$ = new ELocalVarible($1);}
-  | T_IDENTIFIER T_FACCESS T_IDENTIFIER {$$ = new EVaribleField($1, $3);}
+    T_IDENTIFIER {$$ = new ELocalVariable($1);}
+  | T_IDENTIFIER T_FACCESS T_IDENTIFIER {$$ = new EVariableField($1, $3);}
   | T_STATIC T_IDENTIFIER T_FACCESS T_IDENTIFIER {$$ = new EStaticField($2, $4);} 
   | K_THIS T_FACCESS T_IDENTIFIER {$$ = new EThisField($3);}
 ;

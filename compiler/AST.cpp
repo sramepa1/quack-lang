@@ -112,12 +112,9 @@ void NMethod::fillTableEntry(ClassTableEntry* entry) {
 
 void NMethod::generateCode(BlockTranslator* translator) {
     
-    //TODO zálohovat kontext
-    
-    
-    
-    //TODO obnovit kontext
-    
+    // Saving context is not needed anymore (instructions CALL, RET, etc. do this automatically)
+    block->generateCode(translator);
+
     // return - in case there is no at the end of method
     translator->addInstruction(OP_RETNULL, OP_NOP); // we do not optimize !!!
 }
@@ -142,7 +139,48 @@ void NMethod::findArmuments(map<string,uint16_t>* arguments) {
 
 
 ////////////////////////////////////////////////////////////////////////////////
+// helpers for code generating
 
+
+#define CHECK_RESULT_REGISTER(checkedExpr)                                       \
+    if(!checkedExpr->registerAssigned) {                                         \
+        throw "line: __LINE__ - expression does not have any register assigned!";\
+    }
+
+void evaluateExpression(NExpression* expr, BlockTranslator* translator) {
+    if(!expr->registerAssigned) {
+        expr->registerAssigned = true;
+        expr->resultRegister = translator->getFreeRegister();
+    }
+    expr->generateCode(translator);
+}
+
+uint16_t loadStatClass(std::string* name, BlockTranslator* translator) {
+    uint16_t classRefRegister = translator->getFreeRegister();
+    translator->addInstruction(OP_LDSTAT, NO_SOP, classRefRegister,
+                               classTable.getClassIndex(constantPool.addString(*name)), 0);
+    return classRefRegister;
+}
+
+void prepareCall(NExpression* callNode, std::list<NExpression*>* parameters, BlockTranslator* translator) {
+    // At first evaluate all expressions in params
+    for(std::list<NExpression*>::iterator it = parameters->begin(); it != parameters->end(); ++it) {
+        evaluateExpression(*it, translator);
+    }
+
+    // After that push them on stack in reverse order
+    for(std::list<NExpression*>::reverse_iterator it = parameters->rbegin(); it != parameters->rend(); ++it) {
+        translator->addInstruction(OP_PUSH, SOP_STACK_1, (*it)->resultRegister, 0, 0);
+    }
+
+    // If the call does not have a result register, it is necessary to assign them one
+    if(!callNode->registerAssigned) {
+        callNode->registerAssigned = true;
+        callNode->resultRegister = translator->getFreeRegister();
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
 
 void NBlock::generateCode(BlockTranslator* translator) {    
     for(list<NStatement*>::iterator it = statements->begin(); it !=  statements->end(); ++it) {
@@ -152,36 +190,110 @@ void NBlock::generateCode(BlockTranslator* translator) {
 
 void SReturn::generateCode(BlockTranslator* translator) {
     if(expression == NULL) {
-        translator->addInstruction(OP_RETNULL, OP_NOP);
+        translator->addInstruction(OP_RETNULL, NO_SOP);
     } else {
-        //TODO
+        evaluateExpression(expression, translator);
+        translator->addInstruction(OP_RET, NO_SOP, expression->resultRegister, 0, 0);
+        translator->resetRegisters();
     }
+    // TODO: Return of tagged value
 }
 
 void SAssignment::generateCode(BlockTranslator* translator) {
 
-    if(!expression->registerAssigned) {
-        expression->registerAssigned = true;
-        expression->resultRegister = translator->getFreeRegister();
-    }
-    expression->generateCode(translator);
+    cout << "CodeGen: assignment" << endl;
+    evaluateExpression(expression, translator);
 
-    
-    //TODO refactor to polymorfic calls
-    /*
-    if(variable->local) {
-        translator->addInstruction(OP_MOV, 0, variable->resultRegister, expression->resultRegister, 0);
-    } else {
-        // TODO: assignment to field
-    }
-     */
+    switch(variable->getVarType()) {
 
+        case LOCAL: {
+            translator->addInstruction(OP_MOV, NO_SOP, variable->resultRegister, expression->resultRegister, 0);
+            break;
+        }
+
+        case FIELD: {
+            translator->addInstruction(OP_STF, NO_SOP,
+                                       ((EVariableField*)variable)->variableRegister,
+                                       constantPool.addString(*((EVariableField*)variable)->fieldName),
+                                       expression->resultRegister);
+            break;
+        }
+
+        case THIS_FIELD: {
+            translator->addInstruction(OP_STMYF, NO_SOP,
+                                       constantPool.addString(*((EThisField*)variable)->fieldName),
+                                       expression->resultRegister, 0);
+            break;
+        }
+
+        case STATIC_FIELD: {
+            translator->addInstruction(OP_STF, NO_SOP,
+                                       loadStatClass(((EStaticField*)variable)->className, translator),
+                                       constantPool.addString(*((EStaticField*)variable)->fieldName),
+                                       expression->resultRegister);
+            break;
+        }
+
+        default: {
+            // something is wrong :(
+            throw "Unknown type of variable!";
+        }
+    }
+    translator->resetRegisters();
 }
 
-
-/*
-void generateCode(BlockTranslator* translator) {
-    
+void SThrow::generateCode(BlockTranslator* translator) {
+    evaluateExpression(expression, translator);
+    translator->addInstruction(OP_THROW, NO_SOP, expression->resultRegister, 0, 0);
+    translator->resetRegisters();
+    // TODO: throw of tagged value
 }
 
-*/
+void EStaticField::generateCode(BlockTranslator* translator) {
+    CHECK_RESULT_REGISTER(this);
+    translator->addInstruction(OP_LDF, NO_SOP, resultRegister, loadStatClass(className, translator),
+                               constantPool.addString(*fieldName));
+}
+
+void EVariableField::generateCode(BlockTranslator* translator) {
+    CHECK_RESULT_REGISTER(this);
+    translator->addInstruction(OP_LDF, NO_SOP, resultRegister, variableRegister, constantPool.addString(*fieldName));
+}
+
+void EThisField::generateCode(BlockTranslator* translator) {
+    // TODO: how to obtain field index from this place???
+}
+
+void NThisCall::generateCode(BlockTranslator* translator) {
+    prepareCall(this, parameters, translator);
+    translator->addInstruction(OP_CALLMY, NO_SOP, resultRegister, constantPool.addString(*methodName), 0);
+
+    // TODO: who cleans temporary registers??? Because method call is statement but in params are expressions
+    // translator->resetRegisters();
+}
+
+void NVariableCall::generateCode(BlockTranslator* translator) {
+    prepareCall(this, parameters, translator);
+    translator->addInstruction(OP_CALL, NO_SOP, resultRegister, variableRegister, constantPool.addString(*methodName));
+
+    // TODO: who cleans temporary registers??? Because method call is statement but in params are expressions
+    // translator->resetRegisters();
+}
+
+void NStaticCall::generateCode(BlockTranslator* translator) {
+    prepareCall(this, parameters, translator);
+    translator->addInstruction(OP_CALL, NO_SOP, resultRegister, loadStatClass(className, translator),
+                               constantPool.addString(*methodName));
+
+    // TODO: who cleans temporary registers??? Because method call is statement but in params are expressions
+    // translator->resetRegisters();
+}
+
+void ENew::generateCode(BlockTranslator* translator) {
+    prepareCall(this, parameters, translator);
+
+    string constructorName("\0init", 5);
+    constructorName.at(0) = (unsigned char)parameters->size();
+    translator->addInstruction(OP_NEW, NO_SOP, resultRegister, constantPool.addString(*className),
+                               constantPool.addString(constructorName));
+}
