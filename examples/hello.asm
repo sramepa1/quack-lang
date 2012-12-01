@@ -74,6 +74,7 @@ classtable:
 	dw 1						; CP index 1 = signature of main(args)
 	dw 7						; CP index 6 = bytecode of main(args)
 	dw 5						; Bytecode instruction count
+	dw 1						; method uses exactly one register, r0
 .endmain:
 	alignb 8, db 0
 .classdeftotalsize:	equ $-.classdefs	; classdef size calculation (nasm pseudoinstruction)
@@ -158,7 +159,7 @@ alignb 8, db 0
 	
 	db 0x52			; CALL
 	db 0
-	dw 1			; Destination r1
+	dw 0xFFFF		; Destination REG_DEV_NULL (throw away return value)
 	dw 0			; 'That' is in r0
 	dw 4			; CP index 4 = signature of writeLine(str)
 

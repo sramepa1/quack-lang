@@ -104,6 +104,7 @@ classtable:
 	dw 9						; init()
 	dw 0						; ignored
 	dw 0						; ignored
+	dw 0						; ignored
 .endsys:
 	alignb 8, db 0
 
@@ -128,9 +129,11 @@ classtable:
 	dw 10						; init(arg)
 	dw 11						; bytecode stub	
 	dw 1						; stub length
+	dw 8						; stub used register count (arbitrary number here)
 	
 	dw 1						; flags      = native
 	dw 12						; initN(arg)
+	dw 0						; ignored
 	dw 0						; ignored
 	dw 0						; ignored
 	
@@ -138,14 +141,17 @@ classtable:
 	dw 13						; readLine()
 	dw 0						; ignored
 	dw 0						; ignored
+	dw 0						; ignored
 	
 	dw 0
 	dw 14						; writeLine(arg)
 	dw 15						; bytecode stub
 	dw 1						; stub length
+	dw 8						; stub used register count (arbitrary number here)
 	
 	dw 1						; flags      = native
 	dw 16						; writeLineN()
+	dw 0						; ignored
 	dw 0						; ignored
 	dw 0						; ignored
 	
@@ -153,14 +159,17 @@ classtable:
 	dw 17						; eof()
 	dw 0						; ignored
 	dw 0						; ignored
+	dw 0						; ignored
 	
 	dw 0
 	dw 18						; close()
 	dw 19						; bytecode call finalize
 	dw 1						; stub length
+	dw 8						; stub used register count (arbitrary number here)
 	
 	dw 1						; flags      = native
 	dw 20						; finalize()
+	dw 0						; ignored
 	dw 0						; ignored
 	dw 0						; ignored
 .endfile:
@@ -178,9 +187,11 @@ classtable:
 	dw 10						; init(arg)
 	dw 11						; identical stub!
 	dw 1						; stub length
+	dw 8						; stub used register count (arbitrary number here)
 	
 	dw 1						; flags      = native
 	dw 12						; initN(arg)
+	dw 0						; ignored
 	dw 0						; ignored
 	dw 0						; ignored
 	
@@ -188,6 +199,7 @@ classtable:
 	dw 13						; readLine()
 	dw 21						; bytecode throw ex
 	dw 1						; stub length
+	dw 8						; stub used register count (arbitrary number here)
 .endout:
 	alignb 8, db 0
 	
@@ -203,9 +215,11 @@ classtable:
 	dw 10						; init(arg)
 	dw 11						; identical stub!
 	dw 1						; stub length
+	dw 8						; stub used register count (arbitrary number here)
 	
 	dw 1						; flags      = native
 	dw 12						; initN(arg)
+	dw 0						; ignored
 	dw 0						; ignored
 	dw 0						; ignored
 	
@@ -213,6 +227,7 @@ classtable:
 	dw 14						; writeLine()
 	dw 22						; bytecode throw ex
 	dw 1						; stub length
+	dw 8						; stub used register count (arbitrary number here)
 .endin:
 	alignb 8, db 0
 	
@@ -234,14 +249,17 @@ classtable:
 	dw 9						; init()
 	dw 0						; ignored
 	dw 0						; ignored
+	dw 0						; ignored
 	
 	dw 0
 	dw 10						; init(arg)
 	dw 11						; identical stub!
 	dw 1						; stub length
+	dw 8						; stub used register count (arbitrary number here)
 	
 	dw 1						; flags      = native
 	dw 12						; initN(arg)
+	dw 0						; ignored
 	dw 0						; ignored
 	dw 0						; ignored
 	
@@ -249,9 +267,11 @@ classtable:
 	dw 24						; _opPlus(arg)
 	dw 25						; bytecode stub
 	dw 1						; stub length
+	dw 8						; stub used register count (arbitrary number here)
 	
 	dw 1						; flags      = native
 	dw 26						; _opPlusN(arg)
+	dw 0						; ignored
 	dw 0						; ignored
 	dw 0						; ignored
 	
@@ -259,9 +279,11 @@ classtable:
 	dw 27						; _opIndex(arg)
 	dw 28						; bytecode stub
 	dw 1						; stub length
+	dw 8						; stub used register count (arbitrary number here)
 	
 	dw 1						; flags      = native
 	dw 29						; _opIndexN(arg)
+	dw 0						; ignored
 	dw 0						; ignored
 	dw 0						; ignored
 	
@@ -269,9 +291,11 @@ classtable:
 	dw 30						; explode(arg)
 	dw 31						; bytecode stub
 	dw 1						; stub length
+	dw 8						; stub used register count (arbitrary number here)
 	
 	dw 1						; flags      = native
 	dw 32						; explodeN(arg)
+	dw 0						; ignored
 	dw 0						; ignored
 	dw 0						; ignored
 	
@@ -279,6 +303,7 @@ classtable:
 	dw 33						; stringValue()
 	dw 34						; bytecode return this
 	dw 1						; stub length
+	dw 8						; stub used register count (arbitrary number here)
 	
 	
 .endstring:

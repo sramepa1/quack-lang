@@ -4,7 +4,7 @@
 #include "QuaMethod.h"
 
 extern "C" {
-    #include <stdint.h>
+	#include <stdint.h>
 }
 
 #pragma pack(1)
@@ -17,7 +17,7 @@ extern "C" {
 #define FRAME_TYPE type.frameType
 #define INTERPRETED type.interpreted
 
-#define ARG_COUNT typeData.methodFrame.argCount
+#define ARG_COUNT currMeth->sig->argCnt
 #define DEST_REG typeData.methodFrame.destReg
 #define BP_OFFSET typeData.methodFrame.bpOffset
 
@@ -25,46 +25,47 @@ extern "C" {
 
 struct QuaFrame {
 
-    void* retAddr;
-    QuaMethod* currMeth;  // TODO: Initialize and use
+	void* retAddr;
+	QuaMethod* currMeth;
 
-    struct {
-        unsigned frameType : 2;
-        unsigned interpreted : 1;
-        unsigned : 5;
-    } type;
+	struct {
+		unsigned frameType : 2;
+		unsigned interpreted : 1;
+		unsigned : 5;
+	} type;
 
-    union {
-        struct {
-            char argCount;
-            uint16_t destReg;
-            uint32_t bpOffset;
-        } methodFrame;
+	union {
+		struct {
+			uint32_t bpOffset;
+			uint16_t destReg;
+		} methodFrame;
 
-        uint16_t exceptionType;
-    } typeData;
+		uint16_t exceptionType;
+	} typeData;
 
-    // creates method frame
-    QuaFrame(void* code, bool interpreted, char argCount, uint16_t destReg, uint32_t bpOffset) : retAddr(code) {
-        FRAME_TYPE = METHOD;
-        INTERPRETED = interpreted;
-        ARG_COUNT = argCount;
-        DEST_REG = destReg;
-        BP_OFFSET = bpOffset;
-    }
+	// creates method frame
+	QuaFrame(void* code, QuaMethod* currMeth, bool interpreted, uint16_t destReg, uint32_t bpOffset)
+		: retAddr(code), currMeth(currMeth) {
+		FRAME_TYPE = METHOD;
+		INTERPRETED = interpreted;
+		DEST_REG = destReg;
+		BP_OFFSET = bpOffset;
+	}
 
-    // creates exception handler
-    QuaFrame(void* code, bool interpreted, uint16_t exceptionType) : retAddr(code) {
-        FRAME_TYPE = EXCEPTION;
-        INTERPRETED = interpreted;
-        EXCEPTION_TYPE = exceptionType;
-    }
+	// creates exception handler
+	QuaFrame(void* code, QuaMethod* currMeth, bool interpreted, uint16_t exceptionType)
+		: retAddr(code), currMeth(currMeth) {
+		FRAME_TYPE = EXCEPTION;
+		INTERPRETED = interpreted;
+		EXCEPTION_TYPE = exceptionType;
+	}
 
-    // creates finally or exit handler (it depends on third parameter)
-    QuaFrame(void* code, bool interpreted, bool finally) : retAddr(code) {
-        FRAME_TYPE = finally ? FINALLY : EXIT;
-        INTERPRETED = interpreted;
-    }
+	// creates finally or exit handler (it depends on third parameter)
+	QuaFrame(void* code, QuaMethod* currMeth, bool interpreted, bool finally)
+		: retAddr(code), currMeth(currMeth) {
+		FRAME_TYPE = finally ? FINALLY : EXIT;
+		INTERPRETED = interpreted;
+	}
 
 };
 
