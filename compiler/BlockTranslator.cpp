@@ -9,8 +9,8 @@
 
 using namespace std;
 
-BlockTranslator::BlockTranslator() {
-    initialRegister = 0;                // TODO: fill them appropriate
+BlockTranslator::BlockTranslator(uint16_t initialRegister) {
+    this->initialRegister = initialRegister;
     firstUnusedRegister = initialRegister;
 }
 BlockTranslator::~BlockTranslator() {}

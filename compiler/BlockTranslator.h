@@ -16,7 +16,7 @@
 
 class BlockTranslator : public IWritable {
 public:
-    BlockTranslator();
+    BlockTranslator(uint16_t initialRegister);
     virtual ~BlockTranslator();
     
     std::vector<Instruction*> instructions;
@@ -32,7 +32,7 @@ public:
         return firstUnusedRegister++;
     }
 
-    uint16_t resetRegisters() {
+    void resetRegisters() {
         firstUnusedRegister = initialRegister;
     }
     
