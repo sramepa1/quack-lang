@@ -20,7 +20,7 @@ class Interpreter
 {
 public:
 	Interpreter();
-	void start();
+	void start(std::vector<char*>& args);
 	Instruction* processInstruction(Instruction* insn);
 
 private:
