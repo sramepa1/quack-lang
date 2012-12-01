@@ -88,21 +88,21 @@ public:
 
 class NMethod : public ClassEntry, public Scope {
 public:
-    NMethod(std::string* _name, std::list<std::string*>* _parameters, NBlock* _block)
-        : parameters(_parameters), block(_block) {name = _name;}
-    NMethod(std::string* _name, std::list<std::string*>* _parameters, NBlock* _block, uint16_t _flags)
-        : parameters(_parameters), block(_block) {name = _name; flags = _flags;}
+    NMethod(std::string* _name, std::list<std::string*>* _parameterNames, NBlock* _block)
+        : parameterNames(_parameterNames), block(_block) {name = _name;}
+    NMethod(std::string* _name, std::list<std::string*>* _parameterNames, NBlock* _block, uint16_t _flags)
+        : parameterNames(_parameterNames), block(_block) {name = _name; flags = _flags;}
     virtual ~NMethod() {}
     
-    std::list<std::string*>* parameters;
+    std::list<std::string*>* parameterNames;
     NBlock* block;
-    
-    map<string, uint16_t> localVariables;
     
     virtual void fillTableEntry(ClassTableEntry* entry);
     
     virtual void generateCode(BlockTranslator* translator);
     virtual void findLocals(map<string, uint16_t>* locals);
+    
+    void findArmuments(map<string, uint16_t>* arguments);
 };
 
 ////////////////////////////////////////

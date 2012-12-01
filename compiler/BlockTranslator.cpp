@@ -9,11 +9,18 @@
 
 using namespace std;
 
-BlockTranslator::BlockTranslator(uint16_t initialRegister) {
-    this->initialRegister = initialRegister;
-    firstUnusedRegister = initialRegister;
+BlockTranslator::BlockTranslator(std::map<std::string,uint16_t>* localVariables, std::map<std::string,uint16_t>* arguments) {
+    this->initialRegister = localVariables->size();
+    firstUnusedRegister = localVariables->size();
+    
+    this->localVariables = localVariables;
+    this->arguments = arguments;
 }
-BlockTranslator::~BlockTranslator() {}
+
+BlockTranslator::~BlockTranslator() {
+    delete localVariables;
+    delete arguments;
+}
 
 
 int BlockTranslator::addInstruction(unsigned char op, unsigned char subop, uint16_t arg0, uint16_t arg1, uint16_t arg2) {

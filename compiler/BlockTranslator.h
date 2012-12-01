@@ -12,11 +12,12 @@
 #include "ConstantPool.h"
 #include "Instruction.h"
 
+#include <map>
 #include <vector>
 
 class BlockTranslator : public IWritable {
 public:
-    BlockTranslator(uint16_t initialRegister);
+    BlockTranslator(std::map<std::string, uint16_t>* localVariables, std::map<std::string, uint16_t>* arguments);
     virtual ~BlockTranslator();
     
     std::vector<Instruction*> instructions;
@@ -26,7 +27,10 @@ public:
 
     // register which is available for temporary purpurose (e.g. in expressions)
     uint16_t firstUnusedRegister;
-
+    
+    std::map<std::string, uint16_t>* localVariables;
+    std::map<std::string, uint16_t>* arguments;
+    
     uint16_t getFreeRegister() {
         // TODO: test for register overflow
         return firstUnusedRegister++;

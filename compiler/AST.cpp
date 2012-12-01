@@ -91,22 +91,18 @@ void NMethod::fillTableEntry(ClassTableEntry* entry) {
     // signature
     int size = name->size() + 2;
     char* signature = new char[size];
-    signature[0] = (char) parameters->size();
+    signature[0] = (char) parameterNames->size();
     name->copy(signature + 1, name->size());
     uint16_t sigIndex = constantPool.addConstant(signature, size); 
-    
-    cout << "Prepared to count locals" << endl;
 
-    // count of local variables
-    map<string, uint16_t> locals;
-    block->findLocals(&locals);
-
-    cout << "Locals counted (" << locals.size() << ")" << endl;
-
-    // code
+    // analyze the code
+    map<string, uint16_t>* localVariables = new map<string, uint16_t>();
+    findLocals(localVariables);
+    map<string, uint16_t>* arguments = new map<string, uint16_t>();
+    findArmuments(arguments);
     
-    
-    BlockTranslator* translator = new BlockTranslator(locals.size());
+    // generate code
+    BlockTranslator* translator = new BlockTranslator(localVariables, arguments);
     generateCode(translator);
     uint16_t codeIndex = constantPool.addCode(translator);
     
@@ -127,7 +123,20 @@ void NMethod::generateCode(BlockTranslator* translator) {
 }
 
 void NMethod::findLocals(map<string, uint16_t>* locals) {
+    cout << "Prepared to count locals" << endl;
     block->findLocals(locals);
+    cout << "Locals counted (" << locals->size() << ")" << endl;
+}
+
+void NMethod::findArmuments(map<string,uint16_t>* arguments) {
+    for(list<string*>::iterator lit = parameterNames->begin(); lit !=  parameterNames->end(); ++lit) {
+        map<string, uint16_t>::iterator mit = arguments->find(**lit);
+        if(mit == arguments->end()) {
+            arguments->insert(make_pair(**lit, arguments->size()));
+        } else {
+            throw "Two method arguments can not have the same name!";
+        }
+    }
 }
     
 
