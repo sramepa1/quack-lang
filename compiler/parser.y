@@ -18,17 +18,19 @@
 %union {
     Node* node;
     NProgram* nprogram;
-
     NClass* nclass;
-    std::list<ClassEntry*>* classEntries;
     ClassEntry* nclassEntry;
 
     NField* nfield;
     NMethod* nmethod;
-    std::list<NExpression*>* parameters;
-
     NBlock* nblock;
+
+    std::list<ClassEntry*>* classEntries;
+    std::list<NExpression*>* parameters;
     std::list<NStatement*>* statements;
+    std::list<NCatch*>* catches;
+
+    NCatch* ncatch;
 
     NCall* ncall;
 
@@ -80,14 +82,18 @@
 
 %type <nfield> field
 %type <nmethod> method stat_init dyn_init
+
 %type <parameters> parameters parameter_list
+
+%type <catches> catches
+%type <ncatch> catch
 
 %type <nblock> block
 
 %type <statements> statement_list
 %type <sstatement> block_statement standalone_statement
 %type <ncall> call
-%type <sstatement> return throw assignment if while for
+%type <sstatement> return throw try assignment if while for
 
 %type <nvariable> variable
 
@@ -179,7 +185,7 @@ method:
 
 parameters:
     T_LPAREN parameter_list T_RPAREN {$$ = $2;}
-  | T_LPAREN T_RPAREN {$$ = NULL;}
+  | T_LPAREN T_RPAREN {$$ = new std::list<NExpression*>();}
 ;
 
 parameter_list:
@@ -225,22 +231,22 @@ throw:
 ;
 
 try:
-    K_TRY block catches
+    K_TRY block catches {$$ = new STry($2, $3);}
 ;
 
 catches:
-    catch
-  | catches catch
+    catch {$$ = new std::list<NCatch*>(); $$->push_back($1);}
+  | catches catch {$$->push_back($2);}
 ;
 
 catch:
-    K_CATCH T_IDENTIFIER block
-  | K_CATCH T_IDENTIFIER K_AS T_IDENTIFIER block
+    K_CATCH T_IDENTIFIER block {$$ = new NCatch($2, NULL, $3);}
+  | K_CATCH T_IDENTIFIER K_AS T_IDENTIFIER block {$$ = new NCatch($2, $4, $5);}
 ;
 
 return:
-    K_RETURN {$$ = new NReturn();}
-  | K_RETURN expression {$$ = new NReturn($2);}
+    K_RETURN {$$ = new SReturn();}
+  | K_RETURN expression {$$ = new SReturn($2);}
 ;
 
 assignment:
@@ -338,7 +344,7 @@ string_const:
 value: 
     variable {$$ = $1;}
   | call {$$ = $1;}
-  | K_NEW T_IDENTIFIER parameters
+  | K_NEW T_IDENTIFIER parameters {$$ = new ENew($2, $3);}
 ;
 
 variable:

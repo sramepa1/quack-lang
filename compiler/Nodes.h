@@ -94,6 +94,7 @@ class NStatClass;
 class NMethod;
 class NBlock;
 class NStatement;
+class NCatch;
 
 
 

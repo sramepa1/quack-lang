@@ -124,7 +124,7 @@ void NBlock::generateCode(BlockTranslator* translator) {
     }
 }
 
-void NReturn::generateCode(BlockTranslator* translator) {
+void SReturn::generateCode(BlockTranslator* translator) {
     if(expression == NULL) {
         translator->addInstruction(OP_RETNULL, OP_NOP);
     } else {

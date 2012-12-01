@@ -116,10 +116,10 @@ public:
     }
 };
 
-class NReturn : public NStatement {
+class SReturn : public NStatement {
 public:
-    NReturn(NExpression* _expression = NULL) : expression(_expression) {}
-    virtual ~NReturn() {}
+    SReturn(NExpression* _expression = NULL) : expression(_expression) {}
+    virtual ~SReturn() {}
     
     NExpression* expression;
     
@@ -144,6 +144,39 @@ public:
     }
 };
 
+
+class NCatch : public Node, public Scope {
+public:
+    NCatch(std::string* _className, std::string* _variableName, NBlock* _block) : className(_className), variableName(_variableName), block(_block) {}
+    virtual ~NCatch() {}
+    
+    std::string* className; // care, can be NULL
+    std::string* variableName;
+    NBlock* block;
+    
+    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void findLocals(map<string, uint16_t>* locals) {
+        block->findLocals(locals);
+    }
+};
+
+class STry : public NStatement {
+public:
+    STry(NBlock* _block, std::list<NCatch*>* _catches) : block(_block), catches(_catches) {}
+    virtual ~STry() {}
+    
+    NBlock* block;
+    std::list<NCatch*>* catches;
+    
+    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void findLocals(map<string, uint16_t>* locals) {
+        block->findLocals(locals);
+        for(std::list<NCatch*>::iterator it = catches->begin(); it != catches->end(); ++it) {
+            (*it)->findLocals(locals);
+        }
+    }
+};
+
 class SAssignment : public NStatement {
 public:
     SAssignment(NVariable* _variable, NExpression* _expression) : variable(_variable), expression(_expression) {}
@@ -154,7 +187,7 @@ public:
     
     virtual void generateCode(BlockTranslator* translator);
     virtual void findLocals(map<string, uint16_t>* locals) {
-        ((NExpression*)variable)->findLocals(locals);
+        variable->findLocals(locals);
         expression->findLocals(locals);
     }
 };
@@ -422,6 +455,19 @@ public:
     virtual ~CBool() {}
     
     bool value;
+    
+    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void findLocals(map<string, uint16_t>*) {}
+};
+
+
+class ENew : public NExpression {
+public:
+    ENew(std::string* _className, std::list<NExpression*>* _parameters) : className(_className), parameters(_parameters) {}
+    virtual ~ENew() {}
+    
+    std::string* className;
+    std::list<NExpression*>* parameters;
     
     virtual void generateCode(BlockTranslator* translator) {}
     virtual void findLocals(map<string, uint16_t>*) {}
