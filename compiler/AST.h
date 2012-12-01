@@ -131,11 +131,25 @@ public:
     }
 };
 
+class SThrow : public NStatement {
+public:
+    SThrow(NExpression* _expression) : expression(_expression) {}
+    virtual ~SThrow() {}
+    
+    NExpression* expression;
+    
+    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void findLocals(map<string, uint16_t>* locals) {
+        expression->findLocals(locals);
+    }
+};
+
 class SAssignment : public NStatement {
 public:
+    SAssignment(NVariable* _variable, NExpression* _expression) : variable(_variable), expression(_expression) {}
     virtual ~SAssignment() {}
     
-    EVarible* variable;
+    NVariable* variable;
     NExpression* expression;
     
     virtual void generateCode(BlockTranslator* translator);
@@ -145,11 +159,47 @@ public:
     }
 };
 
-class NCall : public NStatement, public NExpression {
+class NThisCall : public NCall {
 public:
-    virtual ~NCall() {}
+    NThisCall(std::string* _methodName, std::list<NExpression*>* _parameters) : methodName(_methodName), parameters(_parameters) {}
+    virtual ~NThisCall() {}
     
-    //TODO zařadi čí meoda se volá
+    std::string* methodName;
+    std::list<NExpression*>* parameters;
+
+    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void findLocals(map<string, uint16_t>* locals) {
+        for(std::list<NExpression*>::iterator it = parameters->begin(); it != parameters->end(); ++it) {
+            (*it)->findLocals(locals);
+        }
+    }
+};
+
+class NVariableCall : public NCall {
+public:
+    NVariableCall(std::string* _variableName, std::string* _methodName, std::list<NExpression*>* _parameters) : variableName(_variableName), methodName(_methodName), parameters(_parameters) {}
+    virtual ~NVariableCall() {}
+    
+    std::string* variableName;
+    std::string* methodName;
+    std::list<NExpression*>* parameters;
+
+    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void findLocals(map<string, uint16_t>* locals) {
+        //TODO add variable to the locals - thought form the context it must be already there
+        
+        for(std::list<NExpression*>::iterator it = parameters->begin(); it != parameters->end(); ++it) {
+            (*it)->findLocals(locals);
+        }
+    }
+};
+
+class NStaticCall : public NCall {
+public:
+    NStaticCall(std::string* _className, std::string* _methodName, std::list<NExpression*>* _parameters) : className(_className), methodName(_methodName), parameters(_parameters) {}
+    virtual ~NStaticCall() {}
+    
+    std::string* className;
     std::string* methodName;
     std::list<NExpression*>* parameters;
 
@@ -163,7 +213,7 @@ public:
 
 class SIf : public NStatement {
 public:
-    SIf() : elseBlock(NULL) {}
+    SIf(NExpression* _condition, NBlock* _thenBlock, NBlock* _elseBlock = NULL) : condition(_condition), thenBlock(_thenBlock), elseBlock(_elseBlock) {}
     virtual ~SIf() {}
 
     NExpression* condition;
@@ -180,6 +230,7 @@ public:
 
 class SFor : public NStatement {
 public:
+    SFor(NStatement* _init, NExpression* _condition, NStatement* _increment, NBlock* _body) : init(_init), condition(_condition), increment(_increment), body(_body) {}
     virtual ~SFor() {}
     
     NStatement* init;
@@ -192,6 +243,22 @@ public:
         init->findLocals(locals);
         condition->findLocals(locals);
         increment->findLocals(locals);
+        body->findLocals(locals);
+    }
+};
+
+
+class SWhile : public NStatement {
+public:
+    SWhile(NExpression* _condition, NBlock* _body) :condition(_condition), body(_body) {}
+    virtual ~SWhile() {}
+    
+    NExpression* condition;
+    NBlock* body;
+
+    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void findLocals(map<string, uint16_t>* locals) {
+        condition->findLocals(locals);
         body->findLocals(locals);
     }
 };
@@ -305,6 +372,20 @@ public:
     virtual void generateCode(BlockTranslator* translator) {}
 };
 
+class EInstanceof : public NExpression {
+public:
+    EInstanceof(NVariable* _expression, std::string* _identifier) : expression(_expression), identifier(_identifier) {}
+    virtual ~EInstanceof() {}
+    
+    NVariable* expression;
+    std::string* identifier;
+    
+    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void findLocals(map<string, uint16_t>* locals) {
+        expression->findLocals(locals);
+    }
+};
+
 
 class CString : public NExpression {
 public:
@@ -346,29 +427,57 @@ public:
     virtual void findLocals(map<string, uint16_t>*) {}
 };
 
-// TODO: split into local variable and field
-class EVarible : public NExpression {
+class EStaticField : public NVariable {
 public:
-    EVarible() : className(NULL), local(true) {}
-    virtual ~EVarible() {}
+    EStaticField(std::string* _className, std::string* _fieldName) : className(_className), fieldName(_fieldName) {}
+    virtual ~EStaticField() {}
     
     std::string* className;
+    std::string* fieldName;
+
+    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void findLocals(map<string, uint16_t>* locals) {}
+};
+
+class EVaribleField : public NVariable {
+public:
+    EVaribleField(std::string* _variableName, std::string* _fieldName) : variableName(_variableName), fieldName(_fieldName) {}
+    virtual ~EVaribleField() {}
+    
+    std::string* variableName;
+    std::string* fieldName;
+
+    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void findLocals(map<string, uint16_t>* locals) {}
+};
+
+class EThisField : public NVariable {
+public:
+    EThisField(std::string* _fieldName) : fieldName(_fieldName) {}
+    virtual ~EThisField() {}
+    
+    std::string* fieldName;
+
+    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void findLocals(map<string, uint16_t>* locals) {}
+};
+
+class ELocalVarible : public NVariable {
+public:
+    ELocalVarible(std::string* _variableName) : variableName(_variableName) {}
+    virtual ~ELocalVarible() {}
+    
     std::string* variableName;
 
-    bool local;
-    
     virtual void generateCode(BlockTranslator* translator) {}
-
     virtual void findLocals(map<string, uint16_t>* locals) {
-        if(local) {
-            registerAssigned = true;
-            map<string, uint16_t>::iterator it = locals->find(*variableName);
-            if(it == locals->end()) {
-                resultRegister = locals->size();
-                locals->insert(make_pair(*variableName, locals->size()));
-            } else {
-                resultRegister = it->second;
-            }
+        registerAssigned = true;
+        map<string, uint16_t>::iterator it = locals->find(*variableName);
+        if(it == locals->end()) {
+            resultRegister = locals->size();
+            locals->insert(make_pair(*variableName, locals->size()));
+        } else {
+            resultRegister = it->second;
         }
     }
 };

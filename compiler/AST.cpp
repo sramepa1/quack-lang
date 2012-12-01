@@ -140,11 +140,15 @@ void SAssignment::generateCode(BlockTranslator* translator) {
     }
     expression->generateCode(translator);
 
+    
+    //TODO refactor to polymorfic calls
+    /*
     if(variable->local) {
         translator->addInstruction(OP_MOV, 0, variable->resultRegister, expression->resultRegister, 0);
     } else {
         // TODO: assignment to field
     }
+     */
 
 }
 

@@ -30,13 +30,11 @@
     NBlock* nblock;
     std::list<NStatement*>* statements;
 
-    NStatement* sstatement;
-    SAssignment* sassignment;
     NCall* ncall;
-    SIf* sif;
-    SFor* sfor;
 
+    NStatement* sstatement;
     NExpression* nexpression;
+    NVariable* nvariable;
 
     std::string* string;
     int integer;
@@ -53,7 +51,7 @@
 %token <token> K_THIS K_NULL K_NEW K_INSTANCEOF K_RETURN
 
 %token <token> K_THROW K_TRY K_CATCH K_AS
-%token <token> T_ASSIGN K_IF K_ELSE K_FOR
+%token <token> T_ASSIGN K_IF K_ELSE K_FOR K_WHILE
 
 %token <token> T_AND T_OR T_NOT
 %token <token> T_EQ T_NE T_LT T_LE T_GT T_GE
@@ -88,16 +86,13 @@
 
 %type <statements> statement_list
 %type <sstatement> block_statement standalone_statement
-%type <sassignment> assignment
 %type <ncall> call
-%type <sif> if
-%type <sfor> for
-%type <sstatement> return
+%type <sstatement> return throw assignment if while for
 
+%type <nvariable> variable
 
-
-%type <nexpression> parameter expression logic_expr compare_expr string_expr relation_expr artim_expr artim_expr2 artim_expr3
-%type <nexpression> artim_const boolean_const string_const value variable
+%type <nexpression> parameter expression logic_expr compare_expr string_expr instance_expr relation_expr artim_expr artim_expr2 artim_expr3
+%type <nexpression> artim_const boolean_const string_const value
 
 /* %type <string> */
 
@@ -210,7 +205,8 @@ block_statement:
     try {$$ = NULL;}
   | if {$$ = $1;}
   | for {$$ = $1;}
-  | throw T_SEMICOLON
+  | while {$$ = $1;}
+  | throw T_SEMICOLON {$$ = $1;}
   | return T_SEMICOLON {$$ = $1;}
   | assignment T_SEMICOLON {$$ = $1;}
   | call T_SEMICOLON {$$ = $1;}
@@ -225,7 +221,7 @@ standalone_statement:
 ;   
 
 throw:
-    K_THROW expression
+    K_THROW expression {$$ = new SThrow($2);}
 ;
 
 try:
@@ -248,16 +244,20 @@ return:
 ;
 
 assignment:
-    variable T_ASSIGN expression {$$ = new SAssignment(); $$->variable = (EVarible*) $1; $$->expression = $3;}
+    variable T_ASSIGN expression {$$ = new SAssignment($1, $3);}
 ;
 
 if:
-    K_IF T_LPAREN expression T_RPAREN block {$$ = new SIf(); $$->condition = $3; $$->thenBlock = $5;}
-  | K_IF T_LPAREN expression T_RPAREN block K_ELSE block {$$ = new SIf(); $$->condition = $3; $$->thenBlock = $5; $$->elseBlock = $7;}
+    K_IF T_LPAREN expression T_RPAREN block {$$ = new SIf($3, $5);}
+  | K_IF T_LPAREN expression T_RPAREN block K_ELSE block {$$ = new SIf($3, $5, $7);}
 ;
 
 for:
-   K_FOR T_LPAREN standalone_statement T_SEMICOLON expression T_SEMICOLON standalone_statement T_RPAREN block {$$ = new SFor(); $$->init = $3; $$->condition = $5; $$->increment = $7; $$->body = $9;}
+   K_FOR T_LPAREN standalone_statement T_SEMICOLON expression T_SEMICOLON standalone_statement T_RPAREN block {$$ = new SFor($3, $5, $7, $9);}
+;
+
+while:
+    K_WHILE T_LPAREN expression T_RPAREN block {$$ = new SWhile($3, $5);}
 ; 
 
 expression:
@@ -280,12 +280,16 @@ compare_expr:
   | boolean_const {$$ = $1;}
   | string_expr {$$ = $1;}
   | relation_expr {$$ = $1;}
-    /* heere add potencial "instanceof" */
+  | instance_expr {$$ = $1;}
 ;
 
 string_expr:
     string_expr T_PLUS string_expr {$$ = new EAdd(); ((EBOp*) $$)->left = $1; ((EBOp*) $$)->right = $3;}
   | string_const {$$ = $1;}
+;
+
+instance_expr:
+    variable K_INSTANCEOF T_IDENTIFIER {$$ = new EInstanceof($1, $3);}
 ;
 
 relation_expr:
@@ -334,19 +338,26 @@ string_const:
 value: 
     variable {$$ = $1;}
   | call {$$ = $1;}
- /* | method_access
-  | K_NEW T_IDENTIFIER parameters */
+  | K_NEW T_IDENTIFIER parameters
 ;
 
 variable:
-    T_IDENTIFIER {$$ = new EVarible(); ((EVarible*) $$)->variableName = $1;}
-  | T_IDENTIFIER T_FACCESS T_IDENTIFIER {$$ = new EVarible(); ((EVarible*) $$)->className = $1; ((EVarible*) $$)->variableName = $3;}
-  | T_STATIC T_IDENTIFIER T_FACCESS T_IDENTIFIER {$$ = new EVarible(); ((EVarible*) $$)->className = $2; ((EVarible*) $$)->variableName = $4;} 
-
+    T_IDENTIFIER {$$ = new ELocalVarible($1);}
+  | T_IDENTIFIER T_FACCESS T_IDENTIFIER {$$ = new EVaribleField($1, $3);}
+  | T_STATIC T_IDENTIFIER T_FACCESS T_IDENTIFIER {$$ = new EStaticField($2, $4);} 
+  | K_THIS T_FACCESS T_IDENTIFIER {$$ = new EThisField($3);}
+;
 
 call:
-    T_IDENTIFIER parameters {$$ = new NCall(); $$->methodName = $1; $$->parameters = $2;}
+    T_IDENTIFIER parameters {$$ = new NThisCall($1, $2);}
+  | T_IDENTIFIER T_MACCESS T_IDENTIFIER parameters {$$ = new NVariableCall($1, $3, $4);}
+  | T_STATIC T_IDENTIFIER T_MACCESS T_IDENTIFIER parameters {$$ = new NStaticCall($2, $4, $5);}
+  | K_THIS T_MACCESS T_IDENTIFIER parameters {$$ = new NThisCall($3, $4);}
 ;
+
+
+
+
 /*
 variable:
     var_access

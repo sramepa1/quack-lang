@@ -59,9 +59,14 @@ public:
     virtual void generateCode(BlockTranslator* translator) = 0;
 };
 
-class NValue : public NExpression {
+class NCall : public NExpression, public NStatement {
 public:
-    virtual ~NValue() {}
+    virtual ~NCall() {}
+};
+
+class NVariable : public NExpression {
+public:
+    virtual ~NVariable() {}
 };
 
 class Environment {
@@ -90,7 +95,6 @@ class NMethod;
 class NBlock;
 class NStatement;
 
-class EVarible;
 
 
 #endif	/* NODES_H */

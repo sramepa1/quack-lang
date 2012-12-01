@@ -38,6 +38,7 @@ extern "C" int yywrap() { return 1; }
 "if"                                    return TOKEN(K_IF);
 "else"                                  return TOKEN(K_ELSE);
 "for"                                   return TOKEN(K_FOR);
+"while"                                 return TOKEN(K_WHILE);
 "="                                     return TOKEN(T_ASSIGN);
 
 "instanceof"                            return TOKEN(K_INSTANCEOF);
