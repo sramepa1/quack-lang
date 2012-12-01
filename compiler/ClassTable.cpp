@@ -28,7 +28,7 @@ void ClassTableEntry::addField(uint16_t cpNameIndex, uint16_t flags) {
 }
 
 
-void ClassTableEntry::addMethod(uint16_t cpSigIndex, uint16_t flags, uint16_t cpCodeIndex, uint16_t insnCount) {
+void ClassTableEntry::addMethod(uint16_t cpSigIndex, uint16_t flags, uint16_t cpCodeIndex, uint16_t insnCount, uint16_t regCount) {
     defSize += sizeof(MethodData);
     
     struct MethodData data;
@@ -36,7 +36,8 @@ void ClassTableEntry::addMethod(uint16_t cpSigIndex, uint16_t flags, uint16_t cp
     data.flags = flags;
     data.cpBytecodeIndex = cpCodeIndex;
     data.insnCount = insnCount;
-    ;
+    data.regCount = regCount;
+    
     methodIndicies.push_back(data);
 }
 

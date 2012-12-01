@@ -50,6 +50,10 @@ int BlockTranslator::size() {
     return instructions.size() * sizeof(Instruction);
 }
 
+int BlockTranslator::instrCount() {
+    return instructions.size();
+}
+
 
 void BlockTranslator::write(Compiler& compiler) {
     for(vector<Instruction*>::iterator it = instructions.begin(); it != instructions.end(); ++it) {

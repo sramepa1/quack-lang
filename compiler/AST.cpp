@@ -106,7 +106,7 @@ void NMethod::fillTableEntry(ClassTableEntry* entry) {
     generateCode(translator);
     uint16_t codeIndex = constantPool.addCode(translator);
     
-    entry->addMethod(sigIndex, flags, codeIndex, translator->size()); 
+    entry->addMethod(sigIndex, flags, codeIndex, translator->instrCount(), translator->getUsedRegisterCount()); 
 }
 
 

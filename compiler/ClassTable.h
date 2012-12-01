@@ -46,7 +46,7 @@ public:
     std::vector<MethodData> methodIndicies;
     
     void addField(uint16_t cpNameIndex, uint16_t flags);
-    void addMethod(uint16_t cpSigIndex, uint16_t flags, uint16_t cpCodeIndex, uint16_t insnCount);
+    void addMethod(uint16_t cpSigIndex, uint16_t flags, uint16_t cpCodeIndex, uint16_t insnCount, uint16_t regCount);
     
     void writeTable(Compiler& compiler, uint32_t offset);
     void writeDef(Compiler& compiler);

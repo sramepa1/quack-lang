@@ -35,6 +35,11 @@ public:
         // TODO: test for register overflow
         return firstUnusedRegister++;
     }
+    
+    uint16_t getUsedRegisterCount() {
+        // TODO check
+        return firstUnusedRegister;
+    }
 
     void resetRegisters() {
         firstUnusedRegister = initialRegister;
@@ -55,6 +60,8 @@ public:
 
     virtual int size();
     virtual void write(Compiler& compiler);
+    
+    int instrCount();
 
 private:
     
