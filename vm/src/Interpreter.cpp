@@ -4,6 +4,8 @@
 #include "globals.h"
 #include "helpers.h"
 
+#include "StringNative.h"
+
 #include <iostream>
 #include <sstream>
 #include <iomanip>
@@ -27,7 +29,7 @@ Interpreter::Interpreter() : regs(vector<QuaValue>(65536)), compiler(new JITComp
 	<< ASP->currMeth->sig->name << '(' << (int)ASP->currMeth->sig->argCnt << ')'
 #endif
 
-void Interpreter::start() {
+void Interpreter::start(vector<char*>& args) {
 
 	map<string, uint16_t>::iterator mainIt = linkedTypes->find("Main");
 	if(mainIt == linkedTypes->end()) {
@@ -45,11 +47,25 @@ void Interpreter::start() {
 		throw runtime_error("Main class is not static!");
 	}
 
-	// push This pointer
-	*(--BP) = newRawInstance(mainClassType);
-	--SP;
+	QuaValue qargs; // TODO construct Array.
 
-	// TODO: deserialize Strings for each arg, construct an array and push it!
+#ifdef DEBUG
+	cout << "Prparing value stack, argument count for main method is: " << args.size() << endl;
+#endif
+	for(vector<char*>::iterator it = args.begin(); it != args.end(); ++it) {
+		QuaValue argString = stringDeserializer(*it);
+		//temporary
+		cout << "! TODO: Would love to add String ref " << argString.value << " to args!" << endl;
+	}
+
+	// push args and This pointer
+	*(--SP) = qargs;
+	*(--SP) = newRawInstance(mainClassType);
+	BP = SP;
+
+#ifdef DEBUG
+	cout << "Value stack ready, looking up main(1) and preparing address stack" << endl;
+#endif
 
 	QuaMethod* mainMethod = mainClass->lookupMethod((QuaSignature*)"\1main");
 
@@ -214,7 +230,7 @@ __attribute__ ((noinline)) Instruction* Interpreter::performReturn(QuaValue retV
 	}
 	if(ASP->FRAME_TYPE == EXIT) {
 #ifdef TRACE
-	cout << "... and halting the VM." << endl;
+	cout << " ...and halting the VM." << endl;
 #endif
 		throw ExitException(); // TODO Is this safe if code had passed through ASM?
 	}
@@ -227,7 +243,7 @@ __attribute__ ((noinline)) Instruction* Interpreter::performReturn(QuaValue retV
 		Instruction* retAddr = (Instruction*) (ASP++)->retAddr;
 
 #ifdef TRACE
-	cout << " to interpreted " << CURRENT_METHOD_SIG << endl;
+		cout << " to " << CURRENT_METHOD_SIG << " [interpreting]" << endl;
 #endif
 		return retAddr;
 
@@ -236,7 +252,7 @@ __attribute__ ((noinline)) Instruction* Interpreter::performReturn(QuaValue retV
 		++ASP;
 
 #ifdef TRACE
-	cout << " to native code of " << CURRENT_METHOD_SIG << endl;
+		cout << " to " << CURRENT_METHOD_SIG << " [jumping]" << endl;
 #endif
 		throw runtime_error("Returning to machine code is not yet implemented");
 	}
@@ -254,7 +270,7 @@ inline Instruction* Interpreter::performThrow(QuaValue& qex) {
 		if(ASP->FRAME_TYPE == EXIT) {
 			// TODO: Attempt to extract qex.what
 #ifdef TRACE
-			cout << "... no suitable handler found!" << endl;
+			cout << " ...no suitable handler found!" << endl;
 #endif
 			throw runtime_error(string("Unhandled exception of class ") + getClassFromValue(qex)->getName());
 
