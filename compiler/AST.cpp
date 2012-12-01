@@ -31,7 +31,7 @@ void NProgram::compile(Compiler& compiler) {
     uint32_t tmp = compiler.offset + 8;
     compiler.write((char*) &tmp, 4); // classtable file offset
     
-    tmp = compiler.offset + classTable.totalSize + 4;
+    tmp = Compiler::sizeToAlign8(compiler.offset + classTable.totalSize + 4); //TODO here was u bug - check if loading fails again
     compiler.write((char*) &tmp, 4); // constatnpool file offset
     
     generateCode(compiler);
