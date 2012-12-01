@@ -25,6 +25,7 @@
     NMethod* nmethod;
     NBlock* nblock;
 
+    std::list<std::string*>* identifiers;
     std::list<ClassEntry*>* classEntries;
     std::list<NExpression*>* parameters;
     std::list<NStatement*>* statements;
@@ -83,8 +84,8 @@
 %type <nfield> field
 %type <nmethod> method stat_init dyn_init
 
+%type <identifiers> arguments argument_list
 %type <parameters> parameters parameter_list
-
 %type <catches> catches
 %type <ncatch> catch
 
@@ -100,7 +101,7 @@
 %type <nexpression> parameter expression logic_expr compare_expr string_expr instance_expr relation_expr artim_expr artim_expr2 artim_expr3
 %type <nexpression> artim_const boolean_const string_const value
 
-/* %type <string> */
+%type <string> argument
 
 
 
@@ -175,12 +176,26 @@ stat_init:
 ;
 
 dyn_init:
-    K_INIT parameters block {$$ = new NMethod(new std::string("init"), $2, $3);}
+    K_INIT arguments block {$$ = new NMethod(new std::string("init"), $2, $3);}
 ;
 
 method: 
-    K_METHOD T_IDENTIFIER parameters block {$$ = new NMethod($2, $3, $4);}
-  | K_METHOD T_IDENTIFIER parameters K_FLAGS C_HEX_INTEGER  block {$$ = new NMethod($2, $3, $6, (uint16_t) strtol($5->c_str(), NULL, 16)); delete $5;}
+    K_METHOD T_IDENTIFIER arguments block {$$ = new NMethod($2, $3, $4);}
+  | K_METHOD T_IDENTIFIER arguments K_FLAGS C_HEX_INTEGER  block {$$ = new NMethod($2, $3, $6, (uint16_t) strtol($5->c_str(), NULL, 16)); delete $5;}
+;
+
+arguments:
+    T_LPAREN argument_list T_RPAREN {$$ = $2;}
+  | T_LPAREN T_RPAREN {$$ = new std::list<std::string*>();}
+;
+
+argument_list:
+    argument {$$ = new std::list<std::string*>(); $$->push_back($1);}
+  | argument_list T_COMMA argument {$$->push_back($3);}
+;
+
+argument:
+    T_IDENTIFIER {$$ = $1;}
 ;
 
 parameters:

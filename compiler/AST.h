@@ -86,18 +86,23 @@ public:
     virtual void fillTableEntry(ClassTableEntry* entry);
 };
 
-class NMethod : public ClassEntry {
+class NMethod : public ClassEntry, public Scope {
 public:
-    NMethod(std::string* _name, std::list<NExpression*>* _parameters, NBlock* _block)
+    NMethod(std::string* _name, std::list<std::string*>* _parameters, NBlock* _block)
         : parameters(_parameters), block(_block) {name = _name;}
-    NMethod(std::string* _name, std::list<NExpression*>* _parameters, NBlock* _block, uint16_t _flags)
+    NMethod(std::string* _name, std::list<std::string*>* _parameters, NBlock* _block, uint16_t _flags)
         : parameters(_parameters), block(_block) {name = _name; flags = _flags;}
     virtual ~NMethod() {}
     
-    std::list<NExpression*>* parameters;
+    std::list<std::string*>* parameters;
     NBlock* block;
     
+    map<string, uint16_t> localVariables;
+    
     virtual void fillTableEntry(ClassTableEntry* entry);
+    
+    virtual void generateCode(BlockTranslator* translator);
+    virtual void findLocals(map<string, uint16_t>* locals);
 };
 
 ////////////////////////////////////////
@@ -494,7 +499,16 @@ public:
     std::string* fieldName;
 
     virtual void generateCode(BlockTranslator* translator) {}
-    virtual void findLocals(map<string, uint16_t>* locals) {}
+    virtual void findLocals(map<string, uint16_t>* locals) {
+        registerAssigned = true;
+        map<string, uint16_t>::iterator it = locals->find(*variableName);
+        if(it == locals->end()) {
+            resultRegister = locals->size();
+            locals->insert(make_pair(*variableName, locals->size()));
+        } else {
+            resultRegister = it->second;
+        }
+    }
 };
 
 class EThisField : public NVariable {

@@ -39,13 +39,12 @@ public:
     virtual ~Scope() {}
 
     virtual void findLocals(std::map<std::string, uint16_t>*) = 0;
+    virtual void generateCode(BlockTranslator* translator) = 0;
 };
 
 class NStatement : public Node, public Scope {
 public:
     virtual ~NStatement() {}
-    
-    virtual void generateCode(BlockTranslator* translator) = 0;
 };
 
 class NExpression : public Node, public Scope {
@@ -55,8 +54,6 @@ public:
 
     bool registerAssigned;
     uint16_t resultRegister;
-
-    virtual void generateCode(BlockTranslator* translator) = 0;
 };
 
 class NCall : public NExpression, public NStatement {

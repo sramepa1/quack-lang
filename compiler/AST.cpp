@@ -82,6 +82,11 @@ void NClass::fillTableEntry(ClassTableEntry* entry) {
 }
 
 
+void NField::fillTableEntry(ClassTableEntry* entry) {
+    entry->addField(constantPool.addString(*name), flags);
+}
+
+
 void NMethod::fillTableEntry(ClassTableEntry* entry) {
     // signature
     int size = name->size() + 2;
@@ -99,20 +104,32 @@ void NMethod::fillTableEntry(ClassTableEntry* entry) {
     cout << "Locals counted (" << locals.size() << ")" << endl;
 
     // code
-    BlockTranslator* translator = new BlockTranslator(locals.size());
-    block->generateCode(translator);
-    uint16_t codeIndex = constantPool.addCode(translator);
     
-    // return - in case there is no at the end of method
-    translator->addInstruction(OP_RETNULL, OP_NOP); // we do not optimize !!!
+    
+    BlockTranslator* translator = new BlockTranslator(locals.size());
+    generateCode(translator);
+    uint16_t codeIndex = constantPool.addCode(translator);
     
     entry->addMethod(sigIndex, flags, codeIndex, translator->size()); 
 }
 
 
-void NField::fillTableEntry(ClassTableEntry* entry) {
-    entry->addField(constantPool.addString(*name), flags);
+void NMethod::generateCode(BlockTranslator* translator) {
+    
+    //TODO zálohovat kontext
+    
+    
+    
+    //TODO obnovit kontext
+    
+    // return - in case there is no at the end of method
+    translator->addInstruction(OP_RETNULL, OP_NOP); // we do not optimize !!!
 }
+
+void NMethod::findLocals(map<string, uint16_t>* locals) {
+    block->findLocals(locals);
+}
+    
 
 
 ////////////////////////////////////////////////////////////////////////////////
