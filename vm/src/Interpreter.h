@@ -72,7 +72,6 @@ private:
 	Instruction* handleIDX(Instruction* insn);
 	Instruction* handleIDXI(Instruction* insn);
 	Instruction* handleJMP(Instruction* insn);
-	Instruction* handleJCC(Instruction* insn);
 	Instruction* handleCALL(Instruction* insn);
 	Instruction* handleCALLMY(Instruction* insn);
 	Instruction* handleNEW(Instruction* insn);

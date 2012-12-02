@@ -18,8 +18,6 @@ using namespace std;
 #define CLASS_NO_SUCH_METHOD_EXCEPTION "NoSuchMethodException"
 #define CLASS_STRING "String"
 
-#define REG_DEV_NULL 0xFFFF
-
 Interpreter::Interpreter(bool jit) : regs(vector<QuaValue>(65536)), compiler(new JITCompiler(jit))
 {
 }
@@ -147,7 +145,6 @@ inline Instruction* Interpreter::processInstruction(Instruction* insn) {
 			case OP_IDX:	return handleIDX(insn);
 			case OP_IDXI:	return handleIDXI(insn);
 			case OP_JMP:	return handleJMP(insn);
-			case OP_JCC:	return handleJCC(insn);
 			case OP_CALL:	return handleCALL(insn);
 			case OP_CALLMY:	return handleCALLMY(insn);
 			case OP_NEW:	return handleNEW(insn);
@@ -418,6 +415,7 @@ inline QuaValue Interpreter::extractTaggedValue(Instruction* insn) {
 #ifdef TRACE
 inline char getTagMnemonic(uint8_t tag) {
 	switch(tag) {
+		case SOP_TAG_NONE: return 'R'; // reference
 		case SOP_TAG_BOOL: return 'B';
 		case SOP_TAG_INT: return 'I';
 		case SOP_TAG_FLOAT: return 'F';
@@ -441,6 +439,17 @@ inline const char* getArithmMnemonic(unsigned char subop) {
 		case SOP_LAND:	return "LAND";
 		case SOP_LOR:	return "LOR";
 		default:		return "???";
+	}
+}
+
+inline const char* getCCMnemonic(unsigned char subop) {
+	switch(subop) {
+		case SOP_UNCONDITIONAL:	return "MP";
+		case SOP_CC_NULL:		return "NULL";
+		case SOP_CC_NNULL:		return "NNULL";
+		case SOP_CC_TRUE:		return "TRUE";
+		case SOP_CC_FALSE:		return "FALSE";
+		default:				return "???";
 	}
 }
 #endif
@@ -909,16 +918,6 @@ inline Instruction* Interpreter::handleIDXI(Instruction* insn) {
 }
 
 
-inline Instruction* Interpreter::handleJMP(Instruction* insn) {
-
-#ifdef TRACE
-	cout << "JMP " << (int32_t)insn->IMM << endl;
-#endif
-
-	return insn + 1 + (int32_t)insn->IMM;
-}
-
-
 inline bool Interpreter::isNull(QuaValue v) {
 	return (v.tag == TAG_REF) && ( v.value == 0 || v.type == 0 );
 }
@@ -934,18 +933,24 @@ inline bool Interpreter::parseTaggedBool(QuaValue v) {
 }
 
 
-inline Instruction* Interpreter::handleJCC(Instruction* insn) {
+inline Instruction* Interpreter::handleJMP(Instruction* insn) {
+
+#ifdef TRACE
+	cout << 'J' << getCCMnemonic(insn->subop) << ' ' << (int16_t)insn->ARG0;
+	if(insn->subop != SOP_UNCONDITIONAL) cout << ", r" << insn->ARG1;
+	cout << endl;
+#endif
 
 	bool condition;
-	QuaValue v = regs[insn->ARG0];
 	switch(insn->subop) {
-		case SOP_CC_NULL: condition = isNull(v); break;
-		case SOP_CC_NNULL: condition = !isNull(v); break;
-		case SOP_CC_TRUE: condition = parseTaggedBool(v); break;
-		case SOP_CC_FALSE: condition = !parseTaggedBool(v); break;
+		case SOP_UNCONDITIONAL:	condition = true; break;
+		case SOP_CC_NULL:		condition = isNull(regs[insn->ARG1]); break;
+		case SOP_CC_NNULL:		condition = !isNull(regs[insn->ARG1]); break;
+		case SOP_CC_TRUE:		condition = parseTaggedBool(regs[insn->ARG1]); break;
+		case SOP_CC_FALSE:		condition = !parseTaggedBool(regs[insn->ARG1]); break;
 		default: return handleIllegalSubOp(insn);
 	}
-	return condition ? insn + insn->ARG2 : ++insn;
+	return condition ? insn + (int16_t)insn->ARG0 : ++insn;
 }
 
 
@@ -1014,11 +1019,11 @@ inline Instruction* Interpreter::handleRETNULL() {
 inline Instruction* Interpreter::handleTRY(Instruction* insn) {
 
 #ifdef TRACE
-	cout << "TRY " << (int32_t)insn->IMM << endl;
+	cout << "TRY " << (int16_t)insn->ARG0 << endl;
 #endif
 
 	QuaMethod* currMeth = ASP->currMeth;
-	*(--ASP) = QuaFrame(insn + 1 + (int32_t)insn->IMM, currMeth, true, true);
+	*(--ASP) = QuaFrame(insn + 1 + (int16_t)insn->ARG0, currMeth, true, true);
 	return ++insn;
 }
 
@@ -1026,11 +1031,11 @@ inline Instruction* Interpreter::handleTRY(Instruction* insn) {
 inline Instruction* Interpreter::handleCATCH(Instruction* insn) {
 
 #ifdef TRACE
-	cout << "CATCH " << insn->REG << ", " << (int32_t)insn->IMM << endl;
+	cout << "CATCH " << insn->ARG0 << ", " << (int16_t)insn->ARG1 << endl;
 #endif
 
 	QuaMethod* currMeth = ASP->currMeth;
-	*(--ASP) = QuaFrame(insn + 1 + (int32_t)insn->IMM, currMeth, true, resolveType(insn->REG));
+	*(--ASP) = QuaFrame(insn + 1 + (int16_t)insn->ARG1, currMeth, true, resolveType(insn->ARG0));
 	return ++insn;
 }
 
@@ -1099,7 +1104,7 @@ inline Instruction* Interpreter::handleISTYPE(Instruction* insn) {
 inline Instruction* Interpreter::handleCNVT(Instruction* insn) {
 
 #ifdef TRACE
-	cout << "CNVT r" << insn->ARG0 << ", r" << insn->ARG1 << " -> "  << getTagMnemonic(insn->subop) << endl;
+	cout << "CNVT" << getTagMnemonic(insn->subop) << " r" << insn->ARG0 << ", r" << insn->ARG1 << endl;
 #endif
 
 	if(regs[insn->ARG1].tag == insn->subop) {
