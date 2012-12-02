@@ -384,7 +384,7 @@
 /**
  *	Conversion to a tagged value (via repeated bool/int/floatValue calls). Subop specifies target tag.
  *	Using CNVTB is pretty much mandatory before JTRUE or JFALSE. Also, TAG_REF subop makes this a nop.
- *	CNVT<T>
+ *	CNVT<T> reg dest, reg src
  */
 // conversion (required for conditional jumps if the compiler is not sure, uses SOP_ tags)
 #define OP_CNVT 0x62

@@ -1,6 +1,12 @@
+# Debug mode
 CFLAGS = -pedantic -Wall -O0 -g3
-INCLUDE = ../common/include src/natives src
 DEFINE = DEBUG TRACE
+
+# Release mode
+#CFLAGS = -O3 -g
+
+
+INCLUDE = ../common/include src/natives src
 INCDEF = $(foreach inc,$(INCLUDE),-I$(inc)) $(foreach def,$(DEFINE),-D$(def))
 
 OBJECTS = $(patsubst src/%.cpp,build/%.o,$(wildcard src/*.cpp))
