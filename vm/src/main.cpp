@@ -75,7 +75,7 @@ int main(int argc, char* argv[]) {
 			}
 
 			initGlobals(jit, 2*getpagesize(), 2*getpagesize(), 2*getpagesize()); // super-tight for testing
-			for(i = 1; i < argc && strcmp(argv[i], "-args") != 0; i++) {
+			for( ; i < argc && strcmp(argv[i], "-args") != 0; i++) {
 				loader->loadClassFile(argv[i]);	// TODO: Are we fully ready for this? What about cross-CF inheritance?
 			}
 			vector<char*> args;

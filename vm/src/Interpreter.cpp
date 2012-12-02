@@ -1,4 +1,5 @@
 #include "Interpreter.h"
+#include "JITCompiler.h"
 #include "Exceptions.h"
 #include "bytecode.h"
 #include "globals.h"
@@ -17,8 +18,6 @@ using namespace std;
 #define CLASS_NO_SUCH_FIELD_EXCEPTION "NoSuchFieldException"
 #define CLASS_NO_SUCH_METHOD_EXCEPTION "NoSuchMethodException"
 #define CLASS_STRING "String"
-
-
 
 
 // Top-level functions have been moved to the end to make inlining work (g++ must know the definition to inline a call).
@@ -132,19 +131,19 @@ inline void Interpreter::functionEpilogue() {
 
 inline Instruction* Interpreter::performReturn(QuaValue retVal) {
 
-	return transferControl(REASON_RETURN, &retVal);
+	return transferControl(REASON_RETURN, *(uint64_t*)&retVal);
 }
 
 
 inline Instruction* Interpreter::performThrow(QuaValue& qex) {
 
-	return transferControl(REASON_THROW, &qex);
+	return transferControl(REASON_THROW, *(uint64_t*)&qex);
 }
 
 
 Instruction* Interpreter::performCall(QuaMethod* method) {
 
-	return transferControl(REASON_CALL, method);
+	return transferControl(REASON_CALL, (uint64_t)method);
 }
 
 
@@ -163,7 +162,7 @@ Instruction* Interpreter::performCall(QuaMethod* method) {
 // local macro only, #undef'd at the end of the method
 #define MACHINE_JUMP(code) {													\
 						volatile void* destination = (volatile void*)(code);	\
-						asm goto ("jmp *(%%rax)"								\
+						asm goto ("jmp *%%rax"								\
 						:	/* no output */										\
 						:	"a" (destination)									\
 						:	"memory", "cc" , "rbx", "rcx", "rdx", "rsi", "rdi",	\
@@ -171,10 +170,22 @@ Instruction* Interpreter::performCall(QuaMethod* method) {
 						:	landing_call, landing_return , landing_throw);		\
 					}
 
+// JIT compiler needs to know the address of 3 labels and one variable.
+// I'd rather not make them global, so I define the constructor here to make them share a translation unit.
+JITCompiler::JITCompiler(bool enabled) : enabled(enabled)
+{
+	// get adresses of asm-jump labels and "what" in Interpreter::transferControl(reason, what)
+	asm("mov $transfer_call, %%rax" : "=a" (callLabel) : : );
+	asm("mov $transfer_return, %%rax" : "=a" (returnLabel) : : );
+	asm("mov $transfer_throw, %%rax" : "=a" (callLabel) : : );
+	asm("mov $transfer_what, %%rax" : "=a" (whatLabel) : : );
+}
 
-__attribute((noinline)) Instruction* Interpreter::transferControl(TransferReason reason, void* param) {
+__attribute((noinline)) Instruction* Interpreter::transferControl(TransferReason reason, uint64_t param) {
 
-	static volatile void* volatile_what asm("transfer_what");
+	//
+	static volatile uint64_t volatile_what asm("transfer_what");
+
 	volatile_what = param;
 
 	switch(reason) {
@@ -187,10 +198,10 @@ __attribute((noinline)) Instruction* Interpreter::transferControl(TransferReason
 			// C label for "asm goto" to let g++ know jitted code might perform a jump here
 			landing_call:
 
-			// define a global asm label for the actual landing (should form 2 labels pointing to the same address)
-			asm volatile (".global transfer_call\n\t"\
+			// define an asm label for the actual landing (should form 2 labels pointing to the same address)
+			asm volatile (".local transfer_call\n\t"\
 						  "transfer_call: nop" ::: "memory");
-						// fake memory clobber so that this isn't moved (volatile only guarantees no deletion)
+						// (fake memory clobber so that this isn't moved - volatile only guarantees no deletion)
 
 			QuaMethod* method = (QuaMethod*)volatile_what;
 
@@ -242,7 +253,7 @@ __attribute((noinline)) Instruction* Interpreter::transferControl(TransferReason
 						QuaValue retVal = ( __extension__ (QuaValue (*)())method->code )();
 
 						// avoid C stack creep by jumping to the return part of this function immediately
-						volatile_what = &retVal;
+						volatile_what = *(uint64_t*)&retVal;
 						goto landing_return;
 
 						// Explanation of the goto: There used to be a "performReturn" call here,
@@ -254,7 +265,7 @@ __attribute((noinline)) Instruction* Interpreter::transferControl(TransferReason
 
 						// same as above, different mechanism
 
-						volatile_what = &qex;
+						volatile_what = *(uint64_t*)&qex;
 						goto landing_throw;
 					}
 
@@ -277,10 +288,10 @@ __attribute((noinline)) Instruction* Interpreter::transferControl(TransferReason
 		case REASON_RETURN:
 		{
 			landing_return:
-			asm volatile (".global transfer_return\n\t"\
+			asm volatile (".local transfer_return\n\t"\
 						  "transfer_return: nop" ::: "memory");
 
-			QuaValue retVal = *(QuaValue*)volatile_what;
+			QuaValue retVal = *(QuaValue*)&volatile_what;
 
 			#ifdef TRACE
 				cout << "# Returning from " << CURRENT_METHOD_SIG;
@@ -311,8 +322,8 @@ __attribute((noinline)) Instruction* Interpreter::transferControl(TransferReason
 
 			} else {
 
-				// TODO where to put return value?
-				// TODO distinguish Interpreter and JIT saved contexts!
+				// TODO: where to put return value?
+				// TODO: distinguish Interpreter and JIT saved contexts!
 
 				++ASP;
 
@@ -332,7 +343,7 @@ __attribute((noinline)) Instruction* Interpreter::transferControl(TransferReason
 		case REASON_THROW:
 		{
 			landing_throw:
-			asm volatile (".global transfer_throw\n\t"\
+			asm volatile (".local transfer_throw\n\t"\
 						  "transfer_throw: nop" ::: "memory");
 
 			QuaValue qex = *(QuaValue*)volatile_what;
@@ -966,7 +977,7 @@ inline Instruction* Interpreter::handleJMP(Instruction* insn) {
 		case SOP_CC_FALSE:		condition = !parseTaggedBool(regs[insn->ARG1]); break;
 		default: return handleIllegalSubOp(insn);
 	}
-	return condition ? insn + (int16_t)insn->ARG0 : ++insn;
+	return condition ? insn + 1 + (int16_t)insn->ARG0 : ++insn;
 }
 
 

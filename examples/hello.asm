@@ -11,8 +11,12 @@
 ;
 ;	statclass Main {
 ;		fun main(args) {
+;			for(i = 3; i != 0; i = i - 1) {
+;				nop();
+;			}
 ;			@System.out->writeLine("Hello, world!");
 ;		}
+;		fun nop() {}
 ;	}
 ;
 ; Everything is little-endian and, where meaningful, aligned to QWORDs
@@ -68,13 +72,19 @@ classtable:
 	dw 1						; Flags: CLS_STATIC
 	dw 0						; 0 fields
 	; field name indices array would be here if Main had fields
-	dw 1						; 1 method
+	dw 2						; 2 methods
 
 	dw 0						; flags      = empty (normal, fully accessible method)
 	dw 1						; CP index 1 = signature of main(args)
 	dw 7						; CP index 6 = bytecode of main(args)
-	dw 5						; Bytecode instruction count
-	dw 1						; method uses exactly one register, r0
+	dw 12						; Bytecode instruction count
+	dw 2						; method uses two registers
+	
+	dw 0						; flags      = empty (normal, fully accessible method)
+	dw 8						; CP index 8 = signature of nop()
+	dw 9						; CP index 9 = bytecode of nop()
+	dw 3						; Bytecode instruction count
+	dw 0						; method uses no registers
 .endmain:
 	alignb 8, db 0
 .classdeftotalsize:	equ $-.classdefs	; classdef size calculation (nasm pseudoinstruction)
@@ -84,7 +94,7 @@ classtable:
 
 constantpool:
 	dd itemtotalsize			; Size of the constant pool data
-	dw 8						; Item count
+	dw 10						; Item count
 alignb 8, db 0
 
 .offsets:						; Offset array, CP offsets are relative to CP's start
@@ -96,6 +106,8 @@ alignb 8, db 0
 	dd .item5-constantpool
 	dd .item6-constantpool
 	dd .item7-constantpool	
+	dd .item8-constantpool
+	dd .item9-constantpool
 alignb 8, db 0
 
 ; == CP contents ==
@@ -127,6 +139,45 @@ alignb 8, db 0
 ;; ==== BYTECODE OF MAIN(args) ==== ;;
 ;   opcodes are subject to change
 ;   uncommmented bytes are padding
+
+	db 0x02
+	db 0x01			; LDCI
+	dw 0			; r0,
+	dd 3			; 3
+	
+	db 0x02
+	db 0x01			; LDCI
+	dw 1			; r1,
+	dd 1			; 1
+
+	db 0x53			; CALLMY
+	db 0
+	dw 0xFFFF		; Destination REG_DEV_NULL (throw away return value)
+	dw 8			; CP index 8 = signature of nop()
+	dw 0
+	
+	db 0x20			; A3REG
+	db 0x1			; SOP_SUB
+	dw 0			; dest r0
+	dw 0			; left r0
+	dw 1			; right r1
+	
+	db 0x02
+	db 0x01			; LDCI
+	dw 1			; r1,
+	dd 0			; 0
+	
+	db 0x20			; A3REG
+	db 0x5			; SOP_EQ
+	dw 1			; dest r1
+	dw 0			; left r0
+	dw 1			; right r1
+	
+	db 0x50
+	db 0x4			; JFALSE
+	dw -6			; -6 is second LDCI
+	dw 1			; r1
+	dw 0
 
 	; LDSTAT r0, 1
 	
@@ -176,6 +227,15 @@ alignb 8, db 0
 	times 7 db 0
 
 ;; ================================ ;;
+.item8:
+	db 0,'nop',0
+	alignb 8, db 0
+	
+.item9:
+	dq 0			; NOP
+	dq 0			; NOP
+	db 0x57			; RETNULL
+	times 7 db 0
 
 	
 	alignb 8, db 0					; Align end of CP (not necessary here)
