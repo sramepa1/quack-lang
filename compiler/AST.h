@@ -263,14 +263,15 @@ public:
 
 class SIf : public NStatement {
 public:
-    SIf(NExpression* _condition, NBlock* _thenBlock, NBlock* _elseBlock = NULL) : condition(_condition), thenBlock(_thenBlock), elseBlock(_elseBlock) {}
+    SIf(NExpression* _condition, NBlock* _thenBlock, NBlock* _elseBlock = NULL)
+        : condition(_condition), thenBlock(_thenBlock), elseBlock(_elseBlock) {}
     virtual ~SIf() {}
 
     NExpression* condition;
     NBlock* thenBlock;
     NBlock* elseBlock;
     
-    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void generateCode(BlockTranslator* translator);
     virtual void findLocals(map<string, uint16_t>* locals) {
         condition->findLocals(locals);
         thenBlock->findLocals(locals);
@@ -280,7 +281,8 @@ public:
 
 class SFor : public NStatement {
 public:
-    SFor(NStatement* _init, NExpression* _condition, NStatement* _increment, NBlock* _body) : init(_init), condition(_condition), increment(_increment), body(_body) {}
+    SFor(NStatement* _init, NExpression* _condition, NStatement* _increment, NBlock* _body)
+        : init(_init), condition(_condition), increment(_increment), body(_body) {}
     virtual ~SFor() {}
     
     NStatement* init;
@@ -288,7 +290,7 @@ public:
     NStatement* increment;
     NBlock* body;
 
-    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void generateCode(BlockTranslator* translator);
     virtual void findLocals(map<string, uint16_t>* locals) {
         init->findLocals(locals);
         condition->findLocals(locals);
@@ -306,7 +308,7 @@ public:
     NExpression* condition;
     NBlock* body;
 
-    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void generateCode(BlockTranslator* translator);
     virtual void findLocals(map<string, uint16_t>* locals) {
         condition->findLocals(locals);
         body->findLocals(locals);
@@ -430,7 +432,7 @@ public:
     NVariable* expression;
     std::string* identifier;
     
-    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void generateCode(BlockTranslator* translator);
     virtual void findLocals(map<string, uint16_t>* locals) {
         expression->findLocals(locals);
     }
@@ -443,7 +445,7 @@ public:
     
     std::string* value;
     
-    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void generateCode(BlockTranslator* translator);
     virtual void findLocals(map<string, uint16_t>*) {}
 };
 
@@ -453,7 +455,7 @@ public:
     
     int value;
     
-    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void generateCode(BlockTranslator* translator);
     virtual void findLocals(map<string, uint16_t>*) {}
 };
 
@@ -463,7 +465,7 @@ public:
     
     float value;
     
-    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void generateCode(BlockTranslator* translator);
     virtual void findLocals(map<string, uint16_t>*) {}
 };
 
@@ -473,7 +475,7 @@ public:
     
     bool value;
     
-    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void generateCode(BlockTranslator* translator);
     virtual void findLocals(map<string, uint16_t>*) {}
 };
 
@@ -551,7 +553,7 @@ public:
     
     std::string* variableName;
 
-    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void generateCode(BlockTranslator*) {/*empty !!!*/}
     virtual void findLocals(map<string, uint16_t>* locals) {
         registerAssigned = true;
         map<string, uint16_t>::iterator it = locals->find(*variableName);

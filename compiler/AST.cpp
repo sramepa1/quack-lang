@@ -170,8 +170,7 @@ void evaluateExpression(NExpression* expr, BlockTranslator* translator) {
 
 uint16_t loadStatClass(std::string* name, BlockTranslator* translator) {
     uint16_t classRefRegister = translator->getFreeRegister();
-    translator->addInstruction(OP_LDSTAT, NO_SOP, classRefRegister,
-                               classTable.getClassIndex(constantPool.addString(*name)), 0);
+    translator->addInstruction(OP_LDSTAT, NO_SOP, classRefRegister, classTable.addClass(*name), 0);
     return classRefRegister;
 }
 
@@ -233,6 +232,7 @@ void SAssignment::generateCode(BlockTranslator* translator) {
         }
 
         case THIS_FIELD: {
+            // TODO: change the first arg (index into CT not CP!!!!!!!!)
             translator->addInstruction(OP_STMYF, NO_SOP,
                                        constantPool.addString(*((EThisField*)variable)->fieldName),
                                        expression->resultRegister, 0);
@@ -318,4 +318,92 @@ void ENew::generateCode(BlockTranslator* translator) {
     constructorName.at(0) = (unsigned char)parameters->size();
     translator->addInstruction(OP_NEW, NO_SOP, resultRegister, constantPool.addString(*className),
                                constantPool.addString(constructorName));
+}
+
+void EInstanceof::generateCode(BlockTranslator *translator) {
+    evaluateExpression(expression, translator);
+    translator->addInstruction(OP_INSTOF, NO_SOP, resultRegister, expression->resultRegister,
+                               classTable.addClass(*identifier));
+    translator->resetRegisters();
+}
+
+void CString::generateCode(BlockTranslator* translator) {
+    CHECK_RESULT_REGISTER(this);
+    translator->addInstruction(OP_LDC, NO_SOP, resultRegister, classTable.addClass("String"),
+                               constantPool.addString(*value));
+}
+
+void CInt::generateCode(BlockTranslator* translator) {
+    CHECK_RESULT_REGISTER(this);
+    translator->addInstruction(OP_LDCT, SOP_TAG_INT, (uint32_t)value, resultRegister);
+}
+
+void CFloat::generateCode(BlockTranslator* translator) {
+    CHECK_RESULT_REGISTER(this);
+
+    union {
+        float f;
+        uint16_t i;
+    } conversion;
+    conversion.f = value;
+
+    translator->addInstruction(OP_LDCT, SOP_TAG_FLOAT, conversion.i, resultRegister);
+}
+
+void CBool::generateCode(BlockTranslator* translator) {
+    CHECK_RESULT_REGISTER(this);
+    translator->addInstruction(OP_LDCT, SOP_TAG_BOOL, (uint32_t)value, resultRegister);
+}
+
+void SIf::generateCode(BlockTranslator* translator) {
+    evaluateExpression(condition, translator);
+
+    uint16_t condRegister = translator->getFreeRegister();
+    translator->addInstruction(OP_CNVT, SOP_TAG_BOOL, condRegister, condition->resultRegister, 0);
+
+    int jmpInstr = translator->addInstruction(OP_JMP, SOP_CC_FALSE, 0, condRegister, 0);
+    translator->resetRegisters();
+
+    thenBlock->generateCode(translator);
+
+    if(elseBlock) {
+        int endJmp = translator->addInstruction(OP_JMP, SOP_UNCONDITIONAL, 0, 0, 0);
+        translator->instructions[jmpInstr]->ARG0 = (uint16_t)(endJmp - jmpInstr);
+        elseBlock->generateCode(translator);
+        translator->instructions[endJmp]->ARG0 = (uint16_t)(translator->instructions.size() - 1 - endJmp);
+    } else {
+        translator->instructions[jmpInstr]->ARG0 = (uint16_t)(translator->instructions.size() - 1 - jmpInstr);
+    }
+}
+
+
+void SFor::generateCode(BlockTranslator* translator) {
+
+    if(init) {
+        init->generateCode(translator);
+    }
+
+    int firstInstr = translator->instructions.size();
+    evaluateExpression(condition, translator);
+
+    uint16_t condRegister = translator->getFreeRegister();
+    translator->addInstruction(OP_CNVT, SOP_TAG_BOOL, condRegister, condition->resultRegister, 0);
+
+    int jmpInstr = translator->addInstruction(OP_JMP, SOP_CC_FALSE, 0, condRegister, 0);
+    translator->resetRegisters();
+
+    body->generateCode(translator);
+    if(increment) {
+        increment->generateCode(translator);
+    }
+
+    int jmpBack = translator->addInstruction(OP_JMP, SOP_UNCONDITIONAL, 0, 0, 0);
+    translator->instructions[jmpBack]->ARG0 = (uint16_t)(firstInstr - jmpBack - 1);
+    translator->instructions[jmpInstr]->ARG0 = (uint16_t)(jmpBack - jmpInstr);
+
+}
+
+void SWhile::generateCode(BlockTranslator* translator) {
+    SFor whileAsFor(NULL, condition, NULL, body);
+    whileAsFor.generateCode(translator);
 }
