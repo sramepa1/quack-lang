@@ -12,6 +12,8 @@ using namespace std;
 ClassTable classTable;
 ConstantPool constantPool;
 
+ClassTableEntry* currentCtEntry;
+
 
 void NProgram::addClass(string* s, NClass* nclass) {
     ClassDef.insert(pair<string, NClass*>(*s, nclass));
@@ -43,28 +45,27 @@ void NProgram::analyzeTree() {
     // Generate classtable entries
     for(map<std::string, NClass*>::iterator it = ClassDef.begin(); it != ClassDef.end(); ++it) {
         
-        ClassTableEntry* entry = new ClassTableEntry();
+        currentCtEntry = new ClassTableEntry();
         
         // class name
-        entry->nameIndex = constantPool.addString(it->first);
+        currentCtEntry->nameIndex = constantPool.addString(it->first);
            
         // flags
-        entry->flags = it->second->flags;
+        currentCtEntry->flags = it->second->flags;
         
         // inheritance
         string* ancestorName = it->second->getAncestor();
         
         if(ancestorName == NULL) {
-            entry->ancestor = 0;
+            currentCtEntry->ancestor = 0;
         } else {
-            entry->ancestor = constantPool.addString(*ancestorName);
+            currentCtEntry->ancestor = constantPool.addString(*ancestorName);
         }
 
         // fields and methods
-        it->second->fillTableEntry(entry);
+        it->second->fillTableEntry();
         
-        
-        classTable.addClass(entry);
+        classTable.addClass(currentCtEntry);
     }
 }
 
@@ -75,19 +76,19 @@ void NProgram::generateCode(Compiler& compiler) {
 }
 
 
-void NClass::fillTableEntry(ClassTableEntry* entry) {
+void NClass::fillTableEntry() {
     for(std::list<ClassEntry*>::iterator it = entries->begin(); it != entries->end(); ++it) {
-        (*it)->fillTableEntry(entry);
+        (*it)->fillTableEntry();
     }
 }
 
 
-void NField::fillTableEntry(ClassTableEntry* entry) {
-    entry->addField(constantPool.addString(*name), flags);
+void NField::fillTableEntry() {
+    currentCtEntry->addField(*name, flags);
 }
 
 
-void NMethod::fillTableEntry(ClassTableEntry* entry) {
+void NMethod::fillTableEntry() {
     // signature
     int size = name->size() + 2;
     char* signature = new char[size];
@@ -98,44 +99,56 @@ void NMethod::fillTableEntry(ClassTableEntry* entry) {
     // analyze the code
     map<string, uint16_t>* localVariables = new map<string, uint16_t>();
     findLocals(localVariables);
-    map<string, uint16_t>* arguments = new map<string, uint16_t>();
-    findArmuments(arguments);
-    
+
     // generate code
-    BlockTranslator* translator = new BlockTranslator(localVariables, arguments);
+    BlockTranslator* translator = new BlockTranslator(localVariables);
     generateCode(translator);
     uint16_t codeIndex = constantPool.addCode(translator);
     
-    entry->addMethod(sigIndex, flags, codeIndex, translator->instrCount(), translator->getUsedRegisterCount()); 
+    currentCtEntry->addMethod(sigIndex, flags, codeIndex, translator->instrCount(), translator->getUsedRegisterCount()); 
 }
 
 
 void NMethod::generateCode(BlockTranslator* translator) {
     
+    map<string, uint16_t>* locals = translator->localVariables;
+    
+    // Copy arguments to local registers
+    int16_t bpOffset = 1;
+    for(list<string*>::iterator lit = parameterNames->begin(); lit !=  parameterNames->end(); ++lit, ++bpOffset) {
+        map<string, uint16_t>::iterator mit = locals->find(**lit);
+        if(mit == locals->end()) {
+            throw "Can not happen. Something is terribly wrong.";
+        } else {
+            translator->addInstruction(OP_LDS, NO_SOP, mit->second, bpOffset);
+        }
+    }
+    
     // Saving context is not needed anymore (instructions CALL, RET, etc. do this automatically)
     block->generateCode(translator);
 
     // return - in case there is no at the end of method
-    translator->addInstruction(OP_RETNULL, OP_NOP); // we do not optimize !!!
+    translator->addInstruction(OP_RETNULL, NO_SOP); // we do not optimize !!!
 }
 
 void NMethod::findLocals(map<string, uint16_t>* locals) {
     cout << "Prepared to count locals" << endl;
-    block->findLocals(locals);
-    cout << "Locals counted (" << locals->size() << ")" << endl;
-}
-
-void NMethod::findArmuments(map<string,uint16_t>* arguments) {
+    
+    //arguments
     for(list<string*>::iterator lit = parameterNames->begin(); lit !=  parameterNames->end(); ++lit) {
-        map<string, uint16_t>::iterator mit = arguments->find(**lit);
-        if(mit == arguments->end()) {
-            arguments->insert(make_pair(**lit, arguments->size()));
+        map<string, uint16_t>::iterator mit = locals->find(**lit);
+        if(mit == locals->end()) {
+            locals->insert(make_pair(**lit, locals->size()));
         } else {
             throw "Two method arguments can not have the same name!";
         }
     }
-}
     
+    //locals
+    block->findLocals(locals);
+    
+    cout << "Locals counted (" << locals->size() << ")" << endl;
+}
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -262,6 +275,15 @@ void EVariableField::generateCode(BlockTranslator* translator) {
 
 void EThisField::generateCode(BlockTranslator* translator) {
     // TODO: how to obtain field index from this place???
+    
+    // No, to je trochu problém. Pokud se bavíme o dědičnosti, ten field v té třídě vůbec nemusí být uveden.
+    // jedinná možnost je deduplikovat fieldy a postatra se, aby šla použít CT
+    
+    // Tokud je ten field zděděný, přidá se na tomto místě - pozor na flagy
+    // Pokude není, vrátí se jeho index - flagy se ignorují
+    
+    uint16_t fieldIndex = currentCtEntry->addField(*fieldName);
+    
 }
 
 void NThisCall::generateCode(BlockTranslator* translator) {

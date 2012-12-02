@@ -18,9 +18,6 @@
 class Node {
 public:
     virtual ~Node() {}
-    
-    //virtual void analyzeTree() = 0;
-    //virtual void generateCode(Compiler&) = 0;
 };
 
 class ClassEntry : public Node {
@@ -31,7 +28,7 @@ public:
     std::string* name;
     uint16_t flags;
     
-    virtual void fillTableEntry(ClassTableEntry* entry) = 0;
+    virtual void fillTableEntry() = 0;
 };
 
 class Scope {

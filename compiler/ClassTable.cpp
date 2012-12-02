@@ -7,24 +7,43 @@
 
 #include <vector>
 
-#include "AST.h"
 #include "ClassTable.h"
+
+#include "AST.h"
+#include "ConstantPool.h"
 
 #define EMPTY_ENTRY_SIZE 8
 #define EMPTY_TABLE_SIZE 8
 
 
+extern ConstantPool constantPool;
+
+
 ClassTableEntry::ClassTableEntry() : defSize(EMPTY_ENTRY_SIZE) {}
 
 
-void ClassTableEntry::addField(uint16_t cpNameIndex, uint16_t flags) {
-    defSize += sizeof(FieldData);
+uint16_t ClassTableEntry::addField(string name, uint16_t flags) {
     
-    struct FieldData data;
-    data.cpNameIndex = cpNameIndex;
-    data.flags = flags;
+    uint16_t fieldIndex;
+    map<std::string, uint16_t>::iterator it = fieldLookup.find(name);
     
-    fieldIndicies.push_back(data);
+    if(it == fieldLookup.end()) { 
+        
+        fieldIndex = constantPool.addString(name);
+        
+        defSize += sizeof(FieldData);
+    
+        struct FieldData data;
+        data.cpNameIndex = fieldIndex;
+        data.flags = flags;
+
+        fieldIndicies.push_back(data);
+        
+    } else {
+        fieldIndex = it->second;
+    }
+    
+    return fieldIndex;
 }
 
 

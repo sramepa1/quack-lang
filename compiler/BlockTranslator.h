@@ -17,7 +17,7 @@
 
 class BlockTranslator : public IWritable {
 public:
-    BlockTranslator(std::map<std::string, uint16_t>* localVariables, std::map<std::string, uint16_t>* arguments);
+    BlockTranslator(std::map<std::string, uint16_t>* localVariables);
     virtual ~BlockTranslator();
     
     std::vector<Instruction*> instructions;
@@ -29,8 +29,7 @@ public:
     uint16_t firstUnusedRegister;
     
     std::map<std::string, uint16_t>* localVariables;
-    std::map<std::string, uint16_t>* arguments;
-    
+
     uint16_t getFreeRegister() {
         // TODO: test for register overflow
         return firstUnusedRegister++;

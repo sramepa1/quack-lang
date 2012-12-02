@@ -11,6 +11,9 @@
 #include "Compiler.h"
 
 #include <list>
+#include <map>
+
+#define DEFAULT_FIELD_FLAGS 0
 
 #pragma pack(1)
 
@@ -45,7 +48,9 @@ public:
     std::vector<FieldData> fieldIndicies;
     std::vector<MethodData> methodIndicies;
     
-    void addField(uint16_t cpNameIndex, uint16_t flags);
+    std::map<std::string, uint16_t> fieldLookup;
+    
+    uint16_t addField(std::string name, uint16_t flags = DEFAULT_FIELD_FLAGS);
     void addMethod(uint16_t cpSigIndex, uint16_t flags, uint16_t cpCodeIndex, uint16_t insnCount, uint16_t regCount);
     
     void writeTable(Compiler& compiler, uint32_t offset);

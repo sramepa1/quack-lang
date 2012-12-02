@@ -51,7 +51,7 @@ public:
     
     virtual std::string* getAncestor() = 0;
     
-    void fillTableEntry(ClassTableEntry* entry);
+    void fillTableEntry();
     
 };
 
@@ -83,7 +83,7 @@ public:
     NField(std::string* _name, uint16_t _flags) {name = _name; flags = _flags;}
     virtual ~NField() {}
     
-    virtual void fillTableEntry(ClassTableEntry* entry);
+    virtual void fillTableEntry();
 };
 
 class NMethod : public ClassEntry, public Scope {
@@ -97,12 +97,11 @@ public:
     std::list<std::string*>* parameterNames;
     NBlock* block;
     
-    virtual void fillTableEntry(ClassTableEntry* entry);
+    virtual void fillTableEntry();
     
     virtual void generateCode(BlockTranslator* translator);
     virtual void findLocals(map<string, uint16_t>* locals);
-    
-    void findArmuments(map<string, uint16_t>* arguments);
+
 };
 
 ////////////////////////////////////////

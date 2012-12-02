@@ -9,17 +9,15 @@
 
 using namespace std;
 
-BlockTranslator::BlockTranslator(std::map<std::string,uint16_t>* localVariables, std::map<std::string,uint16_t>* arguments) {
+BlockTranslator::BlockTranslator(std::map<std::string,uint16_t>* localVariables) {
     this->initialRegister = localVariables->size();
     firstUnusedRegister = localVariables->size();
     
     this->localVariables = localVariables;
-    this->arguments = arguments;
 }
 
 BlockTranslator::~BlockTranslator() {
     delete localVariables;
-    delete arguments;
 }
 
 
