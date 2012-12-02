@@ -18,153 +18,68 @@ using namespace std;
 #define CLASS_NO_SUCH_METHOD_EXCEPTION "NoSuchMethodException"
 #define CLASS_STRING "String"
 
+
+
+
+// Top-level functions have been moved to the end to make inlining work (g++ must know the definition to inline a call).
+
+
+
+
 Interpreter::Interpreter(bool jit) : regs(vector<QuaValue>(65536)), compiler(new JITCompiler(jit))
 {
 }
 
+
+// ------------- Tracing helpers -----------------
+
 #ifdef TRACE
 #define CURRENT_METHOD_SIG getThisClass()->getName() << "::"	\
 	<< ASP->currMeth->sig->name << '(' << (int)ASP->currMeth->sig->argCnt << ')'
+
+inline char getTagMnemonic(uint8_t tag) {
+	switch(tag) {
+		case SOP_TAG_NONE: return 'R'; // reference
+		case SOP_TAG_BOOL: return 'B';
+		case SOP_TAG_INT: return 'I';
+		case SOP_TAG_FLOAT: return 'F';
+		default: return '?';
+	}
+}
+
+inline const char* getArithmMnemonic(unsigned char subop) {
+	switch(subop) {
+		case SOP_ADD:	return "ADD";
+		case SOP_SUB:	return "SUB";
+		case SOP_MUL:	return "MUL";
+		case SOP_DIV:	return "DIV";
+		case SOP_MOD:	return "MOD";
+		case SOP_EQ:	return "EQ";
+		case SOP_NEQ:	return "NEQ";
+		case SOP_GT:	return "GT";
+		case SOP_GE:	return "GE";
+		case SOP_LT:	return "LT";
+		case SOP_LE:	return "LE";
+		case SOP_LAND:	return "LAND";
+		case SOP_LOR:	return "LOR";
+		default:		return "???";
+	}
+}
+
+inline const char* getCCMnemonic(unsigned char subop) {
+	switch(subop) {
+		case SOP_UNCONDITIONAL:	return "MP";
+		case SOP_CC_NULL:		return "NULL";
+		case SOP_CC_NNULL:		return "NNULL";
+		case SOP_CC_TRUE:		return "TRUE";
+		case SOP_CC_FALSE:		return "FALSE";
+		default:				return "???";
+	}
+}
 #endif
 
 
-void Interpreter::start(vector<char*>& args) {
-
-	map<string, uint16_t>::iterator mainIt = linkedTypes->find("Main");
-	if(mainIt == linkedTypes->end()) {
-		throw runtime_error("Main class was not found!");
-	}
-	uint16_t mainClassType = mainIt->second;
-
-	#ifdef DEBUG
-		cout << "Initializing interpreter environment, Main class has type " << mainClassType << endl;
-	#endif
-
-	QuaClass* mainClass = getClassFromType(mainClassType);
-
-	if(!mainClass->isStatic()) {
-		throw runtime_error("Main class is not static!");
-	}
-
-	QuaValue qargs; // TODO construct Array.
-
-	#ifdef DEBUG
-		cout << "Preparing value stack, argument count for main method is: " << args.size() << endl;
-	#endif
-	for(vector<char*>::iterator it = args.begin(); it != args.end(); ++it) {
-		QuaValue argString = stringDeserializer(*it);
-		//temporary
-		cout << "! TODO: Would love to add String ref " << argString.value << " to args!" << endl;
-	}
-
-	// push args and This pointer
-	*(--SP) = qargs;
-	*(--SP) = newRawInstance(mainClassType);
-	BP = SP;
-
-	#ifdef DEBUG
-		cout << "Value stack ready, looking up main(1) and preparing address stack" << endl;
-	#endif
-
-	QuaMethod* mainMethod = mainClass->lookupMethod((QuaSignature*)"\1main");
-
-	// push exit handler
-	*(--ASP) = QuaFrame(NULL, mainMethod, false, false);
-
-	// get entry point
-	Instruction* pc = (Instruction*)(mainMethod->code);
-
-	#ifdef DEBUG
-		cout << "Entering interpreter loop, entry point address is " << pc
-			 << ", opcode 0x" << hex << setw(2) << setfill('0') << (int)pc->op << endl << dec;
-	#endif
-
-	while(1) {
-
-		#ifdef TRACE
-				cout << "# " << CURRENT_METHOD_SIG << ":\t";
-		#endif
-		pc = processInstruction(pc);
-	}
-}
-
-
-
-inline Instruction* Interpreter::processInstruction(Instruction* insn) {
-
-
-	/*
-
-			   *************
-			   *    ON     *
-			   *           *
-			   *  [=====]  *
-			   *   |   |   *
-			   *   |   |   *
-			   *   +   +   *
-			   *           *
-			   *           *
-			   *           *
-			   *           *
-			   *    OFF    *
-			   *************
-
-		+--------------------------+
-		| THE BIG SWITCH (TM) No.1 |
-		+--------------------------+
-
-
-	(this monstrosity compiles into a jump table,
-	 which means very fast interpretation dispatch)
-
-	*/
-
-
-	switch(insn->op) {
-
-			case OP_NOP:    return handleNOP(insn);
-			case OP_LDC:    return handleLDC(insn);
-			case OP_LDCT:   return handleLDCT(insn);
-			case OP_LDNULL:	return handleLDNULL(insn);
-			case OP_LDF:	return handleLDF(insn);
-			case OP_STF:	return handleSTF(insn);
-			case OP_LDMYF:	return handleLDMYF(insn);
-			case OP_STMYF:	return handleSTMYF(insn);
-			case OP_LDSTAT:	return handleLDSTAT(insn);
-			case OP_MOV:	return handleMOV(insn);
-			case OP_XCHG:	return handleXCHG(insn);
-			case OP_PUSH:	return handlePUSH(insn);
-			case OP_POP:	return handlePOP(insn);
-			case OP_PUSHC:	return handlePUSHC(insn);
-			case OP_PUSHCT:	return handlePUSHCT(insn);
-			case OP_LDS:	return handleLDS(insn);
-			case OP_STS:	return handleSTS(insn);
-			case OP_A3REG:  return handleA3REG(insn);
-			case OP_NEG:	return handleNEG(insn);
-			case OP_LNOT:	return handleLNOT(insn);
-			case OP_IDX:	return handleIDX(insn);
-			case OP_IDXI:	return handleIDXI(insn);
-			case OP_JMP:	return handleJMP(insn);
-			case OP_CALL:	return handleCALL(insn);
-			case OP_CALLMY:	return handleCALLMY(insn);
-			case OP_NEW:	return handleNEW(insn);
-			case OP_RET:	return handleRET(insn);
-			case OP_RETT:	return handleRETT(insn);
-			case OP_RETNULL:return handleRETNULL();
-			case OP_TRY:	return handleTRY(insn);
-			case OP_CATCH:	return handleCATCH(insn);
-			case OP_THROW:	return handleTHROW(insn);
-			case OP_THROWT:	return handleTHROWT(insn);
-			case OP_FIN:	return handleFIN(insn);
-			case OP_HCF:    return handleHCF();
-			case OP_HLT:    return handleHLT();
-			case OP_INSTOF: return handleINSTOF(insn);
-			case OP_ISTYPE: return handleISTYPE(insn);
-			case OP_CNVT:   return handleCNVT(insn);
-
-			default:        return handleIllegalInstruction(insn);
-	}
-}
+// ------------- Internal interpreter methods -----------------
 
 
 // may need ASM implementation
@@ -181,65 +96,36 @@ __attribute__ ((noinline, regparm(0))) Instruction* jumpToMachineCode(void* code
 }
 
 
-Instruction* Interpreter::performCall(QuaMethod* method) {
 
-#ifdef TRACE
-	cout << "# Calling " << CURRENT_METHOD_SIG << " [";
-#endif
+inline void Interpreter::functionPrologue(QuaValue that, QuaMethod* method,
+										  void* retAddr, bool interpreted, uint16_t destReg) {
 
-	switch(method->action) {
-		case QuaMethod::INTERPRET:
-			#ifdef TRACE
-				cout << "interpreting]" << endl;
-			#endif
-			method->action = QuaMethod::COMPILE; // next time
-			return (Instruction*) method->code;
+	// push that
+	*(--SP) = that;
 
-		case QuaMethod::COMPILE:
-			#ifdef TRACE
-				cout << "compiling... ";
-			#endif
-
-			if(compiler->compile(method)) {
-				method->action = QuaMethod::JUMPTO;
-
-			} else {
-			#ifdef TRACE
-				cout << " giving up]" << endl;
-			#endif
-				method->action = QuaMethod::ALWAYS_INTERPRET;
-				return (Instruction*) method->code; // No further setting of compile flag
-			}
-
-			// success = fall-through to execution
-
-		case QuaMethod::JUMPTO:
-			#ifdef TRACE
-				cout << "jumping to start]" << endl;
-			#endif
-			return jumpToMachineCode(method->code);
-
-		case QuaMethod::C_CALL:
-			#ifdef TRACE
-				cout << "native call]" << endl;
-			#endif
-			try {
-				return performReturn( ( __extension__ (QuaValue (*)())method->code )() );
-			} catch (QuaValue qex) {
-				return performThrow(qex);
-			}
-
-		case QuaMethod::ALWAYS_INTERPRET:
-			#ifdef TRACE
-				cout << "interpreting - forced]" << endl;
-			#endif
-			return (Instruction*) method->code; // No further setting of compile flag
-
-		default:
-			ostringstream os;
-			os << "Corrupted method action detected: " << method->action;
-			throw runtime_error(os.str());
+	// save context
+	int32_t regCnt = method->regCount;
+	for(int32_t i = 0; i < regCnt; i++) {
+		*(--SP) = regs[i];
 	}
+
+	*(--ASP) = QuaFrame(retAddr, method, interpreted, destReg, (QuaValue*)valStackHigh - BP);		// push ebp
+	BP = SP;																						// mov ebp, esp
+}
+
+
+inline void Interpreter::functionEpilogue() {
+
+	int32_t regCnt = ASP->currMeth->regCount;
+	SP = BP - regCnt; // discard any pushed locals and this											// mov esp, ebp
+
+	// Restore saved context
+	for(int32_t i = regCnt - 1; i >= 0; i--) {
+		regs[i] = *(SP++);
+	}
+
+	SP += (ASP->ARG_COUNT + 1);											                            // add esp, N
+	BP = (QuaValue*)valStackHigh - ASP->BP_OFFSET;                                                  // pop ebp
 }
 
 
@@ -327,6 +213,68 @@ inline Instruction* Interpreter::performThrow(QuaValue& qex) {
 }
 
 
+Instruction* Interpreter::performCall(QuaMethod* method) {
+
+#ifdef TRACE
+	cout << "# Calling " << CURRENT_METHOD_SIG << " [";
+#endif
+
+	switch(method->action) {
+		case QuaMethod::INTERPRET:
+			#ifdef TRACE
+				cout << "interpreting]" << endl;
+			#endif
+			method->action = QuaMethod::COMPILE; // next time
+			return (Instruction*) method->code;
+
+		case QuaMethod::COMPILE:
+			#ifdef TRACE
+				cout << "compiling... ";
+			#endif
+
+			if(compiler->compile(method)) {
+				method->action = QuaMethod::JUMPTO;
+
+			} else {
+			#ifdef TRACE
+				cout << " giving up]" << endl;
+			#endif
+				method->action = QuaMethod::ALWAYS_INTERPRET;
+				return (Instruction*) method->code; // No further setting of compile flag
+			}
+
+			// success = fall-through to execution
+
+		case QuaMethod::JUMPTO:
+			#ifdef TRACE
+				cout << "jumping to start]" << endl;
+			#endif
+			return jumpToMachineCode(method->code);
+
+		case QuaMethod::C_CALL:
+			#ifdef TRACE
+				cout << "native call]" << endl;
+			#endif
+			try {
+				return performReturn( ( __extension__ (QuaValue (*)())method->code )() );
+			} catch (QuaValue qex) {
+				return performThrow(qex);
+			}
+
+		case QuaMethod::ALWAYS_INTERPRET:
+			#ifdef TRACE
+				cout << "interpreting - forced]" << endl;
+			#endif
+			return (Instruction*) method->code; // No further setting of compile flag
+
+		default:
+			ostringstream os;
+			os << "Corrupted method action detected: " << method->action;
+			throw runtime_error(os.str());
+	}
+}
+
+
 inline Instruction* Interpreter::commonException(const char* className, const char* what) {
 
 	QuaValue instance = newRawInstance(linkedTypes->at(className));                 // allocate
@@ -376,83 +324,16 @@ inline Instruction* Interpreter::handleIllegalSubOp(Instruction* insn) {
 	throw runtime_error(os.str());
 }
 
-
-inline void Interpreter::functionPrologue(QuaValue that, QuaMethod* method,
-										  void* retAddr, bool interpreted, uint16_t destReg) {
-
-	// push that
-	*(--SP) = that;
-
-	// save context
-	int32_t regCnt = method->regCount;
-	for(int32_t i = 0; i < regCnt; i++) {
-		*(--SP) = regs[i];
-	}
-
-	*(--ASP) = QuaFrame(retAddr, method, interpreted, destReg, (QuaValue*)valStackHigh - BP);		// push ebp
-	BP = SP;																						// mov ebp, esp
-}
-
-inline void Interpreter::functionEpilogue() {
-
-	int32_t regCnt = ASP->currMeth->regCount;
-	SP = BP - regCnt; // discard any pushed locals and this											// mov esp, ebp
-
-	// Restore saved context
-	for(int32_t i = regCnt - 1; i >= 0; i--) {
-		regs[i] = *(SP++);
-	}
-
-	SP += (ASP->ARG_COUNT + 1);											                            // add esp, N
-	BP = (QuaValue*)valStackHigh - ASP->BP_OFFSET;                                                  // pop ebp
-}
-
 inline QuaValue Interpreter::extractTaggedValue(Instruction* insn) {
 	return QuaValue(insn->IMM, getTaggedType(insn->subop), insn->subop);
 }
 
 
-#ifdef TRACE
-inline char getTagMnemonic(uint8_t tag) {
-	switch(tag) {
-		case SOP_TAG_NONE: return 'R'; // reference
-		case SOP_TAG_BOOL: return 'B';
-		case SOP_TAG_INT: return 'I';
-		case SOP_TAG_FLOAT: return 'F';
-		default: return '?';
-	}
-}
 
-inline const char* getArithmMnemonic(unsigned char subop) {
-	switch(subop) {
-		case SOP_ADD:	return "ADD";
-		case SOP_SUB:	return "SUB";
-		case SOP_MUL:	return "MUL";
-		case SOP_DIV:	return "DIV";
-		case SOP_MOD:	return "MOD";
-		case SOP_EQ:	return "EQ";
-		case SOP_NEQ:	return "NEQ";
-		case SOP_GT:	return "GT";
-		case SOP_GE:	return "GE";
-		case SOP_LT:	return "LT";
-		case SOP_LE:	return "LE";
-		case SOP_LAND:	return "LAND";
-		case SOP_LOR:	return "LOR";
-		default:		return "???";
-	}
-}
+// ------------- Instruction handlers -----------------
 
-inline const char* getCCMnemonic(unsigned char subop) {
-	switch(subop) {
-		case SOP_UNCONDITIONAL:	return "MP";
-		case SOP_CC_NULL:		return "NULL";
-		case SOP_CC_NNULL:		return "NNULL";
-		case SOP_CC_TRUE:		return "TRUE";
-		case SOP_CC_FALSE:		return "FALSE";
-		default:				return "???";
-	}
-}
-#endif
+
+
 
 
 inline Instruction* Interpreter::handleNOP(Instruction* insn) {
@@ -1143,4 +1024,150 @@ inline Instruction* Interpreter::handleHLT() {
 #endif
 
 	throw ExitException();
+}
+
+
+
+
+// ------------- Top-level interpreter code -----------------
+
+
+
+
+inline Instruction* Interpreter::processInstruction(Instruction* insn) {
+
+
+	/*
+
+			   *************
+			   *    ON     *
+			   *           *
+			   *  [=====]  *
+			   *   |   |   *
+			   *   |   |   *
+			   *   +   +   *
+			   *           *
+			   *           *
+			   *           *
+			   *           *
+			   *    OFF    *
+			   *************
+
+		+--------------------------+
+		| THE BIG SWITCH (TM) No.1 |
+		+--------------------------+
+
+
+	(this monstrosity compiles into a jump table,
+	 which means very fast interpretation dispatch)
+
+	*/
+
+
+	switch(insn->op) {
+
+			case OP_NOP:    return handleNOP(insn);
+			case OP_LDC:    return handleLDC(insn);
+			case OP_LDCT:   return handleLDCT(insn);
+			case OP_LDNULL:	return handleLDNULL(insn);
+			case OP_LDF:	return handleLDF(insn);
+			case OP_STF:	return handleSTF(insn);
+			case OP_LDMYF:	return handleLDMYF(insn);
+			case OP_STMYF:	return handleSTMYF(insn);
+			case OP_LDSTAT:	return handleLDSTAT(insn);
+			case OP_MOV:	return handleMOV(insn);
+			case OP_XCHG:	return handleXCHG(insn);
+			case OP_PUSH:	return handlePUSH(insn);
+			case OP_POP:	return handlePOP(insn);
+			case OP_PUSHC:	return handlePUSHC(insn);
+			case OP_PUSHCT:	return handlePUSHCT(insn);
+			case OP_LDS:	return handleLDS(insn);
+			case OP_STS:	return handleSTS(insn);
+			case OP_A3REG:  return handleA3REG(insn);
+			case OP_NEG:	return handleNEG(insn);
+			case OP_LNOT:	return handleLNOT(insn);
+			case OP_IDX:	return handleIDX(insn);
+			case OP_IDXI:	return handleIDXI(insn);
+			case OP_JMP:	return handleJMP(insn);
+			case OP_CALL:	return handleCALL(insn);
+			case OP_CALLMY:	return handleCALLMY(insn);
+			case OP_NEW:	return handleNEW(insn);
+			case OP_RET:	return handleRET(insn);
+			case OP_RETT:	return handleRETT(insn);
+			case OP_RETNULL:return handleRETNULL();
+			case OP_TRY:	return handleTRY(insn);
+			case OP_CATCH:	return handleCATCH(insn);
+			case OP_THROW:	return handleTHROW(insn);
+			case OP_THROWT:	return handleTHROWT(insn);
+			case OP_FIN:	return handleFIN(insn);
+			case OP_INSTOF: return handleINSTOF(insn);
+			case OP_ISTYPE: return handleISTYPE(insn);
+			case OP_CNVT:   return handleCNVT(insn);
+			case OP_HCF:    return handleHCF();
+			case OP_HLT:    return handleHLT();
+
+			default:        return handleIllegalInstruction(insn);
+	}
+}
+
+
+
+void Interpreter::start(vector<char*>& args) {
+
+	map<string, uint16_t>::iterator mainIt = linkedTypes->find("Main");
+	if(mainIt == linkedTypes->end()) {
+		throw runtime_error("Main class was not found!");
+	}
+	uint16_t mainClassType = mainIt->second;
+
+	#ifdef DEBUG
+		cout << "Initializing interpreter environment, Main class has type " << mainClassType << endl;
+	#endif
+
+	QuaClass* mainClass = getClassFromType(mainClassType);
+
+	if(!mainClass->isStatic()) {
+		throw runtime_error("Main class is not static!");
+	}
+
+	QuaValue qargs; // TODO construct Array.
+
+	#ifdef DEBUG
+		cout << "Preparing value stack, argument count for main method is: " << args.size() << endl;
+	#endif
+	for(vector<char*>::iterator it = args.begin(); it != args.end(); ++it) {
+		QuaValue argString = stringDeserializer(*it);
+		//temporary
+		cout << "! TODO: Would love to add String ref " << argString.value << " to args!" << endl;
+	}
+
+	// push args and This pointer
+	*(--SP) = qargs;
+	*(--SP) = newRawInstance(mainClassType);
+	BP = SP;
+
+	#ifdef DEBUG
+		cout << "Value stack ready, looking up main(1) and preparing address stack" << endl;
+	#endif
+
+	QuaMethod* mainMethod = mainClass->lookupMethod((QuaSignature*)"\1main");
+
+	// push exit handler
+	*(--ASP) = QuaFrame(NULL, mainMethod, false, false);
+
+	// get entry point
+	Instruction* pc = (Instruction*)(mainMethod->code);
+
+	#ifdef DEBUG
+		cout << "Entering interpreter loop, entry point address is " << pc
+			 << ", opcode 0x" << hex << setw(2) << setfill('0') << (int)pc->op << endl << dec;
+	#endif
+
+	while(1) {
+
+		#ifdef TRACE
+				cout << "# " << CURRENT_METHOD_SIG << ":\t";
+		#endif
+		pc = processInstruction(pc);
+	}
 }
