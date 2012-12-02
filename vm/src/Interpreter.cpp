@@ -128,151 +128,286 @@ inline void Interpreter::functionEpilogue() {
 	BP = (QuaValue*)valStackHigh - ASP->BP_OFFSET;                                                  // pop ebp
 }
 
+// inline wrappers for the JIT-friendly monstrosity
 
 inline Instruction* Interpreter::performReturn(QuaValue retVal) {
 
-#ifdef TRACE
-	cout << "# Returning from " << CURRENT_METHOD_SIG;
-#endif
-
-	// discard adress stack junk
-	while(ASP->FRAME_TYPE == EXCEPTION || ASP->FRAME_TYPE == FINALLY) {
-		++ASP;
-	}
-	if(ASP->FRAME_TYPE == EXIT) {
-#ifdef TRACE
-	cout << " ...and halting the VM." << endl;
-#endif
-		throw ExitException(); // TODO Is this safe if code had passed through ASM?
-	}
-
-	// The frame is a correct return address (frameType == METHOD)
-	functionEpilogue();
-
-	if(ASP->INTERPRETED) {
-		regs[ASP->DEST_REG] = retVal;
-		Instruction* retAddr = (Instruction*) (ASP++)->retAddr;
-
-#ifdef TRACE
-		cout << " to " << CURRENT_METHOD_SIG << " [interpreting]" << endl;
-#endif
-		return retAddr;
-
-	} else {
-
-		// TODO where to put return value?
-		// TODO distinguish Interpreter and JIT saved contexts!
-
-		++ASP;
-
-#ifdef TRACE
-		cout << " to " << CURRENT_METHOD_SIG << " [jumping]" << endl;
-#endif
-		return jumpToMachineCode((ASP++)->retAddr);
-	}
+	return transferControl(REASON_RETURN, &retVal);
 }
 
 
 inline Instruction* Interpreter::performThrow(QuaValue& qex) {
 
-#ifdef TRACE
-	cout << "# Throwing an exception of class " << getClassFromValue(qex)->getName()
-	   << " from " << CURRENT_METHOD_SIG;
-#endif
-
-	while(1) {
-		if(ASP->FRAME_TYPE == EXIT) {
-			// TODO: Attempt to extract qex.what
-#ifdef TRACE
-			cout << " ...no suitable handler found!" << endl;
-#endif
-			throw runtime_error(string("Unhandled exception of class ") + getClassFromValue(qex)->getName());
-
-		} else if (ASP->FRAME_TYPE == EXCEPTION && instanceOf(qex, ASP->EXCEPTION_TYPE)) { // TODO: how to Pokemon?
-			// correct handler
-			++ASP;
-			break;
-		}
-
-		// ASP points to junk -> discard it
-		if(ASP->FRAME_TYPE == METHOD) {
-			// unwind value stack and restore saved context:
-			functionEpilogue();
-		}
-		++ASP;
-	}
-
-	// push exception
-	*(--SP) = qex;
-
-#ifdef TRACE
-	cout << " to a handler in " << CURRENT_METHOD_SIG << endl;
-#endif
-
-	return (Instruction*)((ASP++)->retAddr);
+	return transferControl(REASON_THROW, &qex);
 }
 
 
 Instruction* Interpreter::performCall(QuaMethod* method) {
 
-#ifdef TRACE
-	cout << "# Calling " << CURRENT_METHOD_SIG << " [";
-#endif
+	return transferControl(REASON_CALL, method);
+}
 
-	switch(method->action) {
-		case QuaMethod::INTERPRET:
+
+// ------------------------- JIT interface -------------------------- //
+// This will be the stack frame in which jitted code is executing.
+// That means it can't be refactored into multiple functions, as code flow leaves to jitted code in one switch branch,
+//	but comes back through another one via asm goto
+
+// The switch branches do not share any variables except a single volatile static one, which is only ever used
+// at the beginning of a branch, essentially forming a simple calling convention within one C stack frame.
+
+// The 'asm goto' construction available since g++ 4.5 is what makes this possible to be done safely.
+// The compiler knows that the MACHINE_JUMP asm blocks will always jump to one of the three labels
+// and may clobber any register, and the compiler can arrange things around this.
+
+// local macro only, #undef'd at the end of the method
+#define MACHINE_JUMP(code) {													\
+						volatile void* destination = (volatile void*)(code);	\
+						asm goto ("jmp *(%%rax)"								\
+						:	/* no output */										\
+						:	"a" (destination)									\
+						:	"memory", "cc" , "rbx", "rcx", "rdx", "rsi", "rdi",	\
+							"r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"\
+						:	landing_call, landing_return , landing_throw);		\
+					}
+
+
+__attribute((noinline)) Instruction* Interpreter::transferControl(TransferReason reason, void* param) {
+
+	static volatile void* volatile_what asm("transfer_what");
+	volatile_what = param;
+
+	switch(reason) {
+
+		// -------------- perform a call -------------- //
+
+		case REASON_CALL:
+		{
+
+			// C label for "asm goto" to let g++ know jitted code might perform a jump here
+			landing_call:
+
+			// define a global asm label for the actual landing (should form 2 labels pointing to the same address)
+			asm volatile (".global transfer_call\n\t"\
+						  "transfer_call: nop" ::: "memory");
+						// fake memory clobber so that this isn't moved (volatile only guarantees no deletion)
+
+			QuaMethod* method = (QuaMethod*)volatile_what;
+
 			#ifdef TRACE
-				cout << "interpreting]" << endl;
+				cout << "# Calling " << CURRENT_METHOD_SIG << " [";
 			#endif
-			method->action = QuaMethod::COMPILE; // next time
-			return (Instruction*) method->code;
 
-		case QuaMethod::COMPILE:
+			switch(method->action) {
+				case QuaMethod::INTERPRET:
+					#ifdef TRACE
+						cout << "interpreting]" << endl;
+					#endif
+					method->action = QuaMethod::COMPILE; // next time
+					return (Instruction*) method->code;
+
+				case QuaMethod::COMPILE:
+					#ifdef TRACE
+						cout << "compiling... ";
+					#endif
+
+					if(compiler->compile(method)) {
+						method->action = QuaMethod::JUMPTO;
+
+					} else {
+					#ifdef TRACE
+						cout << " giving up]" << endl;
+					#endif
+						method->action = QuaMethod::ALWAYS_INTERPRET;
+						return (Instruction*) method->code; // No further setting of compile flag
+					}
+
+					// success = fall-through to execution
+
+				case QuaMethod::JUMPTO:
+					#ifdef TRACE
+						cout << "jumping to start]" << endl;
+					#endif
+
+					MACHINE_JUMP(method->code)
+					// no return
+
+				case QuaMethod::C_CALL:
+					#ifdef TRACE
+						cout << "native call]" << endl;
+					#endif
+					try {
+
+						// perform a return with what the native method returns
+						QuaValue retVal = ( __extension__ (QuaValue (*)())method->code )();
+
+						// avoid C stack creep by jumping to the return part of this function immediately
+						volatile_what = &retVal;
+						goto landing_return;
+
+						// Explanation of the goto: There used to be a "performReturn" call here,
+						// but if that returns to jitted code, it is now one C stack frame above what it used to be.
+						// The only way of avoiding this is behaving like JIT itself
+
+
+					} catch (QuaValue qex) {
+
+						// same as above, different mechanism
+
+						volatile_what = &qex;
+						goto landing_throw;
+					}
+
+				case QuaMethod::ALWAYS_INTERPRET:
+					#ifdef TRACE
+						cout << "interpreting - forced]" << endl;
+					#endif
+					return (Instruction*) method->code; // No further setting of compile flag
+
+				default:
+					ostringstream os;
+					os << "Corrupted method action detected: " << method->action;
+					throw runtime_error(os.str());
+			}
+		}
+
+
+		// -------------- perform a return -------------- //
+
+		case REASON_RETURN:
+		{
+			landing_return:
+			asm volatile (".global transfer_return\n\t"\
+						  "transfer_return: nop" ::: "memory");
+
+			QuaValue retVal = *(QuaValue*)volatile_what;
+
 			#ifdef TRACE
-				cout << "compiling... ";
+				cout << "# Returning from " << CURRENT_METHOD_SIG;
 			#endif
 
-			if(compiler->compile(method)) {
-				method->action = QuaMethod::JUMPTO;
+			// discard adress stack junk
+			while(ASP->FRAME_TYPE == EXCEPTION || ASP->FRAME_TYPE == FINALLY) {
+				++ASP;
+			}
+			if(ASP->FRAME_TYPE == EXIT) {
+				#ifdef TRACE
+					cout << " ...and halting the VM." << endl;
+				#endif
+				throw ExitException(); // TODO Is this safe if code had passed through ASM?
+			}
+
+			// The frame is a correct return address (frameType == METHOD)
+			functionEpilogue();
+
+			if(ASP->INTERPRETED) {
+				regs[ASP->DEST_REG] = retVal;
+				Instruction* retAddr = (Instruction*) (ASP++)->retAddr;
+
+				#ifdef TRACE
+						cout << " to " << CURRENT_METHOD_SIG << " [interpreting]" << endl;
+				#endif
+				return retAddr;
 
 			} else {
+
+				// TODO where to put return value?
+				// TODO distinguish Interpreter and JIT saved contexts!
+
+				++ASP;
+
+				#ifdef TRACE
+						cout << " to " << CURRENT_METHOD_SIG << " [jumping]" << endl;
+				#endif
+
+				void* code = ASP->retAddr;
+				MACHINE_JUMP(code)
+				// no return
+			}
+		}
+
+
+		// -------------- perform a throw -------------- //
+
+		case REASON_THROW:
+		{
+			landing_throw:
+			asm volatile (".global transfer_throw\n\t"\
+						  "transfer_throw: nop" ::: "memory");
+
+			QuaValue qex = *(QuaValue*)volatile_what;
+
 			#ifdef TRACE
-				cout << " giving up]" << endl;
+				cout << "# Throwing an exception of class " << getClassFromValue(qex)->getName()
+				   << " from " << CURRENT_METHOD_SIG;
 			#endif
-				method->action = QuaMethod::ALWAYS_INTERPRET;
-				return (Instruction*) method->code; // No further setting of compile flag
+
+			while(1) {
+				if(ASP->FRAME_TYPE == EXIT) {
+					// TODO: Attempt to extract qex.what
+					#ifdef TRACE
+						cout << " ...no suitable handler found!" << endl;
+					#endif
+					throw runtime_error(string("Unhandled exception of class ") + getClassFromValue(qex)->getName());
+
+				} else if (ASP->FRAME_TYPE == EXCEPTION && instanceOf(qex, ASP->EXCEPTION_TYPE)) {
+					// TODO: how to Pokemon?
+					// correct handler
+					++ASP;
+					break;
+				}
+
+				// ASP points to junk -> discard it
+				if(ASP->FRAME_TYPE == METHOD) {
+					// unwind value stack and restore saved context:
+					functionEpilogue();
+				}
+				++ASP;
 			}
 
-			// success = fall-through to execution
+			// push exception
+			*(--SP) = qex;
 
-		case QuaMethod::JUMPTO:
-			#ifdef TRACE
-				cout << "jumping to start]" << endl;
-			#endif
-			return jumpToMachineCode(method->code);
+			if(ASP->INTERPRETED) {
 
-		case QuaMethod::C_CALL:
-			#ifdef TRACE
-				cout << "native call]" << endl;
-			#endif
-			try {
-				return performReturn( ( __extension__ (QuaValue (*)())method->code )() );
-			} catch (QuaValue qex) {
-				return performThrow(qex);
+				++ASP;
+
+				#ifdef TRACE
+					cout << " to a handler in " << CURRENT_METHOD_SIG << "[interpreting]" << endl;
+				#endif
+				return (Instruction*)ASP->retAddr;
+
+			} else {
+
+				++ASP;
+
+				#ifdef TRACE
+					cout << " to a handler in " << CURRENT_METHOD_SIG << "[jumping]" << endl;
+				#endif
+
+				void* code = ASP->retAddr;
+				MACHINE_JUMP(code)
+				// no return
 			}
+		}
 
-		case QuaMethod::ALWAYS_INTERPRET:
-			#ifdef TRACE
-				cout << "interpreting - forced]" << endl;
-			#endif
-			return (Instruction*) method->code; // No further setting of compile flag
+
+		// -- invalid reason -- //
 
 		default:
 			ostringstream os;
-			os << "Corrupted method action detected: " << method->action;
+			os << "Corrupted control transfer reason: " << reason << '.' << endl
+			   << "This is most likely a JIT bug, try running the VM with -nojit.";
 			throw runtime_error(os.str());
 	}
 }
+
+#undef MACHINE_JUMP
+
+// --------------------- End of JIT interface -------------------------- //
+
+
+
 
 
 inline Instruction* Interpreter::commonException(const char* className, const char* what) {
@@ -1056,10 +1191,6 @@ inline Instruction* Interpreter::processInstruction(Instruction* insn) {
 		+--------------------------+
 		| THE BIG SWITCH (TM) No.1 |
 		+--------------------------+
-
-
-	(this monstrosity compiles into a jump table,
-	 which means very fast interpretation dispatch)
 
 	*/
 

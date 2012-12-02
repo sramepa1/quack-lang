@@ -32,6 +32,13 @@ private:
 	Instruction* performReturn(QuaValue retVal);
 	Instruction* performThrow(QuaValue& qex);
 
+	enum TransferReason {
+		REASON_CALL = 0,
+		REASON_RETURN = 1,
+		REASON_THROW = 2
+	};
+	Instruction* transferControl(TransferReason reason, void* param);
+
 	void functionPrologue(QuaValue that, QuaMethod* method, void* retAddr, bool interpreted, uint16_t destReg);
 	void functionEpilogue();
 
