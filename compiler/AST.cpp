@@ -168,6 +168,25 @@ void evaluateExpression(NExpression* expr, BlockTranslator* translator) {
     expr->generateCode(translator);
 }
 
+bool hasAncestor() {
+    uint16_t ancestorCTIndex = currentCtEntry->ancestor;
+    uint16_t currentIndex = 0;
+
+    for(list<ClassTableEntry*>::iterator it = classTable.classTableEntries.begin();
+        it != classTable.classTableEntries.end(); ++it) {
+        if(*it == currentCtEntry) {
+            break;
+        }
+        currentIndex++;
+    }
+
+    if(currentIndex == ancestorCTIndex) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
 uint16_t loadStatClass(std::string* name, BlockTranslator* translator) {
     uint16_t classRefRegister = translator->getFreeRegister();
     translator->addInstruction(OP_LDSTAT, NO_SOP, classRefRegister, classTable.addClass(*name), 0);
@@ -232,10 +251,18 @@ void SAssignment::generateCode(BlockTranslator* translator) {
         }
 
         case THIS_FIELD: {
-            // TODO: change the first arg (index into CT not CP!!!!!!!!)
-            translator->addInstruction(OP_STMYF, NO_SOP,
-                                       constantPool.addString(*((EThisField*)variable)->fieldName),
-                                       expression->resultRegister, 0);
+            if(hasAncestor()) {
+                uint16_t thisRegister = translator->getFreeRegister();
+                translator->addInstruction(OP_LDS, NO_SOP, thisRegister, 0, 0);
+                translator->addInstruction(OP_STF, NO_SOP, thisRegister,
+                                           constantPool.addString(*((EVariableField*)variable)->fieldName),
+                                           expression->resultRegister);
+
+            } else {
+                translator->addInstruction(OP_STMYF, NO_SOP,
+                                           currentCtEntry->fieldLookup.at(*((EThisField*)variable)->fieldName),
+                                           expression->resultRegister, 0);
+            }
             break;
         }
 
@@ -274,16 +301,13 @@ void EVariableField::generateCode(BlockTranslator* translator) {
 }
 
 void EThisField::generateCode(BlockTranslator* translator) {
-    // TODO: how to obtain field index from this place???
-    
-    // No, to je trochu problém. Pokud se bavíme o dědičnosti, ten field v té třídě vůbec nemusí být uveden.
-    // jedinná možnost je deduplikovat fieldy a postatra se, aby šla použít CT
-    
-    // Tokud je ten field zděděný, přidá se na tomto místě - pozor na flagy
-    // Pokude není, vrátí se jeho index - flagy se ignorují
-    
-    uint16_t fieldIndex = currentCtEntry->addField(*fieldName);
-    
+    if(hasAncestor()) {
+        uint16_t thisRegister = translator->getFreeRegister();
+        translator->addInstruction(OP_LDS, NO_SOP, thisRegister, 0, 0);
+        translator->addInstruction(OP_LDF, NO_SOP, resultRegister, thisRegister, constantPool.addString(*fieldName));
+    } else {
+        translator->addInstruction(OP_LDMYF, NO_SOP, resultRegister, currentCtEntry->fieldLookup.at(*fieldName), 0);
+    }
 }
 
 void NThisCall::generateCode(BlockTranslator* translator) {
@@ -343,7 +367,7 @@ void CFloat::generateCode(BlockTranslator* translator) {
 
     union {
         float f;
-        uint16_t i;
+        uint32_t i;
     } conversion;
     conversion.f = value;
 
