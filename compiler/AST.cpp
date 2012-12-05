@@ -299,7 +299,8 @@ void EThisField::generateCode(BlockTranslator* translator) {
 
 void NThisCall::generateCode(BlockTranslator* translator) {
     prepareCall(this, parameters, translator);
-    translator->addInstruction(OP_CALLMY, NO_SOP, resultRegister, constantPool.addString(*methodName), 0);
+    translator->addInstruction(OP_CALLMY, NO_SOP, resultRegister,
+                               constantPool.addSignature(*methodName, (unsigned char)parameters->size()), 0);
 
     // TODO: who cleans temporary registers??? Because method call is statement but in params are expressions
     // translator->resetRegisters();
@@ -307,7 +308,8 @@ void NThisCall::generateCode(BlockTranslator* translator) {
 
 void NVariableCall::generateCode(BlockTranslator* translator) {
     prepareCall(this, parameters, translator);
-    translator->addInstruction(OP_CALL, NO_SOP, resultRegister, variableRegister, constantPool.addString(*methodName));
+    translator->addInstruction(OP_CALL, NO_SOP, resultRegister, variableRegister,
+                               constantPool.addSignature(*methodName, (unsigned char)parameters->size()));
 
     // TODO: who cleans temporary registers??? Because method call is statement but in params are expressions
     // translator->resetRegisters();
@@ -316,7 +318,7 @@ void NVariableCall::generateCode(BlockTranslator* translator) {
 void NStaticCall::generateCode(BlockTranslator* translator) {
     prepareCall(this, parameters, translator);
     translator->addInstruction(OP_CALL, NO_SOP, resultRegister, loadStatClass(className, translator),
-                               constantPool.addString(*methodName));
+                               constantPool.addSignature(*methodName, (unsigned char)parameters->size()));
 
     // TODO: who cleans temporary registers??? Because method call is statement but in params are expressions
     // translator->resetRegisters();
@@ -377,7 +379,7 @@ void SIf::generateCode(BlockTranslator* translator) {
 
     thenBlock->generateCode(translator);
 
-    if(elseBlock) {
+    if(elseBlock != NULL) {
         int endJmp = translator->addInstruction(OP_JMP, SOP_UNCONDITIONAL, 0, 0, 0);
         translator->instructions[jmpInstr]->ARG0 = (uint16_t)(endJmp - jmpInstr);
         elseBlock->generateCode(translator);
@@ -390,7 +392,7 @@ void SIf::generateCode(BlockTranslator* translator) {
 
 void SFor::generateCode(BlockTranslator* translator) {
 
-    if(init) {
+    if(init != NULL) {
         init->generateCode(translator);
     }
 
@@ -404,7 +406,7 @@ void SFor::generateCode(BlockTranslator* translator) {
     translator->resetRegisters();
 
     body->generateCode(translator);
-    if(increment) {
+    if(increment != NULL) {
         increment->generateCode(translator);
     }
 
