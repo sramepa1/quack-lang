@@ -99,7 +99,6 @@ public:
     
     // returns index of added class
     uint16_t addClass(std::string name);
-
     void addClass(ClassTableEntry* entry);
 
 private:

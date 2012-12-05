@@ -109,8 +109,9 @@ void ClassReference::writeDef(Compiler& compiler) {}
 
 void ClassReference::writeTable(Compiler& compiler, uint32_t offset) {
     compiler.write((char*) &nameIndex, 2); // CP index of class name
-    compiler.write((char*) &defSize, 2);
-    compiler.write((char) 0);
+    uint32_t tmp = 0;
+    compiler.write((char*) &tmp, 2);
+    compiler.write((char*) &tmp, 4);
 }
 
 
