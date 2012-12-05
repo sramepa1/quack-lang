@@ -8,6 +8,8 @@
 #include "ConstantPool.h"
 #include "Compiler.h"
 
+#include <cstring>
+
 using namespace std;
 
 #define EMPTY_POOL_SIZE 8
@@ -57,6 +59,29 @@ uint16_t ConstantPool::addString(std::string str) {
     }
     
     return cpIndex;
+}
+
+
+uint16_t ConstantPool::addSignature(std::string str, unsigned char parameters) {
+    Signature sig(str, parameters);
+    uint16_t cpIndex;
+    
+    map<Signature, uint16_t>::iterator it = signatureLookup.find(sig);
+    
+    if(it == signatureLookup.end()) {
+        
+        char* data = new char[str.size() + 2];
+        data[0] = parameters;
+        strncpy(data + 1, str.c_str(), str.size());
+        
+        cpIndex = addConstant((char*) data, str.size() + 2);
+        signatureLookup.insert(make_pair(sig, cpIndex));
+    } else {
+        cpIndex = it->second;
+    }
+    
+    return cpIndex;
+    
 }
 
 

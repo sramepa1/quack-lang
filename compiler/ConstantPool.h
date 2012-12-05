@@ -27,6 +27,22 @@ struct ConstantPoolEntry{
     IWritable* writable;
 };
 
+struct Signature {
+    Signature(std::string _methodName, uint16_t _parameterCount) : methodName(_methodName), parameterCount(_parameterCount) {}
+    
+    std::string methodName;
+    unsigned char parameterCount;
+};
+
+struct SignatureComp {
+    bool operator()(const Signature& first, const Signature& second) const {
+        if(first.parameterCount != second.parameterCount) {
+            return first.parameterCount < second.parameterCount;
+        }
+        return first.methodName < second.methodName;
+    }
+};
+
 
 class ByteArray : public IWritable {
 public:
@@ -51,9 +67,11 @@ public:
     
     std::list<ConstantPoolEntry*> entries;
     std::map<std::string, uint16_t> stringLookup;
+    std::map<Signature, uint16_t, SignatureComp> signatureLookup;
     
     uint16_t addCode(BlockTranslator* translator);
     uint16_t addConstant(char* content, int size);
+    uint16_t addSignature(std::string str, unsigned char parameters);
     uint16_t addString(std::string str);
     
     void write(Compiler& compiler);
@@ -67,4 +85,6 @@ private:
 };
 
 #endif	/* CONSTANTPOOL_H */
+
+
 
