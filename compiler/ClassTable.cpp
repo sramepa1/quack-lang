@@ -16,6 +16,7 @@
 #define EMPTY_TABLE_SIZE 8
 
 
+
 extern ConstantPool constantPool;
 
 
@@ -101,13 +102,14 @@ void ClassDefinition::writeDef(Compiler& compiler) {
 
 ClassReference::ClassReference(uint16_t nameIndex) {
     this->nameIndex = nameIndex;
+    this->defSize = 0;
 }
 
 void ClassReference::writeDef(Compiler& compiler) {}
 
 void ClassReference::writeTable(Compiler& compiler, uint32_t offset) {
     compiler.write((char*) &nameIndex, 2); // CP index of class name
-    compiler.write((char) 0);
+    compiler.write((char*) &defSize, 2);
     compiler.write((char) 0);
 }
 
@@ -116,7 +118,7 @@ ClassTable::ClassTable() : totalSize(EMPTY_TABLE_SIZE) {}
 
 
 void ClassTable::addClass(ClassTableEntry* entry) {
-    totalSize += 8 + Compiler::sizeToAlign8(entry->defSize); // 8 is size of class table declaration entry
+    totalSize += EMPTY_ENTRY_SIZE + Compiler::sizeToAlign8(entry->defSize); // 8 is size of class table declaration entry
     
     classTableEntries.push_back(entry);
 }
