@@ -19,13 +19,15 @@
 extern ConstantPool constantPool;
 
 
-ClassTableEntry::ClassTableEntry() : defSize(EMPTY_ENTRY_SIZE) {}
+ClassDefinition::ClassDefinition() {
+    defSize = EMPTY_ENTRY_SIZE;
+}
 
 
-uint16_t ClassTableEntry::addField(string name, uint16_t flags) {
+uint16_t ClassDefinition::addField(string name, uint16_t flags) {
     
     uint16_t fieldIndex;
-    map<std::string, uint16_t>::iterator it = fieldLookup.find(name);
+    map<string, uint16_t>::iterator it = fieldLookup.find(name);
     
     if(it == fieldLookup.end()) { 
         
@@ -38,6 +40,7 @@ uint16_t ClassTableEntry::addField(string name, uint16_t flags) {
         data.flags = flags;
 
         fieldIndicies.push_back(data);
+        fieldLookup.insert(make_pair(name, fieldIndex));
         
     } else {
         fieldIndex = it->second;
@@ -47,7 +50,7 @@ uint16_t ClassTableEntry::addField(string name, uint16_t flags) {
 }
 
 
-void ClassTableEntry::addMethod(uint16_t cpSigIndex, uint16_t flags, uint16_t cpCodeIndex, uint16_t insnCount, uint16_t regCount) {
+void ClassDefinition::addMethod(uint16_t cpSigIndex, uint16_t flags, uint16_t cpCodeIndex, uint16_t insnCount, uint16_t regCount) {
     defSize += sizeof(MethodData);
     
     struct MethodData data;
@@ -61,14 +64,14 @@ void ClassTableEntry::addMethod(uint16_t cpSigIndex, uint16_t flags, uint16_t cp
 }
 
 
-void ClassTableEntry::writeTable(Compiler& compiler, uint32_t offset) {
+void ClassDefinition::writeTable(Compiler& compiler, uint32_t offset) {
     compiler.write((char*) &nameIndex, 2); // CP index of class name
     compiler.write((char*) &defSize, 2);
     compiler.write((char*) &offset, 4);
 }
 
 
-void ClassTableEntry::writeDef(Compiler& compiler) {
+void ClassDefinition::writeDef(Compiler& compiler) {
     
     //general info
     compiler.write((char*) &ancestor, 2);
@@ -96,13 +99,46 @@ void ClassTableEntry::writeDef(Compiler& compiler) {
 }
 
 
+ClassReference::ClassReference(uint16_t nameIndex) {
+    this->nameIndex = nameIndex;
+}
+
+void ClassReference::writeDef(Compiler& compiler) {}
+
+void ClassReference::writeTable(Compiler& compiler, uint32_t offset) {
+    compiler.write((char*) &nameIndex, 2); // CP index of class name
+    compiler.write((char) 0);
+    compiler.write((char) 0);
+}
+
+
 ClassTable::ClassTable() : totalSize(EMPTY_TABLE_SIZE) {}
 
 
 void ClassTable::addClass(ClassTableEntry* entry) {
-    totalSize += sizeof(FieldData) + Compiler::sizeToAlign8(entry->defSize);
+    totalSize += 8 + Compiler::sizeToAlign8(entry->defSize); // 8 is size of class table declaration entry
     
     classTableEntries.push_back(entry);
+}
+
+
+uint16_t ClassTable::addClass(string name) {
+    
+    uint16_t nameIndex;
+    map<string, uint16_t>::iterator it = classLookup.find(name);
+    
+    if(it == classLookup.end()) { 
+        nameIndex = constantPool.addString(name);
+        
+        ClassTableEntry* entry = new ClassReference(nameIndex);
+        
+        addClass(entry);
+        classLookup.insert(make_pair(name, nameIndex));
+    } else {
+        nameIndex = it->second;
+    }
+    
+    return nameIndex;
 }
 
 
@@ -126,9 +162,4 @@ void ClassTable::write(Compiler& compiler) {
     for(std::list<ClassTableEntry*>::iterator it = classTableEntries.begin(); it != classTableEntries.end(); ++it) {
         (*it)->writeDef(compiler);
     }
-}
-
-uint16_t ClassTable::addClass(string name) {
-    // TODO: implement it
-    return 0;
 }

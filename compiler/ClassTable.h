@@ -36,14 +36,25 @@ struct MethodData {
 
 class ClassTableEntry {
 public:
-    ClassTableEntry();
     virtual ~ClassTableEntry() {}
     
     uint16_t defSize;
-    
     uint16_t nameIndex;
+    
+    virtual void writeTable(Compiler& compiler, uint32_t offset) = 0;
+    virtual void writeDef(Compiler& compiler) = 0;
+};
+
+
+
+class ClassDefinition : public ClassTableEntry {
+public:
+    ClassDefinition();
+    virtual ~ClassDefinition() {}
+    
     uint16_t ancestor;
-    uint16_t flags;    
+    bool hasAncestor;
+    uint16_t flags;
     
     std::vector<FieldData> fieldIndicies;
     std::vector<MethodData> methodIndicies;
@@ -53,13 +64,23 @@ public:
     uint16_t addField(std::string name, uint16_t flags = DEFAULT_FIELD_FLAGS);
     void addMethod(uint16_t cpSigIndex, uint16_t flags, uint16_t cpCodeIndex, uint16_t insnCount, uint16_t regCount);
     
-    void writeTable(Compiler& compiler, uint32_t offset);
-    void writeDef(Compiler& compiler);
+    virtual void writeTable(Compiler& compiler, uint32_t offset);
+    virtual void writeDef(Compiler& compiler);
     
 private:
 
     // DISABLED
-    ClassTableEntry(const ClassTableEntry& orig) {}
+    ClassDefinition(const ClassDefinition& orig) {}
+};
+
+
+class ClassReference : public ClassTableEntry {
+public:
+    ClassReference(uint16_t nameIndex);
+    virtual ~ClassReference() {}
+    
+    virtual void writeTable(Compiler& compiler, uint32_t offset);
+    virtual void writeDef(Compiler& compiler);
 };
 
 
@@ -71,14 +92,15 @@ public:
     
     uint32_t totalSize;
     
-    std::list<ClassTableEntry*> classTableEntries;
-    
-    // returns index of added class
-    void addClass(ClassTableEntry* entry);
-    
+    std::list<ClassTableEntry*> classTableEntries;   
+    std::map<std::string, uint16_t> classLookup;
+     
     void write(Compiler& compiler);
     
+    // returns index of added class
     uint16_t addClass(std::string name);
+
+    void addClass(ClassTableEntry* entry);
 
 private:
 

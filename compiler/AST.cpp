@@ -12,7 +12,7 @@ using namespace std;
 ClassTable classTable;
 ConstantPool constantPool;
 
-ClassTableEntry* currentCtEntry;
+ClassDefinition* currentCtEntry;
 
 
 void NProgram::addClass(string* s, NClass* nclass) {
@@ -33,7 +33,7 @@ void NProgram::compile(Compiler& compiler) {
     uint32_t tmp = compiler.offset + 8;
     compiler.write((char*) &tmp, 4); // classtable file offset
     
-    tmp = Compiler::sizeToAlign8(compiler.offset + classTable.totalSize + 4); //TODO here was u bug - check if loading fails again
+    tmp = Compiler::sizeToAlign8(compiler.offset + classTable.totalSize + 4); // here was u bug - check if loading fails again
     compiler.write((char*) &tmp, 4); // constatnpool file offset
     
     generateCode(compiler);
@@ -45,7 +45,7 @@ void NProgram::analyzeTree() {
     // Generate classtable entries
     for(map<std::string, NClass*>::iterator it = ClassDef.begin(); it != ClassDef.end(); ++it) {
         
-        currentCtEntry = new ClassTableEntry();
+        currentCtEntry = new ClassDefinition();
         
         // class name
         currentCtEntry->nameIndex = constantPool.addString(it->first);
@@ -57,9 +57,11 @@ void NProgram::analyzeTree() {
         string* ancestorName = it->second->getAncestor();
         
         if(ancestorName == NULL) {
-            currentCtEntry->ancestor = 0;
+            currentCtEntry->ancestor = classTable.classTableEntries.size();
+            currentCtEntry->hasAncestor = false;
         } else {
             currentCtEntry->ancestor = constantPool.addString(*ancestorName);
+            currentCtEntry->hasAncestor = true;
         }
 
         // fields and methods
@@ -169,22 +171,7 @@ void evaluateExpression(NExpression* expr, BlockTranslator* translator) {
 }
 
 bool hasAncestor() {
-    uint16_t ancestorCTIndex = currentCtEntry->ancestor;
-    uint16_t currentIndex = 0;
-
-    for(list<ClassTableEntry*>::iterator it = classTable.classTableEntries.begin();
-        it != classTable.classTableEntries.end(); ++it) {
-        if(*it == currentCtEntry) {
-            break;
-        }
-        currentIndex++;
-    }
-
-    if(currentIndex == ancestorCTIndex) {
-        return false;
-    } else {
-        return true;
-    }
+    return currentCtEntry->hasAncestor;
 }
 
 uint16_t loadStatClass(std::string* name, BlockTranslator* translator) {
