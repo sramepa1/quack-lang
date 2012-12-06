@@ -274,12 +274,18 @@ void SAssignment::generateCode(BlockTranslator* translator) {
     translator->resetRegisters();
 }
 
-void SThrow::generateCode(BlockTranslator* translator) {
+
+void EInstanceof::generateCode(BlockTranslator *translator) {
     evaluateExpression(expression, translator);
-    translator->addInstruction(OP_THROW, NO_SOP, expression->resultRegister, 0, 0);
+    // TODO: add key word and node for isType
+    translator->addInstruction(OP_ISTYPE, NO_SOP, resultRegister, expression->resultRegister,
+                               classTable.addClass(*identifier));
     translator->resetRegisters();
-    // TODO: throw of tagged value
 }
+
+
+//////////////////////
+// Fields
 
 void EStaticField::generateCode(BlockTranslator* translator) {
     CHECK_RESULT_REGISTER(this);
@@ -301,6 +307,10 @@ void EThisField::generateCode(BlockTranslator* translator) {
         translator->addInstruction(OP_LDMYF, NO_SOP, resultRegister, currentCtEntry->fieldLookup.at(*fieldName), 0);
     }
 }
+
+
+//////////////////////
+// Calls
 
 void NThisCall::generateCode(BlockTranslator* translator) {
     prepareCall(this, parameters, translator);
@@ -338,12 +348,9 @@ void ENew::generateCode(BlockTranslator* translator) {
                                constantPool.addString(constructorName));
 }
 
-void EInstanceof::generateCode(BlockTranslator *translator) {
-    evaluateExpression(expression, translator);
-    translator->addInstruction(OP_INSTOF, NO_SOP, resultRegister, expression->resultRegister,
-                               classTable.addClass(*identifier));
-    translator->resetRegisters();
-}
+
+//////////////////////
+// Constants
 
 void CString::generateCode(BlockTranslator* translator) {
     CHECK_RESULT_REGISTER(this);
@@ -373,6 +380,10 @@ void CBool::generateCode(BlockTranslator* translator) {
     translator->addInstruction(OP_LDCT, SOP_TAG_BOOL, (uint32_t)value, resultRegister);
 }
 
+
+///////////////////////////
+// Conditional structures
+
 void SIf::generateCode(BlockTranslator* translator) {
     evaluateExpression(condition, translator);
 
@@ -393,7 +404,6 @@ void SIf::generateCode(BlockTranslator* translator) {
         translator->instructions[jmpInstr]->ARG0 = (uint16_t)(translator->instructions.size() - 1 - jmpInstr);
     }
 }
-
 
 void SFor::generateCode(BlockTranslator* translator) {
 
@@ -424,4 +434,130 @@ void SFor::generateCode(BlockTranslator* translator) {
 void SWhile::generateCode(BlockTranslator* translator) {
     SFor whileAsFor(NULL, condition, NULL, body);
     whileAsFor.generateCode(translator);
+}
+
+
+//////////////////////
+// Binary operators
+
+void EBOp::createInstr(BlockTranslator* translator, int subOp) {
+    CHECK_RESULT_REGISTER(this)
+    evaluateExpression(left, translator);
+    evaluateExpression(right, translator);
+    translator->addInstruction(OP_A3REG, subOp, resultRegister, left->resultRegister, right->resultRegister);
+}
+
+void EAnd::generateCode(BlockTranslator* translator) {
+    createInstr(translator, SOP_LAND);
+}
+
+void EOr::generateCode(BlockTranslator* translator) {
+    createInstr(translator, SOP_LOR);
+}
+
+void EAdd::generateCode(BlockTranslator* translator) {
+    createInstr(translator, SOP_ADD);
+}
+
+void ESub::generateCode(BlockTranslator* translator) {
+    createInstr(translator, SOP_SUB);
+}
+
+void EMul::generateCode(BlockTranslator* translator) {
+    createInstr(translator, SOP_MUL);
+}
+
+void EDiv::generateCode(BlockTranslator* translator) {
+    createInstr(translator, SOP_DIV);
+}
+
+void EMod::generateCode(BlockTranslator* translator) {
+    createInstr(translator, SOP_MOD);
+}
+
+void EEq::generateCode(BlockTranslator* translator) {
+    createInstr(translator, SOP_EQ);
+}
+
+void ENe::generateCode(BlockTranslator* translator) {
+    createInstr(translator, SOP_NEQ);
+}
+
+void ELt::generateCode(BlockTranslator* translator) {
+    createInstr(translator, SOP_LT);
+}
+
+void ELe::generateCode(BlockTranslator* translator) {
+    createInstr(translator, SOP_LE);
+}
+
+void EGt::generateCode(BlockTranslator* translator) {
+    createInstr(translator, SOP_GT);
+}
+
+void EGe::generateCode(BlockTranslator* translator) {
+    createInstr(translator, SOP_GE);
+}
+
+
+//////////////////////
+// Unary operators
+
+void EUOp::createInstr(BlockTranslator* translator, int op) {
+    CHECK_RESULT_REGISTER(this)
+    evaluateExpression(expr, translator);
+    translator->addInstruction(op, NO_SOP, resultRegister, expr->resultRegister, 0);
+}
+
+void ENot::generateCode(BlockTranslator* translator) {
+    createInstr(translator, OP_LNOT);
+}
+
+
+//////////////////////
+// Exceptions
+
+void SThrow::generateCode(BlockTranslator* translator) {
+    evaluateExpression(expression, translator);
+    translator->addInstruction(OP_THROW, NO_SOP, expression->resultRegister, 0, 0);
+    translator->resetRegisters();
+    // TODO: throw of tagged value
+}
+
+void STry::generateCode(BlockTranslator* translator) {
+    vector<int> catchInstrs;
+
+    int tryInstr = translator->addInstruction(OP_TRY, NO_SOP, 0, 0, 0);
+    for(list<NCatch*>::reverse_iterator it = catches->rbegin(); it != catches->rend(); ++it) {
+        NCatch* current = *it;
+        uint16_t exceptionType = 0;
+        if(current->className) {
+            exceptionType = classTable.addClass(*current->className);
+        } else {
+            // universal exception handler
+            exceptionType = classTable.addClass("Exception");
+        }
+
+        catchInstrs.push_back(translator->addInstruction(OP_CATCH, NO_SOP, exceptionType, 0, 0));
+    }
+
+    block->generateCode(translator);
+    translator->addInstruction(OP_FIN, NO_SOP, 0, 0, 0);
+
+    for(list<NCatch*>::iterator it = catches->begin(); it != catches->end(); ++it) {
+        translator->instructions.at(catchInstrs.at(catchInstrs.size() - 1))->ARG1
+                = translator->instructions.size() - 1 - tryInstr;
+        catchInstrs.pop_back();
+        (*it)->generateCode(translator);
+    }
+
+    translator->instructions.at(tryInstr)->ARG0 = translator->instructions.size() - 1 - tryInstr;
+}
+
+void NCatch::generateCode(BlockTranslator* translator) {
+    uint16_t exRegister = translator->localVariables->at(*variableName);
+    translator->addInstruction(OP_POP, SOP_STACK_1, exRegister, 0, 0);
+
+    block->generateCode(translator);
+    translator->addInstruction(OP_FIN, NO_SOP, 0, 0, 0);
 }

@@ -159,7 +159,7 @@ public:
     std::string* variableName;
     NBlock* block;
     
-    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void generateCode(BlockTranslator* translator);
     virtual void findLocals(map<string, uint16_t>* locals) {
         block->findLocals(locals);
     }
@@ -173,7 +173,7 @@ public:
     NBlock* block;
     std::list<NCatch*>* catches;
     
-    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void generateCode(BlockTranslator* translator);
     virtual void findLocals(map<string, uint16_t>* locals) {
         block->findLocals(locals);
         for(std::list<NCatch*>::iterator it = catches->begin(); it != catches->end(); ++it) {
@@ -325,6 +325,7 @@ public:
     NExpression* left;
     NExpression* right;
 
+    void createInstr(BlockTranslator* translator, int subOp);
     virtual void findLocals(map<string, uint16_t>* locals) {
         left->findLocals(locals);
         right->findLocals(locals);
@@ -337,91 +338,92 @@ public:
     
     NExpression* expr;
 
+    void createInstr(BlockTranslator* translator, int op);
     virtual void findLocals(map<string, uint16_t>* locals) { expr->findLocals(locals); }
 };
 
 class EAnd : public EBOp {
 public:
     virtual ~EAnd() {}
-    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void generateCode(BlockTranslator* translator);
 };
 
 class EOr : public EBOp {
 public:
     virtual ~EOr() {}
-    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void generateCode(BlockTranslator* translator);
 };
 
 class ENot : public EUOp {
 public:
     virtual ~ENot() {}
-    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void generateCode(BlockTranslator* translator);
 };
 
 class EAdd : public EBOp {
 public:
     virtual ~EAdd() {}
-    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void generateCode(BlockTranslator* translator);
 };
 
 class ESub : public EBOp {
 public:
     virtual ~ESub() {}
-    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void generateCode(BlockTranslator* translator);
 };
 
 class EMul : public EBOp {
 public:
     virtual ~EMul() {}
-    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void generateCode(BlockTranslator* translator);
 };
 
 class EDiv : public EBOp {
 public:
     virtual ~EDiv() {}
-    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void generateCode(BlockTranslator* translator);
 };
 
 class EMod : public EBOp {
 public:
     virtual ~EMod() {}
-    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void generateCode(BlockTranslator* translator);
 };
 
 class EEq : public EBOp {
 public:
     virtual ~EEq() {}
-    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void generateCode(BlockTranslator* translator);
 };
 
 class ENe : public EBOp {
 public:
     virtual ~ENe() {}
-    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void generateCode(BlockTranslator* translator);
 };
 
 class ELt : public EBOp {
 public:
     virtual ~ELt() {}
-    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void generateCode(BlockTranslator* translator);
 };
 
 class ELe : public EBOp {
 public:
     virtual ~ELe() {}
-    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void generateCode(BlockTranslator* translator);
 };
 
 class EGt : public EBOp {
 public:
     virtual ~EGt() {}
-    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void generateCode(BlockTranslator* translator);
 };
 
 class EGe : public EBOp {
 public:
     virtual ~EGe() {}
-    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void generateCode(BlockTranslator* translator);
 };
 
 class EInstanceof : public NExpression {
