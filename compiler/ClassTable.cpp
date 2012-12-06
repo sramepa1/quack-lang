@@ -127,21 +127,21 @@ void ClassTable::addClass(ClassTableEntry* entry) {
 
 uint16_t ClassTable::addClass(string name) {
     
-    uint16_t nameIndex;
+    uint16_t classIndex;
     map<string, uint16_t>::iterator it = classLookup.find(name);
     
     if(it == classLookup.end()) { 
-        nameIndex = constantPool.addString(name);
+        ClassTableEntry* entry = new ClassReference(constantPool.addString(name));
         
-        ClassTableEntry* entry = new ClassReference(nameIndex);
-        
+        classIndex = classTableEntries.size();
         addClass(entry);
-        classLookup.insert(make_pair(name, nameIndex));
+
+        classLookup.insert(make_pair(name, classIndex));
     } else {
-        nameIndex = it->second;
+        classIndex = it->second;
     }
     
-    return nameIndex;
+    return classIndex;
 }
 
 

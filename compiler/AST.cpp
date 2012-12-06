@@ -200,6 +200,11 @@ void prepareCall(NExpression* callNode, std::list<NExpression*>* parameters, Blo
 
 ///////////////////////////////////////////////////////////////////////////////
 
+// TODO nahodit nejvžší bity referencí
+
+
+
+
 void NBlock::generateCode(BlockTranslator* translator) {    
     for(list<NStatement*>::iterator it = statements->begin(); it !=  statements->end(); ++it) {
         (*it)->generateCode(translator);

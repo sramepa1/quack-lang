@@ -28,21 +28,17 @@ public:
     
     void compile();
     
-    
-//private:
-    
     std::ofstream ofs;
     int offset;
-
- //   void writeConstantPool();
-  //  void writeClassTable();
-    
+ 
     void write(const char* bytes, int lenght);
     void write(const char* c_str);
     void write(const char byte);
     void writeAlign8();
 
     static uint32_t sizeToAlign8(uint32_t size);
+    
+private:
     
     // DISABLED
     Compiler(const Compiler& orig);

@@ -84,7 +84,7 @@ void Compiler::write(const char* bytes, int lenght) {
 }
 
 void Compiler::write(const char* c_str) {
-    write(c_str, strlen(c_str));
+    write(c_str, strlen(c_str) + 1);
 }
 
 void Compiler::write(const char byte) {
