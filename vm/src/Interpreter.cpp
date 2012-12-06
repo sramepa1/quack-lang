@@ -81,20 +81,6 @@ inline const char* getCCMnemonic(unsigned char subop) {
 // ------------- Internal interpreter methods -----------------
 
 
-// may need ASM implementation
-__attribute__ ((noinline, regparm(0))) Instruction* jumpToMachineCode(void* code) {
-
-	throw runtime_error("Jumping to compiled code blobs is not yet implemented.");
-
-	// PROTOTYPE, TODO: think out, test or rework!
-
-	asm volatile ("jmp *(%0)": : "r" (code) : "memory");
-
-	return NULL;	// unreachable, but G++ doesn't know it.
-					// Actually, compiled VM RETs will execute equivalent code with an address in rax
-}
-
-
 
 inline void Interpreter::functionPrologue(QuaValue that, QuaMethod* method,
 										  void* retAddr, bool interpreted, uint16_t destReg) {
@@ -162,7 +148,7 @@ Instruction* Interpreter::performCall(QuaMethod* method) {
 // local macro only, #undef'd at the end of the method
 #define MACHINE_JUMP(code) {													\
 						volatile void* destination = (volatile void*)(code);	\
-						asm goto ("jmp *%%rax"								\
+						asm goto ("jmp *%%rax"									\
 						:	/* no output */										\
 						:	"a" (destination)									\
 						:	"memory", "cc" , "rbx", "rcx", "rdx", "rsi", "rdi",	\
@@ -227,7 +213,7 @@ __attribute((noinline)) Instruction* Interpreter::transferControl(TransferReason
 
 					} else {
 					#ifdef TRACE
-						cout << " giving up]" << endl;
+						cout << "giving up]" << endl;
 					#endif
 						method->action = QuaMethod::ALWAYS_INTERPRET;
 						return (Instruction*) method->code; // No further setting of compile flag
@@ -1180,7 +1166,7 @@ inline Instruction* Interpreter::handleHLT() {
 
 
 
-inline Instruction* Interpreter::processInstruction(Instruction* insn) {
+__attribute__((flatten)) inline Instruction* Interpreter::processInstruction(Instruction* insn) {
 
 
 	/*
