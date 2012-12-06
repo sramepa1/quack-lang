@@ -83,34 +83,38 @@ inline const char* getCCMnemonic(unsigned char subop) {
 
 
 inline void Interpreter::functionPrologue(QuaValue that, QuaMethod* method,
-										  void* retAddr, bool interpreted, uint16_t destReg) {
+										  void* retAddr, bool interpretedOrigin, uint16_t destReg) {
 
 	// push that
-	*(--SP) = that;
+	*(--VMSP) = that;
 
-	// save context
-	int32_t regCnt = method->regCount;
-	for(int32_t i = 0; i < regCnt; i++) {
-		*(--SP) = regs[i];
+	if(method->action <= QuaMethod::INTERPRET) {
+		// save context depending on the callee
+		int32_t regCnt = method->regCount;
+		for(int32_t i = 0; i < regCnt; i++) {
+			*(--VMSP) = regs[i];
+		}
 	}
 
-	*(--ASP) = QuaFrame(retAddr, method, interpreted, destReg, (QuaValue*)valStackHigh - BP);		// push ebp
-	BP = SP;																						// mov ebp, esp
+	*(--ASP) = QuaFrame(retAddr, method, interpretedOrigin, destReg, (QuaValue*)valStackHigh - VMBP);		// push ebp
+	VMBP = VMSP;																						// mov ebp, esp
 }
 
 
 inline void Interpreter::functionEpilogue() {
 
 	int32_t regCnt = ASP->currMeth->regCount;
-	SP = BP - regCnt; // discard any pushed locals and this											// mov esp, ebp
+	VMSP = VMBP - regCnt; // discard any pushed locals and this											// mov esp, ebp
 
-	// Restore saved context
-	for(int32_t i = regCnt - 1; i >= 0; i--) {
-		regs[i] = *(SP++);
+	if(ASP->currMeth->action <= QuaMethod::INTERPRET) {
+		// Restore context saved when this was called
+		for(int32_t i = regCnt - 1; i >= 0; i--) {
+			regs[i] = *(VMSP++);
+		}
 	}
 
-	SP += (ASP->ARG_COUNT + 1);											                            // add esp, N
-	BP = (QuaValue*)valStackHigh - ASP->BP_OFFSET;                                                  // pop ebp
+	VMSP += (ASP->ARG_COUNT + 1);											                          // add esp, N
+	VMBP = (QuaValue*)valStackHigh - ASP->BP_OFFSET;                                                  // pop ebp
 }
 
 // inline wrappers for the JIT-friendly monstrosity
@@ -148,7 +152,13 @@ Instruction* Interpreter::performCall(QuaMethod* method) {
 // local macro only, #undef'd at the end of the method
 #define MACHINE_JUMP(code) {													\
 						volatile void* destination = (volatile void*)(code);	\
-						asm goto ("jmp *%%rax"									\
+						asm goto (	"leaq VMSP, %%rbx\n\t"						\
+									"xchgq %%rsp, (%%rbx)\n\t"					\
+									"leaq VMBP, %%rbx\n\t"						\
+									"xchgq %%rbp, (%%rbx)\n\t"					\
+									"leaq ASP, %%rbx\n\t"						\
+									"movq (%%rbx), %%rbx\n\t"					\
+									"jmp *%%rax"								\
 						:	/* no output */										\
 						:	"a" (destination)									\
 						:	"memory", "cc" , "rbx", "rcx", "rdx", "rsi", "rdi",	\
@@ -163,8 +173,12 @@ JITCompiler::JITCompiler(bool enabled) : enabled(enabled)
 	// get adresses of asm-jump labels and "what" in Interpreter::transferControl(reason, what)
 	asm("mov $transfer_call, %%rax" : "=a" (callLabel) : : );
 	asm("mov $transfer_return, %%rax" : "=a" (returnLabel) : : );
-	asm("mov $transfer_throw, %%rax" : "=a" (callLabel) : : );
+	asm("mov $transfer_throw, %%rax" : "=a" (throwLabel) : : );
 	asm("mov $transfer_what, %%rax" : "=a" (whatLabel) : : );
+
+	ptrToASP = &ASP;
+	ptrToVMBP = &VMBP;
+	ptrToVMSP = &VMSP;
 }
 
 __attribute((noinline)) Instruction* Interpreter::transferControl(TransferReason reason, uint64_t param) {
@@ -226,6 +240,7 @@ __attribute((noinline)) Instruction* Interpreter::transferControl(TransferReason
 						cout << "jumping to start]" << endl;
 					#endif
 
+					// TODO needs to initialize JIT pointers first
 					MACHINE_JUMP(method->code)
 					// no return
 
@@ -318,6 +333,8 @@ __attribute((noinline)) Instruction* Interpreter::transferControl(TransferReason
 				#endif
 
 				void* code = ASP->retAddr;
+
+				// TODO needs to restore the entire JIT context first
 				MACHINE_JUMP(code)
 				// no return
 			}
@@ -348,7 +365,6 @@ __attribute((noinline)) Instruction* Interpreter::transferControl(TransferReason
 					throw runtime_error(string("Unhandled exception of class ") + getClassFromValue(qex)->getName());
 
 				} else if (ASP->FRAME_TYPE == EXCEPTION && instanceOf(qex, ASP->EXCEPTION_TYPE)) {
-					// TODO: how to Pokemon?
 					// correct handler
 					++ASP;
 					break;
@@ -363,7 +379,7 @@ __attribute((noinline)) Instruction* Interpreter::transferControl(TransferReason
 			}
 
 			// push exception
-			*(--SP) = qex;
+			*(--VMSP) = qex;
 
 			if(ASP->INTERPRETED) {
 
@@ -382,6 +398,7 @@ __attribute((noinline)) Instruction* Interpreter::transferControl(TransferReason
 					cout << " to a handler in " << CURRENT_METHOD_SIG << "[jumping]" << endl;
 				#endif
 
+				// TODO needs to restore the entire JIT context first
 				void* code = ASP->retAddr;
 				MACHINE_JUMP(code)
 				// no return
@@ -410,7 +427,7 @@ __attribute((noinline)) Instruction* Interpreter::transferControl(TransferReason
 inline Instruction* Interpreter::commonException(const char* className, const char* what) {
 
 	QuaValue instance = newRawInstance(linkedTypes->at(className));                 // allocate
-	*(--SP) = getClassFromType(linkedTypes->at(CLASS_STRING))->deserialize(what);   // push what
+	*(--VMSP) = getClassFromType(linkedTypes->at(CLASS_STRING))->deserialize(what);   // push what
 	instance = nativeCall(instance, (QuaSignature*)"\1initN");                      // construct
 
 	return performThrow(instance);
@@ -569,7 +586,7 @@ inline Instruction* Interpreter::handleLDMYF(Instruction* insn) {
 	cout << "LDMYF r" << insn->ARG0 << ", " << insn->ARG1 << endl;
 #endif
 
-	regs[insn->ARG0] = getFieldByIndex(*BP, insn->ARG1);
+	regs[insn->ARG0] = getFieldByIndex(*VMBP, insn->ARG1);
 	return ++insn;
 }
 
@@ -580,7 +597,7 @@ inline Instruction* Interpreter::handleSTMYF(Instruction* insn) {
 	cout << "STMYF " << insn->ARG0 << ", r" << insn->ARG1 << endl;
 #endif
 
-	getFieldByIndex(*BP, insn->ARG0) = regs[insn->ARG1];
+	getFieldByIndex(*VMBP, insn->ARG0) = regs[insn->ARG1];
 	return ++insn;
 }
 
@@ -615,24 +632,24 @@ inline Instruction* Interpreter::handlePUSH(Instruction* insn) {
 #ifdef TRACE
 			cout << "PUSH r" << insn->ARG0 << endl;
 #endif
-			*(--SP) = regs[insn->ARG0];
+			*(--VMSP) = regs[insn->ARG0];
 			return ++insn;
 
 		case SOP_STACK_2:
 #ifdef TRACE
 			cout << "PUSH2 r" << insn->ARG0 << ", r" << insn->ARG1 << endl;
 #endif
-			*(--SP) = regs[insn->ARG0];
-			*(--SP) = regs[insn->ARG1];
+			*(--VMSP) = regs[insn->ARG0];
+			*(--VMSP) = regs[insn->ARG1];
 			return ++insn;
 
 		case SOP_STACK_3:
 #ifdef TRACE
 			cout << "PUSH3 r" << insn->ARG0 << ", r" << insn->ARG1 << ", r" << insn->ARG2 << endl;
 #endif
-			*(--SP) = regs[insn->ARG0];
-			*(--SP) = regs[insn->ARG1];
-			*(--SP) = regs[insn->ARG2];
+			*(--VMSP) = regs[insn->ARG0];
+			*(--VMSP) = regs[insn->ARG1];
+			*(--VMSP) = regs[insn->ARG2];
 			return ++insn;
 
 		case SOP_STACK_RANGE:
@@ -640,7 +657,7 @@ inline Instruction* Interpreter::handlePUSH(Instruction* insn) {
 			cout << "PUSHA r" << insn->ARG0 << ", r" << insn->ARG1 << endl;
 #endif
 			for(unsigned int i = insn->ARG0; i <= insn->ARG1; i++) {
-				*(--SP) = regs[i];
+				*(--VMSP) = regs[i];
 			}
 			return ++insn;
 
@@ -657,24 +674,24 @@ inline Instruction* Interpreter::handlePOP(Instruction* insn) {
 #ifdef TRACE
 			cout << "POP r" << insn->ARG0 << endl;
 #endif
-			regs[insn->ARG0] = *(SP++);
+			regs[insn->ARG0] = *(VMSP++);
 			return ++insn;
 
 		case SOP_STACK_2:
 #ifdef TRACE
 			cout << "POP2 r" << insn->ARG0 << ", r" << insn->ARG1 << endl;
 #endif
-			regs[insn->ARG1] = *(SP++);
-			regs[insn->ARG0] = *(SP++);
+			regs[insn->ARG1] = *(VMSP++);
+			regs[insn->ARG0] = *(VMSP++);
 			return ++insn;
 
 		case SOP_STACK_3:
 #ifdef TRACE
 			cout << "POP3 r" << insn->ARG0 << ", r" << insn->ARG1 << ", r" << insn->ARG2 << endl;
 #endif
-			regs[insn->ARG2] = *(SP++);
-			regs[insn->ARG1] = *(SP++);
-			regs[insn->ARG0] = *(SP++);
+			regs[insn->ARG2] = *(VMSP++);
+			regs[insn->ARG1] = *(VMSP++);
+			regs[insn->ARG0] = *(VMSP++);
 			return ++insn;
 
 		case SOP_STACK_RANGE:
@@ -682,7 +699,7 @@ inline Instruction* Interpreter::handlePOP(Instruction* insn) {
 			cout << "POPA r" << insn->ARG0 << ", r" << insn->ARG1 << endl;
 #endif
 			for(unsigned int i = insn->ARG1; i >= insn->ARG0; i--) {
-				regs[i] = *(SP++);
+				regs[i] = *(VMSP++);
 			}
 			return ++insn;
 
@@ -698,7 +715,7 @@ inline Instruction* Interpreter::handlePUSHC(Instruction* insn) {
 	cout << "PUSHC " << insn->ARG0 << ", " << insn->ARG1 << endl;
 #endif
 
-	*(--SP) = loadConstant(insn->ARG0, insn->ARG1);
+	*(--VMSP) = loadConstant(insn->ARG0, insn->ARG1);
 	return ++insn;
 }
 
@@ -709,7 +726,7 @@ inline Instruction* Interpreter::handlePUSHCT(Instruction* insn) {
 	cout << "PUSHC" << getTagMnemonic(insn->subop) << ", 0x" << hex << insn->IMM << dec << endl;
 #endif
 
-	*(--SP) = extractTaggedValue(insn);
+	*(--VMSP) = extractTaggedValue(insn);
 	return ++insn;
 }
 
@@ -720,7 +737,7 @@ inline Instruction* Interpreter::handleLDS(Instruction* insn) {
 	cout << "LDS r" << insn->ARG0 << ", " << insn->ARG1 << endl;
 #endif
 
-	regs[insn->ARG0] = *(BP + insn->ARG1);
+	regs[insn->ARG0] = *(VMBP + insn->ARG1);
 	return ++insn;
 }
 
@@ -731,7 +748,7 @@ inline Instruction* Interpreter::handleSTS(Instruction* insn) {
 	cout << "STS " << insn->ARG0 << ", r" << insn->ARG1 << endl;
 #endif
 
-	*(BP + insn->ARG0) = regs[insn->ARG1];
+	*(VMBP + insn->ARG0) = regs[insn->ARG1];
 	return ++insn;
 }
 
@@ -915,7 +932,7 @@ inline Instruction* Interpreter::handleIDX(Instruction* insn) {
 	cout << "IDX r" << insn->ARG0 << ", r" << insn->ARG1 << ", r" << insn->ARG2 << endl;
 #endif
 
-	*(--SP) = regs[insn->ARG2];
+	*(--VMSP) = regs[insn->ARG2];
 	return commonIDX(insn);
 }
 
@@ -926,7 +943,7 @@ inline Instruction* Interpreter::handleIDXI(Instruction* insn) {
 	cout << "IDXI r" << insn->ARG0 << ", r" << insn->ARG1 << ", " << insn->ARG2 << endl;
 #endif
 
-	*(--SP) = QuaValue(insn->ARG2, typeCache.typeInteger, TAG_INT);
+	*(--VMSP) = QuaValue(insn->ARG2, typeCache.typeInteger, TAG_INT);
 	return commonIDX(insn);
 }
 
@@ -983,7 +1000,7 @@ inline Instruction* Interpreter::handleCALLMY(Instruction* insn) {
 	cout << "CALLMY r" << insn->ARG0 << ", " << insn->ARG1 << endl;
 #endif
 
-	return commonCall(insn->ARG0, *BP, insn->ARG1, insn + 1);
+	return commonCall(insn->ARG0, *VMBP, insn->ARG1, insn + 1);
 }
 
 
@@ -1126,9 +1143,9 @@ inline Instruction* Interpreter::handleCNVT(Instruction* insn) {
 	} else {
 		QuaSignature* sig = NULL;
 		switch(insn->subop) {
-			case SOP_TAG_BOOL:  sig = (QuaSignature*)"\0boolValue"; break;
-			case SOP_TAG_FLOAT:  sig = (QuaSignature*)"\0floatValue"; break;
-			case SOP_TAG_INT:  sig = (QuaSignature*)"\0intValue"; break;
+			case SOP_TAG_BOOL:  sig = (QuaSignature*)"\0_boolValue"; break;
+			case SOP_TAG_FLOAT:  sig = (QuaSignature*)"\0_floatValue"; break;
+			case SOP_TAG_INT:  sig = (QuaSignature*)"\0_intValue"; break;
 			case SOP_TAG_NONE: return ++insn;
 				// Nothing to convert, ignore this situation silently. Heap will handle autoboxing.
 			default: errorUnknownTag(insn->subop);
@@ -1270,9 +1287,9 @@ void Interpreter::start(vector<char*>& args) {
 	}
 
 	// push args and This pointer
-	*(--SP) = qargs;
-	*(--SP) = newRawInstance(mainClassType);
-	BP = SP;
+	*(--VMSP) = qargs;
+	*(--VMSP) = newRawInstance(mainClassType);
+	VMBP = VMSP;
 
 	#ifdef DEBUG
 		cout << "Value stack ready, looking up main(1) and preparing address stack" << endl;

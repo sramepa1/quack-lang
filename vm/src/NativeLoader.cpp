@@ -92,7 +92,7 @@ void NativeLoader::registerClassDeserializer(string className, QuaValue (*deseri
 
 QuaValue createException(uint16_t type, const char* msg) {
     QuaValue msgRef = stringDeserializer(msg);
-    *(--SP) = msgRef;                               // Push argument for constructor
+    *(--VMSP) = msgRef;                               // Push argument for constructor
     QuaValue exRef = newRawInstance(type);
     nativeCall(exRef, (QuaSignature*)"\1initN");    // Call native constructor
     return exRef;

@@ -167,14 +167,14 @@
 #define OP_PUSHCT 0x13
 
 /**
- *	Load value from stack, offset relative to BP. No subop.
- *	LDS reg dest, imm16 (signed) BP offset
+ *	Load value from stack, offset relative to VMBP. No subop.
+ *	LDS reg dest, imm16 (signed) VMBP offset
  */
 #define OP_LDS 0x14
 
 /**
- *	Store value to stack, offset relative to BP. No subop.
- *	STS imm16 (signed) BP offset, reg src
+ *	Store value to stack, offset relative to VMBP. No subop.
+ *	STS imm16 (signed) VMBP offset, reg src
  */
 #define OP_STS 0x15
 
@@ -273,7 +273,7 @@
 
 // These jumps operate on tagged boolean values only.
 // Unless using the result of a native method call guarenteed to return one,
-//  compillers must prepend a CNVT<B> instruction to extract boolValue
+//  compillers must prepend a CNVT<B> instruction to extract _boolValue
 
 /**
  *	Jump if a value is a tagged TRUE
@@ -382,7 +382,7 @@
 #define OP_ISTYPE 0x61
 
 /**
- *	Conversion to a tagged value (via repeated bool/int/floatValue calls). Subop specifies target tag.
+ *	Conversion to a tagged value (via repeated _bool/_int/_floatValue calls). Subop specifies target tag.
  *	Using CNVTB is pretty much mandatory before JTRUE or JFALSE. Also, TAG_REF subop makes this a nop.
  *	CNVT<T> reg dest, reg src
  */

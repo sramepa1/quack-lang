@@ -22,12 +22,12 @@ extern "C" {
 
 	void* valStackLow;
 	void* valStackHigh;
-	QuaValue* SP;
-	QuaValue* BP;
+	QuaValue* VMSP asm("VMSP");
+	QuaValue* VMBP asm("VMBP");
 
 	void* addrStackLow;
 	void* addrStackHigh;
-	QuaFrame* ASP;
+	QuaFrame* ASP asm("ASP");
 
 	Heap* heap;
 
@@ -52,8 +52,8 @@ void initGlobals(bool jit, size_t valStackSize, size_t addrStackSize, size_t hea
 	valStackLow = mmap(NULL, valStackSize, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS|MAP_GROWSDOWN, -1, 0);
 	checkMmap(valStackLow, "Could not allocate value stack." );
 	valStackHigh = (void*)((char*)valStackLow + valStackSize);
-	SP = (QuaValue*) valStackHigh;
-	BP = (QuaValue*) valStackHigh;
+	VMSP = (QuaValue*) valStackHigh;
+	VMBP = (QuaValue*) valStackHigh;
 	// guard page
 	mprotect(valStackLow, getpagesize(), PROT_NONE);
 

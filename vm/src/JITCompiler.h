@@ -24,6 +24,10 @@ private:
 
 	bool enabled;
 
+	static void* ptrToVMBP;
+	static void* ptrToVMSP;
+	static void* ptrToASP;
+
 	static void* callLabel;
 	static void* returnLabel;
 	static void* throwLabel;
