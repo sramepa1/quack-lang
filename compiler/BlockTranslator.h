@@ -27,17 +27,23 @@ public:
 
     // register which is available for temporary purpurose (e.g. in expressions)
     uint16_t firstUnusedRegister;
+
+    // the highest register which is used in this method
+    uint16_t usedRegisterCount;
     
     std::map<std::string, uint16_t>* localVariables;
 
     uint16_t getFreeRegister() {
         // TODO: test for register overflow
+        if(firstUnusedRegister >= usedRegisterCount) {
+            usedRegisterCount = firstUnusedRegister + 1;
+        }
+
         return firstUnusedRegister++;
     }
     
     uint16_t getUsedRegisterCount() {
-        // TODO check
-        return firstUnusedRegister;
+        return usedRegisterCount;
     }
 
     void resetRegisters() {

@@ -12,6 +12,7 @@ using namespace std;
 BlockTranslator::BlockTranslator(std::map<std::string,uint16_t>* localVariables) {
     this->initialRegister = localVariables->size();
     firstUnusedRegister = localVariables->size();
+    usedRegisterCount = localVariables->size();
     
     this->localVariables = localVariables;
 }

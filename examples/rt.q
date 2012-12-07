@@ -73,7 +73,7 @@ class InFile extends File #flags 0x0002 {
     fun writeLine(string) {
         throw new IOException("Input file does not support write operation!");
     }
-    fun XN(string) {
+    fun writeLineN(string) {
         throw new IOException("Input file does not support write operation!");
     }
 }
@@ -337,7 +337,7 @@ class Array {
     }
 
     fun setElem(index, elem) {
-        while(!(index instanceof Integer)) {
+        while(!(index istype Integer)) {
             index = index->_intValue();
         }
         return setElemN(index, elem);
