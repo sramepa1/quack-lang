@@ -24,7 +24,8 @@ class InstanceFile {
 
         for(i = 0; i < n; i = i + 1) {
             if((conf % 2) == 1) {
-                cost = cost + itemsArr[i].cost;
+                currentItem = itemsArr->getElem(i);
+                cost = cost + currentItem.cost;
             }
             conf = conf / 2;
         }
@@ -37,7 +38,8 @@ class InstanceFile {
 
         for(i = 0; i < n; i = i + 1) {
             if((conf % 2) == 1) {
-                weight = weight + itemsArr[i].weight;
+                currentItem = itemsArr->getElem(i);
+                weight = weight + currentItem.weight;
             }
             conf = conf / 2;
         }
@@ -81,24 +83,28 @@ class InstanceFile {
         inputLine = in->readLine();
         tokens = inputLine->explode(" ");
 
-        id = tokens[0]->_intValue();
-        n = tokens[1]->_intValue();
-        M = tokens[2]->_intValue();
+        currentToken = tokens->getElem(0);
+        id = currentToken->_intValue();
+        currentToken = tokens->getElem(1);
+        n = currentToken->_intValue();
+        currentToken = tokens->getElem(2);
+        M = currentToken->_intValue();
 
         items = new Array(n);
         
         while(!in->eof()) {
 
-            //cout->write("Instance ID " + id + " - n = " + n + "; M = " + M);
+            cout->write("Instance ID " + id + " - n = " + n + "; M = " + M);
             
             for(i = 0; i < n; i = i + 1) {
                 newItem = new Item();
 
-                newItem.weight = tokens[3 + (2*i)]->_intValue();
-                newItem.cost = tokens[3 + (2*i + 1)]->_intValue();
+                currentToken = tokens->getElem(3 + (2*i));
+                newItem.weight = currentToken->_intValue();
+                currentToken = tokens->getElem(3 + (2*i + 1));
+                newItem.cost = currentToken->_intValue();
 
-                // ???
-                items[i] = newItem;
+                items->setElem(i, newItem);
             }
             
             cout->write("Instance successfuly loaded!");
@@ -110,14 +116,16 @@ class InstanceFile {
             inputLine = in->readLine();
             tokens = inputLine->explode(" ");
 
-            id = tokens[0]->_intValue();
-            n = tokens[1]->_intValue();
-            M = tokens[2]->_intValue();
-
+            currentToken = tokens->getElem(0);
+            id = currentToken->_intValue();
+            currentToken = tokens->getElem(1);
+            n = currentToken->_intValue();
+            currentToken = tokens->getElem(2);
+            M = currentToken->_intValue();
         }
 
-        in.close();
-        out.close();
+        in->close();
+        out->close();
     
     }
 }

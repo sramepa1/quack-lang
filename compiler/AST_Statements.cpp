@@ -214,7 +214,7 @@ void STry::generateCode(BlockTranslator* translator) {
 }
 
 void NCatch::generateCode(BlockTranslator* translator) {
-    uint16_t exRegister = translator->localVariables->at(*variableName);
+    uint16_t exRegister = translator->localVariables->at(*variable->variableName);
     translator->addInstruction(OP_POP, SOP_STACK_1, exRegister, 0, 0);
 
     block->generateCode(translator);

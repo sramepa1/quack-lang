@@ -182,7 +182,9 @@ public:
     virtual void findLocals(std::map<std::string, uint16_t>* locals) {
         condition->findLocals(locals);
         thenBlock->findLocals(locals);
-        elseBlock->findLocals(locals);
+        if(elseBlock != NULL) {
+            elseBlock->findLocals(locals);
+        }
     }
 };
 
