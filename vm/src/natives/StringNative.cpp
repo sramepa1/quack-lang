@@ -50,6 +50,16 @@ QuaValue StringNative::_stringValueNativeImpl() {
 }
 
 
+QuaValue StringNative::_intValueNativeImpl() {
+    throw runtime_error("Native method not yet implemented.");
+}
+
+
+QuaValue StringNative::_floatValueNativeImpl() {
+    throw runtime_error("Native method not yet implemented.");
+}
+
+
 QuaValue StringNative::explodeNativeImpl() {
     throw runtime_error("Native method not yet implemented.");
 }

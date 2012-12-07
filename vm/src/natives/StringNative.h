@@ -23,15 +23,21 @@ public:
                           __extension__ (void*)&StringNative::_opIndexNativeImpl);
         loader->registerNativeMethod(name, (QuaSignature*)"\0_stringValue",
                           __extension__ (void*)&StringNative::_stringValueNativeImpl);
+        loader->registerNativeMethod(name, (QuaSignature*)"\0_intValue",
+                          __extension__ (void*)&StringNative::_intValueNativeImpl);
+        loader->registerNativeMethod(name, (QuaSignature*)"\0_floatValue",
+                          __extension__ (void*)&StringNative::_floatValueNativeImpl);
         loader->registerNativeMethod(name, (QuaSignature*)"\1explodeN",
                           __extension__ (void*)&StringNative::explodeNativeImpl);
     }
 
     static QuaValue init0NativeImpl();                  // native init()
-    static QuaValue init1NativeImpl();                  // native init(string)
+    static QuaValue init1NativeImpl();                  // native initN(string)
     static QuaValue _opPlusNativeImpl();                // native fun _opPlusN(other)
     static QuaValue _opIndexNativeImpl();               // native fun _opIndexN(index)
     static QuaValue _stringValueNativeImpl();           // native fun _stringValue()
+    static QuaValue _intValueNativeImpl();              // native fun _intValue()
+    static QuaValue _floatValueNativeImpl();            // native fun _floatValue()
     static QuaValue explodeNativeImpl();                // native fun explode(delim)
 
 };

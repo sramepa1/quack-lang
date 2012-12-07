@@ -24,7 +24,7 @@ private:
 
 };
 
-QuaValue createException(uint16_t type, const char*msg);
+
 
 
 #endif // NATIVELOADER_H
