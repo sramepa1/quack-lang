@@ -40,6 +40,7 @@ public:
     
     uint16_t defSize;
     uint16_t nameIndex;
+    uint16_t classTableIndex;
     
     virtual void writeTable(Compiler& compiler, uint32_t offset) = 0;
     virtual void writeDef(Compiler& compiler) = 0;

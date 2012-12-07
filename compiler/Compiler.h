@@ -21,7 +21,7 @@ extern "C" {
 
 class Compiler {
 public:
-    Compiler();
+    Compiler(const char* outputFileName);
     virtual ~Compiler();
     
     const char* outputFileName;

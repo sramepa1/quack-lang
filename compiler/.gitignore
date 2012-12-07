@@ -4,7 +4,8 @@
 *.user
 *.includes
 *.pro
-*.gc
+*.qc
+*.q
 build
 build/*
 nbproject

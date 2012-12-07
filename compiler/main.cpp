@@ -9,9 +9,24 @@ using namespace std;
 
 int main(int argc, char** argv) {
      
+    const char* outputFile;
+    
+    switch(argc) {
+        case 1 :
+            outputFile = "a.qc";
+            break;
+            
+        case 2 :
+            outputFile = argv[1];
+            break;
+            
+        default:
+            return 1;
+    }
+    
     cout << "Prepairing to build Quack program." << endl; 
     
-    Compiler compiler;
+    Compiler compiler(outputFile);
     
     try {
         compiler.compile();

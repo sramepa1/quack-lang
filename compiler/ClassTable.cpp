@@ -75,7 +75,12 @@ void ClassDefinition::writeTable(Compiler& compiler, uint32_t offset) {
 void ClassDefinition::writeDef(Compiler& compiler) {
     
     //general info
-    compiler.write((char*) &ancestor, 2);
+    if(hasAncestor) {
+        compiler.write((char*) &ancestor, 2);
+    } else {
+        compiler.write((char*) &classTableIndex, 2);
+    }
+    
     compiler.write((char*) &flags, 2);
     
     uint16_t tmp16;
@@ -156,9 +161,11 @@ void ClassTable::write(Compiler& compiler) {
     
     // write table
     uint32_t offset = EMPTY_TABLE_SIZE + classTableEntries.size() * 8; // 8 is size of table entry
-    for(std::list<ClassTableEntry*>::iterator it = classTableEntries.begin(); it != classTableEntries.end(); ++it) {
+    uint16_t i = 0;
+    for(std::list<ClassTableEntry*>::iterator it = classTableEntries.begin(); it != classTableEntries.end(); ++it, ++i) {
         (*it)->writeTable(compiler, offset);
         offset += Compiler::sizeToAlign8((*it)->defSize);
+        (*it)->classTableIndex = i;
     }
     
     // write definition

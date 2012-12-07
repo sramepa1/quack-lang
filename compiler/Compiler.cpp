@@ -22,16 +22,28 @@ extern NProgram* quackProgram;
 using namespace std;
 
 
-Compiler::Compiler() : outputFileName("a.qc"), offset(0) {}
+Compiler::Compiler(const char* _outputFileName) : outputFileName(_outputFileName), offset(0) {}
 
 Compiler::~Compiler() {}
 
 
 void Compiler::compile() {
     
+    cout << "Opening output file \"" << outputFileName << "\"" << endl;
+    
     ofs.open(outputFileName, ios::out | ios::trunc | ios::binary);
     
+    if(ofs.fail()) {
+        throw "Sorry,I can not open the output file.";
+    }
+    
+    cout << "Beginning of parsing Quack source code" << endl;
+    
     yyparse();
+    
+    cout << "Parsing complete, AST created" << endl;
+    
+    cout << "Writing classfile intro" << endl;
     
     // write prologs
     write("#!/usr/bin/daisy\n");
@@ -45,38 +57,14 @@ void Compiler::compile() {
         
     write(header, 8);
     
+    cout << "Beginig of AST compiling" << endl;
+    
     quackProgram->compile(*this);
+    
+    cout << "AST compiling completed" << endl;
     
     ofs.close();
 }
-
-/*
-
-void Compiler::writeClassTable() {
-    
-    
-    uint16_t refeCnt = classTableEntries->size();
-    
-    uint32_t dataSize = 6 + refeCnt * 8 + 0; // TODO add definition sizes
-    
-    // table header
-    write((char*) &dataSize, 4);
-    write((char*) &refeCnt, 2);
-    
-    writeAlign8();
-    
-    // table entries
-    for(unsigned int i = 0; i < classTableEntries->size(); i++) {
-        write((char*) &classTableEntries->at(i), 8);
-    }
-
-    
-    
-}
-
-
-*/
-
 
 void Compiler::write(const char* bytes, int lenght) {
     ofs.write(bytes, lenght);

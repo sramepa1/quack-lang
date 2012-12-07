@@ -22,15 +22,12 @@
 
 using namespace std;
 
-
 class NProgram : public Node {
 public:
     virtual ~NProgram();
 
-    std::map<std::string, NClass*> ClassDef;
-    
-    std::map<std::string, std::string*> DynClassRef;
-    std::map<std::string, std::string*> StatClassRef;
+    std::list<std::pair<std::string*, NClass*> > ClassDef;
+    //std::map<std::string, NClass*> ClassDef;
     
     void addClass(std::string* name, NClass* nclass);
     

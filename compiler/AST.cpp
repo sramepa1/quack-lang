@@ -16,11 +16,12 @@ ClassDefinition* currentCtEntry;
 
 
 void NProgram::addClass(string* s, NClass* nclass) {
-    ClassDef.insert(pair<string, NClass*>(*s, nclass));
+    ClassDef.push_back(pair<string*, NClass*> (s, nclass));
 }
 
 NProgram::~NProgram() {
-    for(map<string, NClass*>::iterator it = ClassDef.begin(); it != ClassDef.end(); it++) {
+    for(std::list<std::pair<std::string*, NClass*> >::iterator it = ClassDef.begin(); it != ClassDef.end(); it++) {
+        delete (it->first);
         delete (it->second);
     }
 }
@@ -43,12 +44,12 @@ void NProgram::compile(Compiler& compiler) {
 void NProgram::analyzeTree() {
 
     // Generate classtable entries
-    for(map<std::string, NClass*>::iterator it = ClassDef.begin(); it != ClassDef.end(); ++it) {
+    for(std::list<std::pair<std::string*, NClass*> >::iterator it = ClassDef.begin(); it != ClassDef.end(); ++it) {
         
         currentCtEntry = new ClassDefinition();
         
         // class name
-        currentCtEntry->nameIndex = constantPool.addString(it->first);
+        currentCtEntry->nameIndex = constantPool.addString(*it->first);
            
         // flags
         currentCtEntry->flags = it->second->flags;
@@ -57,10 +58,9 @@ void NProgram::analyzeTree() {
         string* ancestorName = it->second->getAncestor();
         
         if(ancestorName == NULL) {
-            currentCtEntry->ancestor = classTable.classTableEntries.size();
             currentCtEntry->hasAncestor = false;
         } else {
-            currentCtEntry->ancestor = constantPool.addString(*ancestorName);
+            currentCtEntry->ancestor = classTable.addClass(*ancestorName);
             currentCtEntry->hasAncestor = true;
         }
 
