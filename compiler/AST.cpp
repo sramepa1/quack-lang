@@ -174,9 +174,15 @@ bool hasAncestor() {
     return currentCtEntry->hasAncestor;
 }
 
+#define TYPE_UNRESOLVED 0x8000
+
+uint16_t getTypeID(std::string name) {
+    return TYPE_UNRESOLVED | classTable.addClass(name);
+}
+
 uint16_t loadStatClass(std::string* name, BlockTranslator* translator) {
     uint16_t classRefRegister = translator->getFreeRegister();
-    translator->addInstruction(OP_LDSTAT, NO_SOP, classRefRegister, classTable.addClass(*name), 0);
+    translator->addInstruction(OP_LDSTAT, NO_SOP, classRefRegister, getTypeID(*name), 0);
     return classRefRegister;
 }
 
@@ -199,11 +205,6 @@ void prepareCall(NExpression* callNode, std::list<NExpression*>* parameters, Blo
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-
-// TODO nahodit nejvžší bity referencí
-
-
-
 
 void NBlock::generateCode(BlockTranslator* translator) {    
     for(list<NStatement*>::iterator it = statements->begin(); it !=  statements->end(); ++it) {
@@ -278,8 +279,7 @@ void SAssignment::generateCode(BlockTranslator* translator) {
 void EInstanceof::generateCode(BlockTranslator *translator) {
     evaluateExpression(expression, translator);
     // TODO: add key word and node for isType
-    translator->addInstruction(OP_ISTYPE, NO_SOP, resultRegister, expression->resultRegister,
-                               classTable.addClass(*identifier));
+    translator->addInstruction(OP_ISTYPE, NO_SOP, resultRegister, expression->resultRegister, getTypeID(*identifier));
     translator->resetRegisters();
 }
 
@@ -354,7 +354,7 @@ void ENew::generateCode(BlockTranslator* translator) {
 
 void CString::generateCode(BlockTranslator* translator) {
     CHECK_RESULT_REGISTER(this);
-    translator->addInstruction(OP_LDC, NO_SOP, resultRegister, classTable.addClass("String"),
+    translator->addInstruction(OP_LDC, NO_SOP, resultRegister, getTypeID("String"),
                                constantPool.addString(*value));
 }
 
@@ -532,10 +532,10 @@ void STry::generateCode(BlockTranslator* translator) {
         NCatch* current = *it;
         uint16_t exceptionType = 0;
         if(current->className) {
-            exceptionType = classTable.addClass(*current->className);
+            exceptionType = getTypeID(*current->className);
         } else {
             // universal exception handler
-            exceptionType = classTable.addClass("Exception");
+            exceptionType = getTypeID("Exception");
         }
 
         catchInstrs.push_back(translator->addInstruction(OP_CATCH, NO_SOP, exceptionType, 0, 0));
@@ -555,6 +555,7 @@ void STry::generateCode(BlockTranslator* translator) {
 }
 
 void NCatch::generateCode(BlockTranslator* translator) {
+    // TODO: assign register to exception variable
     uint16_t exRegister = translator->localVariables->at(*variableName);
     translator->addInstruction(OP_POP, SOP_STACK_1, exRegister, 0, 0);
 

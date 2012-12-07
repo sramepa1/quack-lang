@@ -39,7 +39,7 @@ class File #flags 0x0002 {
         while(!(string instanceof String)) {
             string = string->_stringValue();
         }
-        writeLineN(string);
+        return writeLineN(string);
     }
 
     fun writeLineN(string) #flags 0x0001 {}
@@ -114,21 +114,21 @@ class String {
         while(!(other instanceof String)) {
             other = other->_stringValue();
         }
-        _opPlusN(other);
+        return _opPlusN(other);
     }
     
     fun _opIndex(index) {
         while(!(index instanceof Integer)) {
             index = index->_intValue();
         }
-        _opIndexN(index);
+        return _opIndexN(index);
     }
     
     fun explode(delim) {
         while(!(delim instanceof String)) {
             delim = delim->_stringValue();
         }
-        explodeN(delim);
+        return explodeN(delim);
     }
     
     // Is it needed?
@@ -150,7 +150,7 @@ class Integer {
         while(!(value instanceof Integer)) {
             value = value->_intValue();
         }
-        _initN(value);
+        initN(value);
     }
 
     fun initN(value) #flags 0x0001 {}
@@ -165,77 +165,77 @@ class Integer {
         while(!(operand instanceof Integer)) {
             operand = operand->_intValue();
         }
-        _opPlusN(operand);
+        return _opPlusN(operand);
     }
 
     fun _opMinus(operand) {
         while(!(operand instanceof Integer)) {
             operand = operand->_intValue();
         }
-        _opMinusN(operand);
+        return _opMinusN(operand);
     }
 
     fun _opMul(operand) {
         while(!(operand instanceof Integer)) {
             operand = operand->_intValue();
         }
-        _opMulN(operand);
+        return _opMulN(operand);
     }
 
     fun _opDiv(operand) {
         while(!(operand instanceof Integer)) {
             operand = operand->_intValue();
         }
-        _opDivN(operand);
+        return _opDivN(operand);
     }
 
     fun _opMod(operand) {
         while(!(operand instanceof Integer)) {
             operand = operand->_intValue();
         }
-        _opModN(operand);
+        return _opModN(operand);
     }
 
     fun _opEq(operand) {
         while(!(operand instanceof Integer)) {
             operand = operand->_intValue();
         }
-        _opEqN(operand);
+        return _opEqN(operand);
     }
 
     fun _opNeq(operand) {
         while(!(operand instanceof Integer)) {
             operand = operand->_intValue();
         }
-        _opNeqN(operand);
+        return _opNeqN(operand);
     }
 
     fun _opGt(operand) {
         while(!(operand instanceof Integer)) {
             operand = operand->_intValue();
         }
-        _opGtN(operand);
+        return _opGtN(operand);
     }
 
     fun _opLt(operand) {
         while(!(operand instanceof Integer)) {
             operand = operand->_intValue();
         }
-        _opLtN(operand);
+        return _opLtN(operand);
     }
 
     fun _opGe(operand) {
         while(!(operand instanceof Integer)) {
             operand = operand->_intValue();
         }
-        _opGeN(operand);
+        return _opGeN(operand);
     }
 
     fun _opLe(operand) {
         while(!(operand instanceof Integer)) {
             operand = operand->_intValue();
         }
-        _opLeN(operand);
+        return _opLeN(operand);
     }
 
 
@@ -265,7 +265,7 @@ class Bool {
         while(!(value instanceof Bool)) {
             value = value->_boolValue();
         }
-        _initN(value);
+        initN(value);
     }
 
     fun initN(value) #flags 0x0001 {}
@@ -275,28 +275,28 @@ class Bool {
         while(!(operand instanceof Bool)) {
             operand = operand->_boolValue();
         }
-        _opEqN(operand);
+        return _opEqN(operand);
     }
 
     fun _opNeq(operand) {
         while(!(operand instanceof Bool)) {
             operand = operand->_boolValue();
         }
-        _opNeqN(operand);
+        return _opNeqN(operand);
     }
 
     fun _opLAnd(operand) {
         while(!(operand instanceof Bool)) {
             operand = operand->_boolValue();
         }
-        _opLAndN(operand);
+        return _opLAndN(operand);
     }
 
     fun _opLOr(operand) {
         while(!(operand instanceof Bool)) {
             operand = operand->_boolValue();
         }
-        _opLOrN(operand);
+        return _opLOrN(operand);
     }
 
 
@@ -327,7 +327,7 @@ class Array {
         while(!(index instanceof Integer)) {
             index = index->_intValue();
         }
-        _opIndexN(index);
+        return _opIndexN(index);
     }
     
     fun initN(size) #flags 0x0001 {}
