@@ -73,6 +73,7 @@ uint16_t ConstantPool::addSignature(std::string str, unsigned char parameters) {
         char* data = new char[str.size() + 2];
         data[0] = parameters;
         strncpy(data + 1, str.c_str(), str.size());
+        data[str.size() + 1] = 0;
         
         cpIndex = addConstant((char*) data, str.size() + 2);
         signatureLookup.insert(make_pair(sig, cpIndex));

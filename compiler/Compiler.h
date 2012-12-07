@@ -17,7 +17,7 @@ extern "C" {
    #include <stdint.h>
 }
 
-#define ALLIGN_BYTE_VALUE 0
+#define ALLIGN_BYTE_VALUE 0xAA
 
 class Compiler {
 public:

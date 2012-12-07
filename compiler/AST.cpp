@@ -92,12 +92,15 @@ void NField::fillTableEntry() {
 
 void NMethod::fillTableEntry() {
     // signature
-    int size = name->size() + 2;
+  /*  int size = name->size() + 2;
     char* signature = new char[size];
     signature[0] = (char) parameterNames->size();
-    name->copy(signature + 1, name->size());
-    uint16_t sigIndex = constantPool.addConstant(signature, size); 
-
+    name->copy(signature + 1, name->size());*/
+    
+    cout << "Generating signature for method \"" << *name << "\"" << endl;
+    
+    uint16_t sigIndex = constantPool.addSignature(*name, parameterNames->size());
+    
     // analyze the code
     map<string, uint16_t>* localVariables = new map<string, uint16_t>();
     findLocals(localVariables);
