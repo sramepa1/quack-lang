@@ -41,12 +41,12 @@ Loader::Loader() : mmapedClsFiles(new vector<pair<void*, size_t> >()) {
 	}
 	typeCache.typeDataBlob = linkedTypes->at("_DataBlob");
 	// TODO: uncomennt them when completed the standard runtime classes
-//    typeCache.typeBool = linkedTypes->at("Bool");
-//    typeCache.typeInteger = linkedTypes->at("Integer");
+	typeCache.typeBool = linkedTypes->at("Bool");
+	typeCache.typeInteger = linkedTypes->at("Integer");
 //    typeCache.typeFloat = linkedTypes->at("Float");
 	typeCache.typeString = linkedTypes->at("String");
-//    typeCache.typeNotFoundException = linkedTypes->at("NotFoundException");
-//    typeCache.typeIOException = linkedTypes->at("IOException");
+	typeCache.typeNotFoundException = linkedTypes->at("NotFoundException");
+	typeCache.typeIOException = linkedTypes->at("IOException");
 
 #ifdef DEBUG
 	cout << "Native classes loaded!" << endl;

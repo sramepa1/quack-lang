@@ -107,7 +107,7 @@ inline void Interpreter::functionEpilogue() {
 	int32_t regCnt = ASP->currMeth->regCount;
 	VMSP = VMBP - regCnt; // discard any pushed locals and this											// mov esp, ebp
 
-	if(ASP->currMeth->action <= QuaMethod::INTERPRET) {
+	if(ASP->currMeth->action <= QuaMethod::COMPILE) {
 		// Restore context saved when this was called
 		for(int32_t i = regCnt - 1; i >= 0; i--) {
 			regs[i] = *(VMSP++);
@@ -350,7 +350,7 @@ __attribute((noinline)) Instruction* Interpreter::transferControl(TransferReason
 			asm volatile (".local transfer_throw\n\t"\
 						  "transfer_throw: nop" ::: "memory");
 
-			QuaValue qex = *(QuaValue*)volatile_what;
+			QuaValue qex = *(QuaValue*)&volatile_what;
 
 			#ifdef TRACE
 				cout << "# Throwing an exception of class " << getClassFromValue(qex)->getName()
@@ -427,9 +427,9 @@ __attribute((noinline)) Instruction* Interpreter::transferControl(TransferReason
 
 inline Instruction* Interpreter::commonException(const char* className, const char* what) {
 
-	QuaValue instance = newRawInstance(linkedTypes->at(className));                 // allocate
-	*(--VMSP) = getClassFromType(linkedTypes->at(CLASS_STRING))->deserialize(what);   // push what
-	instance = nativeCall(instance, (QuaSignature*)"\1initN");                      // construct
+	QuaValue instance = newRawInstance(linkedTypes->at(className));						// allocate
+	*(--VMSP) = getClassFromType(linkedTypes->at(CLASS_STRING))->deserialize(what);		// push what
+	nativeCall(instance, (QuaSignature*)"\1initN");										// construct
 
 	return performThrow(instance);
 }

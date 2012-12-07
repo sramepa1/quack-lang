@@ -23,6 +23,8 @@ public:
 	void start(std::vector<char*>& args);
 	Instruction* processInstruction(Instruction* insn);
 
+	QuaValue readRegister(uint16_t index) { return regs[index]; }
+
 private:
 	std::vector<QuaValue> regs;
 
