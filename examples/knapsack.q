@@ -15,7 +15,7 @@ class InstanceFile {
     init(filename) {
         
         in = new InFile(filename);
-        out = new OutFile(filename->_opPlus(".result"));
+        out = new OutFile(filename + ".result");
 
     }
 

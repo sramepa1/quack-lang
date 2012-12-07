@@ -177,6 +177,7 @@ stat_init:
 
 dyn_init:
     K_INIT arguments block {$$ = new NMethod(new std::string("init"), $2, $3);}
+  | K_INIT arguments K_FLAGS C_HEX_INTEGER  block {$$ = new NMethod(new std::string("init"), $2, $5, (uint16_t) strtol($4->c_str(), NULL, 16)); delete $4;}
 ;
 
 method: 
@@ -305,7 +306,9 @@ compare_expr:
 ;
 
 string_expr:
-    string_expr T_PLUS string_expr {$$ = new EAdd(); ((EBOp*) $$)->left = $1; ((EBOp*) $$)->right = $3;}
+    string_const T_PLUS string_const {$$ = new EAdd(); ((EBOp*) $$)->left = $1; ((EBOp*) $$)->right = $3;}
+  | value T_PLUS string_const {$$ = new EAdd(); ((EBOp*) $$)->left = $1; ((EBOp*) $$)->right = $3;}
+  | string_const T_PLUS value {$$ = new EAdd(); ((EBOp*) $$)->left = $1; ((EBOp*) $$)->right = $3;}
   | string_const {$$ = $1;}
 ;
 
