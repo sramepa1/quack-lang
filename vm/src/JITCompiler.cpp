@@ -58,8 +58,8 @@ bool JITCompiler::compile(QuaMethod* method) {
 
 	try {
 		list<Instruction*> insns = buildObjects(method); //signature may change
-		allocateRegisters(insns);
-		generate(insns, buffer);
+		map<uint16_t, MachineRegister> allocation = allocateRegisters(insns);
+		generate(insns, allocation, buffer);
 
 		size_t blobsize = ((buffer.size() - 1) / getpagesize() + 1) * getpagesize();
 		memblob = mmap(NULL, blobsize, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
@@ -114,7 +114,7 @@ inline void JITCompiler::updateMax(uint16_t& maxReg, uint16_t insnReg) {
 	}
 }
 
-void JITCompiler::allocateRegisters(list<Instruction*> insns) {
+map<uint16_t, JITCompiler::MachineRegister> JITCompiler::allocateRegisters(list<Instruction*> insns) {
 
 	/*
 	 *	This was originally planned to house a Linear Scan register allocation mechanism -
@@ -232,51 +232,192 @@ void JITCompiler::allocateRegisters(list<Instruction*> insns) {
 			throw GiveUpException();
 		}
 	}
+
+	// TODO: Full liveness analysis and the actual Linear Scan pass.
+
+	map<uint16_t, MachineRegister> allocation;
+
+	// TODO: Use Linear Scan's output to map unspilled virtual registers to those 12 machine ones
+
+	allocation[0] = REG_RCX;
+	allocation[1] = REG_RDX;
+	allocation[2] = REG_RSI;
+	allocation[3] = REG_RDI;
+	allocation[4] = REG_R8;
+	allocation[5] = REG_R9;
+	allocation[6] = REG_R10;
+	allocation[7] = REG_R11;
+	allocation[8] = REG_R12;
+	allocation[9] = REG_R13;
+	allocation[10] = REG_R14;
+	allocation[11] = REG_R15;
+
+	// TODO: Also return stack locations for spilled virtual registers.
+
+	return allocation;
 }
 
 
-inline void append(vector<unsigned char>& buffer, const char* data, size_t count) {
+inline void JITCompiler::append(vector<unsigned char>& buffer, const char* data, size_t count) {
 	buffer.insert(buffer.end(), (const unsigned char*)data, (const unsigned char*)data + count);
 }
 
-void JITCompiler::generate(list<Instruction*> insns, std::vector<unsigned char> & buffer ) {
+void JITCompiler::emitOneByteInsn(MachineRegister reg, unsigned char machineOp, vector<unsigned char>& buffer) {
+	if(reg >= REG_R8) {
+		buffer.push_back(0x41); // REX
+	}
+	machineOp |= (reg % 8);
+	buffer.push_back(machineOp);
+}
+
+void JITCompiler::emitTwoRegInsn(MachineRegister regRM, MachineRegister regR, // usually Dest and Src, depends on opcode
+				unsigned char opcode, vector<unsigned char>& buffer, bool directAddressing, int32_t displacement) {
+
+	unsigned char REX = 0x48;
+	if(regRM >= REG_R8) {
+		REX |= 0x1;
+	}
+	if(regR >= REG_R8) {
+		REX |= 0x4;
+	}
+
+	buffer.push_back(REX);
+	buffer.push_back(opcode);
+
+	unsigned char modRM;
+	bool useDisplacement = false;
+
+	if(directAddressing) {
+		modRM = 0xC0;
+	} else if (displacement == 0 && regRM != REG_RSP && regRM != REG_RBP && regRM != REG_R12 && regRM != REG_R13) {
+		modRM = 0x0;
+	} else if (displacement < CHAR_MIN || displacement > CHAR_MAX) {
+		modRM = 0x40;
+		useDisplacement = true;
+	} else {
+		modRM = 0x80;
+		useDisplacement = true;
+	}
+
+	modRM |= (regR % 8) << 3;
+	modRM |= regRM % 8;
+
+	buffer.push_back(modRM);
+
+	if(regRM == REG_RSP || regRM == REG_R12) {  // SIB required
+		buffer.push_back((unsigned char)regRM); // SIB: scale and index zero, base RSP or R12
+	}
+
+	if(useDisplacement) {
+		append(buffer, (const char*) &displacement, (displacement >= CHAR_MIN && displacement <= CHAR_MAX) ? 1 : 4);
+	}
+}
+
+
+void JITCompiler::emitSwitchPointersToC(vector<unsigned char>& buffer) {
+
+	// Restore Quack and x64 stack pointers to their original state
+
+	append(buffer, "\x48\xB8", 2);								// mov rax, qword VMBP
+	append(buffer, (char*)&ptrToVMBP, sizeof(void*));
+	append(buffer, "\x48\x87\x28", 3);							// xchg rbp, [rax]
+
+	append(buffer, "\x48\xB8", 2);								// mov rax, qword VMSP
+	append(buffer, (char*)&ptrToVMSP, sizeof(void*));
+	append(buffer, "\x48\x87\x20", 3);							// xchg rsp, [rax]
+
+	append(buffer, "\x48\xB8", 2);								// mov rax, qword ASP
+	append(buffer, (char*)&ptrToASP, sizeof(void*));
+	append(buffer, "\x48\x89\x18", 3);							// mov [rax], rbx
+}
+
+
+inline void JITCompiler::emitLoadLabelToRax(void* labelPtr, vector<unsigned char>& buffer) {
+	append(buffer, "\x48\xB8", 2);								// mov rax, imm64
+	append(buffer, (char*)&labelPtr, sizeof(void*));
+}
+
+inline void JITCompiler::emitJumpToLabel(void* labelPtr, vector<unsigned char>& buffer) {
+	emitLoadLabelToRax(labelPtr, buffer);
+	append(buffer, "\xFF\xE0", 2);								// jmp rax
+}
+
+
+void JITCompiler::translateStackOp(Instruction* insn, unsigned char opcode,
+						map<uint16_t, JITCompiler::MachineRegister> allocation, vector<unsigned char> & buffer) {
+	switch(insn->subop) {
+		case SOP_STACK_1:
+			emitOneByteInsn(allocation[insn->ARG0], opcode, buffer);
+			break;
+
+		// TODO: P2, P3, PA
+
+		default:
+			#ifdef TRACE
+			cout << "can't translate PUSH/POP subop 0x" << hex << insn->subop << dec << ", ";
+			#endif
+			throw GiveUpException();
+	}
+}
+
+inline void JITCompiler::setupReturn(vector<unsigned char>& buffer) {
+	emitSwitchPointersToC(buffer);
+	emitLoadLabelToRax(whatLabel, buffer);
+}
+
+inline void JITCompiler::finishReturnReg(MachineRegister reg, void* destinationLabel, vector<unsigned char>& buffer) {
+	emitTwoRegInsn(REG_RAX, reg, 0x89, buffer, false);	// mov qword [rax], r??
+	emitJumpToLabel(destinationLabel, buffer);	// Leave JITted code
+}
+
+
+
+void JITCompiler::generate(list<Instruction*> insns, map<uint16_t, MachineRegister> allocation,
+						   vector<unsigned char>& buffer ) {
 
 
 	for(list<Instruction*>::iterator it = insns.begin(); it != insns.end(); ++it) {
 
 		switch((*it)->op) {
 			case OP_NOP:
-				//append(buffer, "\x90", 1); // only used for testing, otherwise not necessary
+				//buffer.push_back(0x90); // only used for testing, otherwise not necessary
+				break;
+
+			case OP_MOV:
+				emitTwoRegInsn(allocation[(*it)->ARG0], allocation[(*it)->ARG1], 0x89, buffer, true);
+				break;
+
+			case OP_XCHG:
+				emitTwoRegInsn(allocation[(*it)->ARG1], allocation[(*it)->ARG0], 0x87, buffer, true);
+				break;
+
+			case OP_PUSH:
+				translateStackOp(*it, 0x50, allocation, buffer);
+				break;
+
+			case OP_POP:
+				translateStackOp(*it, 0x58, allocation, buffer);
+				break;
+
+			case OP_LDS:
+				emitTwoRegInsn(REG_RBP, allocation[(*it)->ARG0], 0x8B, buffer, false, ((int16_t)(*it)->ARG1) * 8);
+				break;
+
+			case OP_RET:
+				setupReturn(buffer);
+				finishReturnReg(allocation[(*it)->ARG0], returnLabel, buffer);
 				break;
 
 			case OP_RETNULL:
-
-				// TODO move RBX, RBP, RSP back to original values
-
-				append(buffer, "\x48\xB8", 2);								// mov rax, qword VMBP
-				append(buffer, (char*)&ptrToVMBP, sizeof(void*));
-				append(buffer, "\x48\x87\x28", 3);							// xchg rbp, [rax]
-
-				append(buffer, "\x48\xB8", 2);								// mov rax, qword VMSP
-				append(buffer, (char*)&ptrToVMSP, sizeof(void*));
-				append(buffer, "\x48\x87\x20", 3);							// xchg rsp, [rax]
-
-				append(buffer, "\x48\xB8", 2);								// mov rax, qword ASP
-				append(buffer, (char*)&ptrToASP, sizeof(void*));
-				append(buffer, "\x48\x89\x18", 3);							// mov [rax], rbx
-
-				append(buffer, "\x48\xB8", 2);								// mov rax, qword whatLabel
-				append(buffer, (char*)&whatLabel, sizeof(whatLabel));
-
+				setupReturn(buffer);
 				append(buffer, "\x48\xC7\x00\x00\x00\x00\x00", 7);			// mov qword [rax], 0
-
-				append(buffer, "\x48\xB8", 2);								// mov rax, qword returnLabel
-				append(buffer, (char*)&returnLabel, sizeof(returnLabel));
-
-				append(buffer, "\xFF\xE0", 2);								// jmp rax
-
+				emitJumpToLabel(returnLabel, buffer);						// Leave JITted code
 				break;
 
+			case OP_THROW:
+				setupReturn(buffer);
+				finishReturnReg(allocation[(*it)->ARG0], throwLabel, buffer);
+				break;
 
 
 			default:
