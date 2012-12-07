@@ -51,7 +51,7 @@
    they represent.
  */
 %token <token> K_STATCLASS K_CLASS K_EXTENDS K_FIELD K_INIT K_METHOD K_FLAGS
-%token <token> K_THIS K_NULL K_NEW K_INSTANCEOF K_RETURN
+%token <token> K_THIS K_NULL K_NEW K_ISTYPE K_RETURN
 
 %token <token> K_THROW K_TRY K_CATCH K_AS
 %token <token> T_ASSIGN K_IF K_ELSE K_FOR K_WHILE
@@ -315,7 +315,7 @@ string_expr:
 */
 
 instance_expr:
-    variable K_INSTANCEOF T_IDENTIFIER {$$ = new EInstanceof($1, $3);}
+    variable K_ISTYPE T_IDENTIFIER {$$ = new EInstanceof($1, $3);}
 ;
 
 relation_expr:

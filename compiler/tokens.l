@@ -41,7 +41,7 @@ extern "C" int yywrap() { return 1; }
 "while"                                 return TOKEN(K_WHILE);
 "="                                     return TOKEN(T_ASSIGN);
 
-"instanceof"                            return TOKEN(K_INSTANCEOF);
+"istype"                                return TOKEN(K_ISTYPE);
 "return"                                return TOKEN(K_RETURN);
 "this"                                  return TOKEN(K_THIS);
 "null"                                  return TOKEN(K_NULL);

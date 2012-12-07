@@ -26,7 +26,7 @@ class File #flags 0x0002 {
     field data3 #flags 0x8000;
 
     init(fileName) {
-        while(!(fileName instanceof String)) {
+        while(!(fileName istype String)) {
             fileName = fileName->_stringValue();
         }
         initN(fileName);
@@ -36,7 +36,7 @@ class File #flags 0x0002 {
     fun readLine() #flags 0x0001 {}
 
     fun writeLine(string) {
-        while(!(string instanceof String)) {
+        while(!(string istype String)) {
             string = string->_stringValue();
         }
         return writeLineN(string);
@@ -73,7 +73,7 @@ class InFile extends File #flags 0x0002 {
     fun writeLine(string) {
         throw new IOException("Input file does not support write operation!");
     }
-    fun writeLineN(string) {
+    fun XN(string) {
         throw new IOException("Input file does not support write operation!");
     }
 }
@@ -104,28 +104,28 @@ class String {
     }
 
     init(string) {
-        while(!(string instanceof String)) {
+        while(!(string istype String)) {
             string = string->_stringValue();
         }
         initN(string);
     }
     
     fun _opPlus(other) {
-        while(!(other instanceof String)) {
+        while(!(other istype String)) {
             other = other->_stringValue();
         }
         return _opPlusN(other);
     }
     
     fun _opIndex(index) {
-        while(!(index instanceof Integer)) {
+        while(!(index istype Integer)) {
             index = index->_intValue();
         }
         return _opIndexN(index);
     }
     
     fun explode(delim) {
-        while(!(delim instanceof String)) {
+        while(!(delim istype String)) {
             delim = delim->_stringValue();
         }
         return explodeN(delim);
@@ -147,7 +147,7 @@ class Integer {
     field data #flags 0x8000;
 
     init(value) {
-        while(!(value instanceof Integer)) {
+        while(!(value istype Integer)) {
             value = value->_intValue();
         }
         initN(value);
@@ -162,77 +162,77 @@ class Integer {
 
 
     fun _opPlus(operand) {
-        while(!(operand instanceof Integer)) {
+        while(!(operand istype Integer)) {
             operand = operand->_intValue();
         }
         return _opPlusN(operand);
     }
 
     fun _opMinus(operand) {
-        while(!(operand instanceof Integer)) {
+        while(!(operand istype Integer)) {
             operand = operand->_intValue();
         }
         return _opMinusN(operand);
     }
 
     fun _opMul(operand) {
-        while(!(operand instanceof Integer)) {
+        while(!(operand istype Integer)) {
             operand = operand->_intValue();
         }
         return _opMulN(operand);
     }
 
     fun _opDiv(operand) {
-        while(!(operand instanceof Integer)) {
+        while(!(operand istype Integer)) {
             operand = operand->_intValue();
         }
         return _opDivN(operand);
     }
 
     fun _opMod(operand) {
-        while(!(operand instanceof Integer)) {
+        while(!(operand istype Integer)) {
             operand = operand->_intValue();
         }
         return _opModN(operand);
     }
 
     fun _opEq(operand) {
-        while(!(operand instanceof Integer)) {
+        while(!(operand istype Integer)) {
             operand = operand->_intValue();
         }
         return _opEqN(operand);
     }
 
     fun _opNeq(operand) {
-        while(!(operand instanceof Integer)) {
+        while(!(operand istype Integer)) {
             operand = operand->_intValue();
         }
         return _opNeqN(operand);
     }
 
     fun _opGt(operand) {
-        while(!(operand instanceof Integer)) {
+        while(!(operand istype Integer)) {
             operand = operand->_intValue();
         }
         return _opGtN(operand);
     }
 
     fun _opLt(operand) {
-        while(!(operand instanceof Integer)) {
+        while(!(operand istype Integer)) {
             operand = operand->_intValue();
         }
         return _opLtN(operand);
     }
 
     fun _opGe(operand) {
-        while(!(operand instanceof Integer)) {
+        while(!(operand istype Integer)) {
             operand = operand->_intValue();
         }
         return _opGeN(operand);
     }
 
     fun _opLe(operand) {
-        while(!(operand instanceof Integer)) {
+        while(!(operand istype Integer)) {
             operand = operand->_intValue();
         }
         return _opLeN(operand);
@@ -262,7 +262,7 @@ class Bool {
     field data #flags 0x8000;
 
     init(value) {
-        while(!(value instanceof Bool)) {
+        while(!(value istype Bool)) {
             value = value->_boolValue();
         }
         initN(value);
@@ -272,28 +272,28 @@ class Bool {
 
 
     fun _opEq(operand) {
-        while(!(operand instanceof Bool)) {
+        while(!(operand istype Bool)) {
             operand = operand->_boolValue();
         }
         return _opEqN(operand);
     }
 
     fun _opNeq(operand) {
-        while(!(operand instanceof Bool)) {
+        while(!(operand istype Bool)) {
             operand = operand->_boolValue();
         }
         return _opNeqN(operand);
     }
 
     fun _opLAnd(operand) {
-        while(!(operand instanceof Bool)) {
+        while(!(operand istype Bool)) {
             operand = operand->_boolValue();
         }
         return _opLAndN(operand);
     }
 
     fun _opLOr(operand) {
-        while(!(operand instanceof Bool)) {
+        while(!(operand istype Bool)) {
             operand = operand->_boolValue();
         }
         return _opLOrN(operand);
@@ -317,14 +317,14 @@ class Array {
     field length;
 
     init(size) {
-        while(!(size instanceof Integer)) {
+        while(!(size istype Integer)) {
             size = size->_intValue();
         }
         initN(size);
     }
 
     fun _opIndex(index) {
-        while(!(index instanceof Integer)) {
+        while(!(index istype Integer)) {
             index = index->_intValue();
         }
         return _opIndexN(index);
