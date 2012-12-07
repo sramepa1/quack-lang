@@ -1,5 +1,6 @@
 #include "JITCompiler.h"
 #include "bytecode.h"
+#include "globals.h"
 
 #ifdef DEBUG
 #include <iostream>
@@ -22,6 +23,10 @@ void* JITCompiler::returnLabel;
 void* JITCompiler::throwLabel;
 void* JITCompiler::whatLabel;
 
+void* JITCompiler::ptrToASP;
+void* JITCompiler::ptrToVMBP;
+void* JITCompiler::ptrToVMSP;
+
 // Constructor defined in Interpreter.cpp
 
 
@@ -29,7 +34,7 @@ void* JITCompiler::whatLabel;
 // Means allocating to 8 registers.
 // Only R8-R15 for simplicity of generating code.
 // Could be expanded to include RSI, RDI and maybe RCX and RDX.
-// RBP ~ BP, RSP ~ SP, RBX ~ ASP, RAX reserved for service use.
+// RBP ~ VMBP, RSP ~ VMSP, RBX ~ ASP, RAX reserved for service use.
 
 
 bool JITCompiler::compile(QuaMethod* method) {
@@ -245,6 +250,20 @@ void JITCompiler::generate(list<Instruction*> insns, std::vector<unsigned char> 
 				break;
 
 			case OP_RETNULL:
+
+				// TODO move RBX, RBP, RSP back to original values
+
+				append(buffer, "\x48\xB8", 2);								// mov rax, qword VMBP
+				append(buffer, (char*)&ptrToVMBP, sizeof(void*));
+				append(buffer, "\x48\x87\x28", 3);							// xchg rbp, [rax]
+
+				append(buffer, "\x48\xB8", 2);								// mov rax, qword VMSP
+				append(buffer, (char*)&ptrToVMSP, sizeof(void*));
+				append(buffer, "\x48\x87\x20", 3);							// xchg rsp, [rax]
+
+				append(buffer, "\x48\xB8", 2);								// mov rax, qword ASP
+				append(buffer, (char*)&ptrToASP, sizeof(void*));
+				append(buffer, "\x48\x89\x18", 3);							// mov [rax], rbx
 
 				append(buffer, "\x48\xB8", 2);								// mov rax, qword whatLabel
 				append(buffer, (char*)&whatLabel, sizeof(whatLabel));

@@ -15,7 +15,7 @@ QuaValue SystemNative::initNativeImpl() {
     getFieldByIndex(outRef, 0).tag = TAG_INT;
     getFieldByIndex(outRef, 0).value = FILE_FLAG_UNCLOSEABLE /*| FILE_FLAG_CLOSED*/;
     quaValuesFromPtr(&cout, getFieldByIndex(outRef, 1), getFieldByIndex(outRef, 2));
-    getFieldByIndex(*BP, 1) = outRef;
+    getFieldByIndex(*VMBP, 1) = outRef;
 
     // TODO: create err and in stream
     return QuaValue();

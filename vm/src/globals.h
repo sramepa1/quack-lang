@@ -28,8 +28,8 @@ extern "C" {
 
 	extern void* valStackLow;
 	extern void* valStackHigh;
-	extern QuaValue* SP;
-	extern QuaValue* BP;
+	extern QuaValue* VMSP;
+	extern QuaValue* VMBP;
 
 	extern void* addrStackLow;
 	extern void* addrStackHigh;

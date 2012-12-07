@@ -39,7 +39,7 @@ private:
 	};
 	Instruction* transferControl(TransferReason reason, uint64_t param);
 
-	void functionPrologue(QuaValue that, QuaMethod* method, void* retAddr, bool interpreted, uint16_t destReg);
+	void functionPrologue(QuaValue that, QuaMethod* method, void* retAddr, bool interpretedOrigin, uint16_t destReg);
 	void functionEpilogue();
 
 	Instruction* directCall(uint16_t destReg, QuaValue& that, QuaSignature* sig, Instruction* retAddr);

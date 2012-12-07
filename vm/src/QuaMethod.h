@@ -12,11 +12,11 @@ struct QuaMethod
 public:
 
 	enum MethodAction {
-		INTERPRET = 0,
-		COMPILE = 1,
-		JUMPTO = 2,
-		C_CALL = 3,
-		ALWAYS_INTERPRET = 4
+		ALWAYS_INTERPRET = 0,
+		INTERPRET = 1,
+		COMPILE = 2,
+		JUMPTO = 3,
+		C_CALL = 4
 	} action;
 
 	void* code;

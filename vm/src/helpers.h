@@ -56,7 +56,7 @@ inline QuaClass* getClassFromValue(QuaValue val) {
 }
 
 inline QuaClass* getThisClass() {
-	return getClassFromValue(*BP);
+	return getClassFromValue(*VMBP);
 }
 
 inline QuaValue loadConstant(uint16_t & type, uint16_t cpIndex) {
@@ -88,9 +88,9 @@ inline bool instanceOf(QuaValue& inst, uint16_t ofWhatType) {
 inline QuaValue nativeCall(QuaValue& instance, QuaSignature* natSig) {
 
 	// address stack is ignored when calling this way - the native method becomes "inlined" in the callee
-	*(--SP) = instance;
-	QuaValue* oldBP = BP;
-	BP = SP;
+	*(--VMSP) = instance;
+	QuaValue* oldBP = VMBP;
+	VMBP = VMSP;
 	QuaMethod* natMeth = getThisClass()->lookupMethod(natSig);
 	if(natMeth->action != QuaMethod::C_CALL) {
 		std::ostringstream os;
@@ -99,8 +99,8 @@ inline QuaValue nativeCall(QuaValue& instance, QuaSignature* natSig) {
 		throw std::runtime_error(os.str());
 	}
 	QuaValue retVal = ( __extension__ (QuaValue (*)())natMeth->code )();
-	BP = oldBP;
-	SP += (unsigned int)natSig->argCnt + 1 /*this*/;
+	VMBP = oldBP;
+	VMSP += (unsigned int)natSig->argCnt + 1 /*this*/;
 
 	return retVal;
 }
