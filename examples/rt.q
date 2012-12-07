@@ -87,9 +87,13 @@ class Exception {
     init(cause) {
         this.what = cause;
     }
+
+    fun initN(cause) #flags 0x0001 {}
 }
 
 class NotFoundException extends Exception {}
+class NoSuchFieldException extends NotFoundException {}
+class NoSuchMethodException extends NotFoundException {}
 class IOException extends Exception {}
 
 
@@ -132,7 +136,9 @@ class String {
     }
     
     // Is it needed?
-    // fun _stringValue()
+    // fun _stringValue() #flags 0x0001 {}
+    fun _intValue() #flags 0x0001 {}
+    fun _floatValue() #flags 0x0001 {}
 
     fun initN(string) #flags 0x0001 {}
     fun _opPlusN(other) #flags 0x0001 {}
@@ -329,8 +335,20 @@ class Array {
         }
         return _opIndexN(index);
     }
+
+    fun setElem(index, elem) {
+        while(!(index instanceof Integer)) {
+            index = index->_intValue();
+        }
+        return setElemN(index, elem);
+    }
+
+    fun getElem(index) {
+        return _opIndex(index);
+    }
     
     fun initN(size) #flags 0x0001 {}
     fun _opIndexN(index) #flags 0x0001 {}
+    fun setElemN(index, elem) #flags 0x0001 {}
 
 }
