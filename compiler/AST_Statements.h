@@ -67,6 +67,7 @@ public:
     
     virtual void generateCode(BlockTranslator* translator);
     virtual void findLocals(std::map<std::string, uint16_t>* locals) {
+        variable->findLocals(locals);
         block->findLocals(locals);
     }
 };

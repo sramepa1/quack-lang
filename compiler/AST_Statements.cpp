@@ -214,13 +214,9 @@ void STry::generateCode(BlockTranslator* translator) {
 }
 
 void NCatch::generateCode(BlockTranslator* translator) {
-    // TODO: assign register to exception variable
-    
-    /*
     uint16_t exRegister = translator->localVariables->at(*variableName);
     translator->addInstruction(OP_POP, SOP_STACK_1, exRegister, 0, 0);
 
     block->generateCode(translator);
     translator->addInstruction(OP_FIN, NO_SOP, 0, 0, 0);
-    */
 }
