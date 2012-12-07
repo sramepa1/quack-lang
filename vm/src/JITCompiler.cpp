@@ -30,11 +30,9 @@ void* JITCompiler::ptrToVMSP;
 // Constructor defined in Interpreter.cpp
 
 
-#define MACHINE_MAX_REG 7
-// Means allocating to 8 registers.
-// Only R8-R15 for simplicity of generating code.
-// Could be expanded to include RSI, RDI and maybe RCX and RDX.
-// RBP ~ VMBP, RSP ~ VMSP, RBX ~ ASP, RAX reserved for service use.
+#define MACHINE_MAX_REG 11
+// Means allocating to 12 registers.
+// RCX, RDX, RSI, RDI, R8 ~ R15
 
 
 bool JITCompiler::compile(QuaMethod* method) {
@@ -291,7 +289,7 @@ void JITCompiler::emitTwoRegInsn(MachineRegister regRM, MachineRegister regR, //
 		modRM = 0xC0;
 	} else if (displacement == 0 && regRM != REG_RSP && regRM != REG_RBP && regRM != REG_R12 && regRM != REG_R13) {
 		modRM = 0x0;
-	} else if (displacement < CHAR_MIN || displacement > CHAR_MAX) {
+	} else if (displacement >= CHAR_MIN && displacement <= CHAR_MAX) {
 		modRM = 0x40;
 		useDisplacement = true;
 	} else {
@@ -354,7 +352,7 @@ void JITCompiler::translateStackOp(Instruction* insn, unsigned char opcode,
 
 		default:
 			#ifdef TRACE
-			cout << "can't translate PUSH/POP subop 0x" << hex << insn->subop << dec << ", ";
+			cout << "can't translate PUSH/POP subop 0x" << hex << (int)insn->subop << dec << ", ";
 			#endif
 			throw GiveUpException();
 	}
@@ -422,7 +420,7 @@ void JITCompiler::generate(list<Instruction*> insns, map<uint16_t, MachineRegist
 
 			default:
 				#ifdef TRACE
-				cout << "can't translate 0x" << hex << (*it)->op << dec << ", ";
+				cout << "can't translate 0x" << hex << (int)(*it)->op << dec << ", ";
 				#endif
 				throw GiveUpException();
 		}
