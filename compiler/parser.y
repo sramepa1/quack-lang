@@ -98,7 +98,7 @@
 
 %type <nvariable> variable
 
-%type <nexpression> parameter expression logic_expr compare_expr string_expr instance_expr relation_expr artim_expr artim_expr2 artim_expr3
+%type <nexpression> parameter expression logic_expr compare_expr /*string_expr*/ instance_expr relation_expr artim_expr artim_expr2 artim_expr3
 %type <nexpression> artim_const boolean_const string_const value
 
 %type <string> argument
@@ -300,17 +300,19 @@ compare_expr:
   | compare_expr T_EQ compare_expr {$$ = new EEq(); ((EBOp*) $$)->left = $1; ((EBOp*) $$)->right = $3;}
   | compare_expr T_NE compare_expr {$$ = new ENe(); ((EBOp*) $$)->left = $1; ((EBOp*) $$)->right = $3;}
   | boolean_const {$$ = $1;}
-  | string_expr {$$ = $1;}
+/*  | string_expr {$$ = $1;} */
   | relation_expr {$$ = $1;}
   | instance_expr {$$ = $1;}
 ;
 
+/*
 string_expr:
     string_const T_PLUS string_const {$$ = new EAdd(); ((EBOp*) $$)->left = $1; ((EBOp*) $$)->right = $3;}
   | value T_PLUS string_const {$$ = new EAdd(); ((EBOp*) $$)->left = $1; ((EBOp*) $$)->right = $3;}
   | string_const T_PLUS value {$$ = new EAdd(); ((EBOp*) $$)->left = $1; ((EBOp*) $$)->right = $3;}
   | string_const {$$ = $1;}
 ;
+*/
 
 instance_expr:
     variable K_INSTANCEOF T_IDENTIFIER {$$ = new EInstanceof($1, $3);}
@@ -348,6 +350,7 @@ artim_expr3:
 artim_const:
     C_INTEGER {$$ = new CInt(); ((CInt*) $$)->value = atol($1->c_str()); delete $1;}
   | C_FLOAT {$$ = new CFloat(); ((CFloat*) $$)->value = atof($1->c_str()); delete $1;}
+  | string_const {$$ = $1;}
 ;
 
 boolean_const:
