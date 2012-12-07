@@ -87,6 +87,8 @@ inline void Interpreter::functionPrologue(QuaValue that, QuaMethod* method,
 
 	// push that
 	*(--VMSP) = that;
+	QuaValue* oldBP = VMBP;
+	VMBP = VMSP;
 
 	if(method->action <= QuaMethod::INTERPRET) {
 		// save context depending on the callee
@@ -96,8 +98,7 @@ inline void Interpreter::functionPrologue(QuaValue that, QuaMethod* method,
 		}
 	}
 
-	*(--ASP) = QuaFrame(retAddr, method, interpretedOrigin, destReg, (QuaValue*)valStackHigh - VMBP);		// push ebp
-	VMBP = VMSP;																						// mov ebp, esp
+	*(--ASP) = QuaFrame(retAddr, method, interpretedOrigin, destReg, (QuaValue*)valStackHigh - oldBP);
 }
 
 
@@ -113,8 +114,8 @@ inline void Interpreter::functionEpilogue() {
 		}
 	}
 
-	VMSP += (ASP->ARG_COUNT + 1);											                          // add esp, N
-	VMBP = (QuaValue*)valStackHigh - ASP->BP_OFFSET;                                                  // pop ebp
+	VMSP += (ASP->ARG_COUNT + 1 /*this*/);																// add esp, N
+	VMBP = (QuaValue*)valStackHigh - ASP->BP_OFFSET;													// pop ebp
 }
 
 // inline wrappers for the JIT-friendly monstrosity
