@@ -15,7 +15,7 @@
 #define EMPTY_ENTRY_SIZE 8
 #define EMPTY_TABLE_SIZE 8
 
-
+using namespace std;
 
 extern ConstantPool constantPool;
 

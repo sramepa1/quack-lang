@@ -1,5 +1,5 @@
 %{
-    #include "../AST.h"
+    #include "../AST_Structure.h"
     #include <cstdio>
     #include <cstdlib>
 

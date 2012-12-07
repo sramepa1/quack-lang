@@ -12,7 +12,7 @@
 #include <cstring>
 #include <iostream>
 
-#include "AST.h"
+#include "AST_Structure.h"
 
 
 extern int yyparse();
