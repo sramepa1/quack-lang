@@ -10,9 +10,14 @@
 #include "globals.h"
 #include "helpers.h"
 
-#include "FileNative.h"
 #include "SystemNative.h"
+#include "FileNative.h"
+
+#include "ExceptionNative.h"
 #include "StringNative.h"
+#include "IntegerNative.h"
+#include "BoolNative.h"
+#include "ArrayNative.h"
 
 using namespace std;
 
@@ -26,7 +31,12 @@ NativeLoader::NativeLoader() {
     OutFileNative(this);
     InFileNative(this);
 
+    ExceptionNative(this);
+
     StringNative(this);
+    IntegerNative(this);
+    BoolNative(this);
+    ArrayNative(this);
 }
 
 NativeLoader::~NativeLoader() {
@@ -90,10 +100,3 @@ void NativeLoader::registerClassDeserializer(string className, QuaValue (*deseri
     deserializers->insert(make_pair(className, deserializer));
 }
 
-QuaValue createException(uint16_t type, const char* msg) {
-    QuaValue msgRef = stringDeserializer(msg);
-    *(--VMSP) = msgRef;                               // Push argument for constructor
-    QuaValue exRef = newRawInstance(type);
-    nativeCall(exRef, (QuaSignature*)"\1initN");    // Call native constructor
-    return exRef;
-}

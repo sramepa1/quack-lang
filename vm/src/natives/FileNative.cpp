@@ -5,6 +5,7 @@
 #include <stdexcept>
 
 #include "helpers.h"
+#include "ExceptionNative.h"
 
 using namespace std;
 
