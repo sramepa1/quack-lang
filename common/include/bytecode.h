@@ -228,16 +228,28 @@
 // indexing - related to arithmetics because of "_op..." call
 
 /**
- *	Get indexed value i.e. *that[index]. No subop.
+ *	Read indexed value i.e. *that[index]. No subop.
  *	IDX	reg dest, reg that, reg index
  */
 #define OP_IDX 0x42
 
 /**
- *	Get indexed value with immediate i.e. *that[imm]. No subop.
+ *	Read indexed value with immediate i.e. *that[imm]. No subop.
  *	IDXI	reg dest, reg that, imm16 index (unsigned)
  */
 #define OP_IDXI 0x43
+
+/**
+ *	Write indexed value i.e. *that[index]. No subop.
+ *	IDX	reg that, reg index, reg src
+ */
+#define OP_IDXW 0x44
+
+/**
+ *	Write indexed value with immediate i.e. *that[imm]. No subop.
+ *	IDXI	reg that, imm16 index (unsigned), reg src
+ */
+#define OP_IDXWI 0x45
 
 
 

@@ -80,6 +80,8 @@ private:
 	Instruction* handleLNOT(Instruction* insn);
 	Instruction* handleIDX(Instruction* insn);
 	Instruction* handleIDXI(Instruction* insn);
+	Instruction* handleIDXW(Instruction* insn);
+	Instruction* handleIDXWI(Instruction* insn);
 	Instruction* handleJMP(Instruction* insn);
 	Instruction* handleCALL(Instruction* insn);
 	Instruction* handleCALLMY(Instruction* insn);
@@ -99,6 +101,7 @@ private:
 	Instruction* handleHLT();
 
 	Instruction* commonIDX(Instruction* insn);
+	Instruction* commonIDXW(Instruction* insn);
 };
 
 #endif // INTERPRETER_H

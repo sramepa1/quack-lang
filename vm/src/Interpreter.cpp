@@ -359,11 +359,26 @@ __attribute((noinline)) Instruction* Interpreter::transferControl(TransferReason
 
 			while(1) {
 				if(ASP->FRAME_TYPE == EXIT) {
-					// TODO: Attempt to extract qex.what
 					#ifdef TRACE
 						cout << " ...no suitable handler found!" << endl;
 					#endif
-					throw runtime_error(string("Unhandled exception of class ") + getClassFromValue(qex)->getName());
+
+					ostringstream os;
+					os << "Unhandled exception of class " << getClassFromValue(qex)->getName() << endl;
+
+					// Attempt to extract qex.what
+					try {
+						QuaValue qwhat = getFieldByIndex(qex, 0);
+						if(qwhat.type != typeCache.typeString) {
+							throw runtime_error("'what' field is not a string.");
+						}
+						os << stringSerializer(qwhat);
+
+					} catch(runtime_error& e) {
+						os << "Error when extracting exception message:" << endl << e.what();
+					}
+
+					throw runtime_error(os.str());
 
 				} else if (ASP->FRAME_TYPE == EXCEPTION && instanceOf(qex, ASP->EXCEPTION_TYPE)) {
 					// correct handler
@@ -927,6 +942,11 @@ inline Instruction* Interpreter::commonIDX(Instruction* insn) {
 }
 
 
+inline Instruction* Interpreter::commonIDXW(Instruction* insn) {
+	return directCall(REG_DEV_NULL, regs[insn->ARG0], (QuaSignature*)"\2_opIndexW", insn + 1);
+}
+
+
 inline Instruction* Interpreter::handleIDX(Instruction* insn) {
 
 #ifdef TRACE
@@ -946,6 +966,30 @@ inline Instruction* Interpreter::handleIDXI(Instruction* insn) {
 
 	*(--VMSP) = QuaValue(insn->ARG2, typeCache.typeInteger, TAG_INT);
 	return commonIDX(insn);
+}
+
+
+inline Instruction* Interpreter::handleIDXW(Instruction* insn) {
+
+#ifdef TRACE
+	cout << "IDXW r" << insn->ARG0 << ", r" << insn->ARG1 << ", r" << insn->ARG2 << endl;
+#endif
+
+	*(--VMSP) = regs[insn->ARG2]; // push written value
+	*(--VMSP) = regs[insn->ARG1]; // push index
+	return commonIDXW(insn);
+}
+
+
+inline Instruction* Interpreter::handleIDXWI(Instruction* insn) {
+
+#ifdef TRACE
+	cout << "IDXWI r" << insn->ARG0 << ", " << insn->ARG1 << ", r" << insn->ARG2 << endl;
+#endif
+
+	*(--VMSP) = regs[insn->ARG2];
+	*(--VMSP) = QuaValue(insn->ARG1, typeCache.typeInteger, TAG_INT);
+	return commonIDXW(insn);
 }
 
 
@@ -1234,6 +1278,8 @@ __attribute__((flatten)) inline Instruction* Interpreter::processInstruction(Ins
 			case OP_LNOT:	return handleLNOT(insn);
 			case OP_IDX:	return handleIDX(insn);
 			case OP_IDXI:	return handleIDXI(insn);
+			case OP_IDXW:	return handleIDXW(insn);
+			case OP_IDXWI:	return handleIDXWI(insn);
 			case OP_JMP:	return handleJMP(insn);
 			case OP_CALL:	return handleCALL(insn);
 			case OP_CALLMY:	return handleCALLMY(insn);

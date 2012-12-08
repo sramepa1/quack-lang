@@ -186,6 +186,7 @@ map<uint16_t, JITCompiler::MachineRegister> JITCompiler::allocateRegisters(list<
 
 			// ARG0 and ARG2 are regs
 			case OP_STF:
+			case OP_IDXWI:
 				updateMax(maxReg, (*it)->ARG0);
 				updateMax(maxReg, (*it)->ARG2);
 				break;
@@ -194,6 +195,7 @@ map<uint16_t, JITCompiler::MachineRegister> JITCompiler::allocateRegisters(list<
 			case OP_A3REG:
 			case OP_IDX:
 				// TODO: Liveness analysis - reg[ARG0] overwritten
+			case OP_IDXW:
 				updateMax(maxReg, (*it)->ARG0);
 				updateMax(maxReg, (*it)->ARG1);
 				updateMax(maxReg, (*it)->ARG2);
