@@ -13,6 +13,11 @@ public:
 	NoSuchMethodException(const std::string & msg) : std::runtime_error(msg) {}
 };
 
+class NoSuchClassException : public std::runtime_error {
+public:
+	NoSuchClassException(const std::string & msg) : std::runtime_error(msg) {}
+};
+
 class NullReferenceException : public std::runtime_error {
 public:
 	NullReferenceException(const std::string & msg) : std::runtime_error(msg) {}

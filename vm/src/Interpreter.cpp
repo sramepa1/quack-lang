@@ -17,6 +17,7 @@ using namespace std;
 
 #define CLASS_NO_SUCH_FIELD_EXCEPTION "NoSuchFieldException"
 #define CLASS_NO_SUCH_METHOD_EXCEPTION "NoSuchMethodException"
+#define CLASS_NO_SUCH_CLASS_EXCEPTION "NoSuchClassException"
 #define CLASS_NULL_REFERENCE_EXCEPTION "NullReferenceException"
 #define CLASS_STRING "String"
 
@@ -159,7 +160,7 @@ inline Instruction* Interpreter::performCall(QuaMethod* method) {
 // and may clobber any register, and the compiler can arrange things around this.
 
 // local macro only, #undef'd at the end of the method
-#define MACHINE_JUMP(code) {													\
+#define MACHINE_JUMP(value, code) {												\
 						volatile void* destination = (volatile void*)(code);	\
 						asm goto (	"leaq VMSP, %%rbx\n\t"						\
 									"xchgq %%rsp, (%%rbx)\n\t"					\
@@ -167,10 +168,10 @@ inline Instruction* Interpreter::performCall(QuaMethod* method) {
 									"xchgq %%rbp, (%%rbx)\n\t"					\
 									"leaq ASP, %%rbx\n\t"						\
 									"movq (%%rbx), %%rbx\n\t"					\
-									"jmp *%%rax"								\
+									"jmp *%%rdx"								\
 						:	/* no output */										\
-						:	"a" (destination)									\
-						:	"memory", "cc" , "rbx", "rcx", "rdx", "rsi", "rdi",	\
+						:	"a" (value), "d" (destination)						\
+						:	"memory", "cc" , "rbx", "rcx", "rsi", "rdi",		\
 							"r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"\
 						:	landing_call, landing_return , landing_throw);		\
 					}
@@ -249,8 +250,8 @@ __attribute((noinline)) Instruction* Interpreter::transferControl(TransferReason
 						cout << "jumping to start]" << endl;
 					#endif
 
-					// TODO needs to initialize JIT pointers first
-					MACHINE_JUMP(method->code)
+					// the 0 will be ignored
+					MACHINE_JUMP(0, method->code)
 					// no return
 
 				case QuaMethod::C_CALL:
@@ -332,7 +333,6 @@ __attribute((noinline)) Instruction* Interpreter::transferControl(TransferReason
 
 			} else {
 
-				// TODO: where to put return value?
 				// TODO: distinguish Interpreter and JIT saved contexts!
 
 				++ASP;
@@ -341,10 +341,9 @@ __attribute((noinline)) Instruction* Interpreter::transferControl(TransferReason
 						cout << " to " << CURRENT_METHOD_SIG << " [jumping]" << endl;
 				#endif
 
+				// return value passed through rax, JIT-generated stub will move it to destination register.
 				void* code = ASP->retAddr;
-
-				// TODO needs to restore the entire JIT context first
-				MACHINE_JUMP(code)
+				MACHINE_JUMP(retVal, code)
 				// no return
 			}
 		}
@@ -371,7 +370,6 @@ __attribute((noinline)) Instruction* Interpreter::transferControl(TransferReason
 
 				} else if (ASP->FRAME_TYPE == EXCEPTION && instanceOf(qex, ASP->EXCEPTION_TYPE)) {
 					// correct handler
-					++ASP;
 					break;
 				}
 
@@ -383,29 +381,25 @@ __attribute((noinline)) Instruction* Interpreter::transferControl(TransferReason
 				++ASP;
 			}
 
-			// push exception
-			*(--VMSP) = qex;
-
 			if(ASP->INTERPRETED) {
 
-				++ASP;
+				// push exception
+				*(--VMSP) = qex;
 
 				#ifdef TRACE
 					cout << " to a handler in " << CURRENT_METHOD_SIG << "[interpreting]" << endl;
 				#endif
-				return (Instruction*)ASP->retAddr;
+				return (Instruction*)(ASP++)->retAddr;
 
 			} else {
-
-				++ASP;
 
 				#ifdef TRACE
 					cout << " to a handler in " << CURRENT_METHOD_SIG << "[jumping]" << endl;
 				#endif
 
-				// TODO needs to restore the entire JIT context first
-				void* code = ASP->retAddr;
-				MACHINE_JUMP(code)
+				// exception value passed through rax, JIT-generated stub will push it after restoring context.
+				void* code = (ASP++)->retAddr;
+				MACHINE_JUMP(qex, code)
 				// no return
 			}
 		}
@@ -446,6 +440,8 @@ inline Instruction* Interpreter::directCall(uint16_t destReg, QuaValue& that, Qu
 
 	} catch(NoSuchMethodException& e) {
 		return commonException(CLASS_NO_SUCH_METHOD_EXCEPTION, e.what());
+	} catch(NoSuchClassException& e) {
+		return commonException(CLASS_NO_SUCH_CLASS_EXCEPTION, e.what());
 	}
 	functionPrologue(that, method, retAddr, true, destReg);
 	return performCall(method);
@@ -546,7 +542,11 @@ inline Instruction* Interpreter::handleLDC(Instruction* insn) {
 	cout << "LDC r" << insn->ARG0 << ", " << insn->ARG1 << ", " << insn->ARG2 << endl;
 #endif
 
-	regs[insn->ARG0] = loadConstant(insn->ARG1, insn->ARG2);
+	try {
+		regs[insn->ARG0] = loadConstant(insn->ARG1, insn->ARG2);
+	} catch(NoSuchClassException& e) {
+		return commonException(CLASS_NO_SUCH_CLASS_EXCEPTION, e.what());
+	}
 	return ++insn;
 }
 
@@ -568,7 +568,12 @@ inline Instruction* Interpreter::handleLDSTAT(Instruction* insn) {
 	cout << "LDSTAT r" << insn->ARG0 << ", " << insn->ARG1 << endl;
 #endif
 
-	QuaClass* statclass = getClassFromType(insn->ARG1); // also resolves type
+	QuaClass* statclass;
+	try {
+		statclass = getClassFromType(insn->ARG1); // also resolves type
+	} catch(NoSuchClassException& e) {
+		return commonException(CLASS_NO_SUCH_CLASS_EXCEPTION, e.what());
+	}
 	QuaValue instance = statclass->getInstance();
 	if(instance.value == 0) {
 		instance = newRawInstance(insn->ARG1);
@@ -772,7 +777,12 @@ inline Instruction* Interpreter::handlePUSHC(Instruction* insn) {
 	cout << "PUSHC " << insn->ARG0 << ", " << insn->ARG1 << endl;
 #endif
 
-	*(--VMSP) = loadConstant(insn->ARG0, insn->ARG1);
+	try {
+		QuaValue constant = loadConstant(insn->ARG0, insn->ARG1);
+		*(--VMSP) = constant;
+	} catch(NoSuchClassException& e) {
+		return commonException(CLASS_NO_SUCH_CLASS_EXCEPTION, e.what());
+	}
 	return ++insn;
 }
 
@@ -1098,7 +1108,11 @@ inline Instruction* Interpreter::handleNEW(Instruction* insn) {
 	cout << "NEW r" << insn->ARG0 << ", " << insn->ARG1 << ", " << insn->ARG2 << endl;
 #endif
 
-	regs[insn->ARG0] = newRawInstance(insn->ARG1);
+	try {
+		regs[insn->ARG0] = newRawInstance(insn->ARG1);
+	} catch(NoSuchClassException& e) {
+		return commonException(CLASS_NO_SUCH_CLASS_EXCEPTION, e.what());
+	}
 	return commonCall(REG_DEV_NULL, regs[insn->ARG0], insn->ARG2, insn + 1); // temporarily use CP index
 }
 
@@ -1152,7 +1166,13 @@ inline Instruction* Interpreter::handleCATCH(Instruction* insn) {
 #endif
 
 	QuaMethod* currMeth = ASP->currMeth;
-	*(--ASP) = QuaFrame(insn + 1 + (int16_t)insn->ARG1, currMeth, true, resolveType(insn->ARG0));
+	try {
+		QuaFrame newFrame = QuaFrame(insn + 1 + (int16_t)insn->ARG1, currMeth, true, resolveType(insn->ARG0));
+		*(--ASP) = newFrame; // only push when constructed correctly to avoid corrupting the A-stack
+	} catch(NoSuchClassException& e) {
+		return commonException(CLASS_NO_SUCH_CLASS_EXCEPTION, e.what());
+	}
+
 	return ++insn;
 }
 
@@ -1202,7 +1222,11 @@ inline Instruction* Interpreter::handleINSTOF(Instruction* insn) {
 	cout << "INSTOF r" << insn->ARG0 << ", r" << insn->ARG1 << ", "  << insn->ARG2 << endl;
 #endif
 
-	regs[insn->ARG0] = createBool(instanceOf(regs[insn->ARG1], insn->ARG2));
+	try {
+		regs[insn->ARG0] = createBool(instanceOf(regs[insn->ARG1], insn->ARG2));
+	} catch(NoSuchClassException& e) {
+		return commonException(CLASS_NO_SUCH_CLASS_EXCEPTION, e.what());
+	}
 	return ++insn;
 }
 
@@ -1213,7 +1237,11 @@ inline Instruction* Interpreter::handleISTYPE(Instruction* insn) {
 	cout << "ISTYPE r" << insn->ARG0 << ", r" << insn->ARG1 << ", "  << insn->ARG2 << endl;
 #endif
 
-	regs[insn->ARG0] = createBool(resolveType(regs[insn->ARG1].type) == resolveType(insn->ARG2));
+	try {
+		regs[insn->ARG0] = createBool(resolveType(regs[insn->ARG1].type) == resolveType(insn->ARG2));
+	} catch(NoSuchClassException& e) {
+		return commonException(CLASS_NO_SUCH_CLASS_EXCEPTION, e.what());
+	}
 	return ++insn;
 }
 

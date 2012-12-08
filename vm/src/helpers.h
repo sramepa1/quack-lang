@@ -11,6 +11,7 @@ extern "C" {
 	#include <stdint.h>
 }
 
+#include "Exceptions.h"
 #include "globals.h"
 #include "QuaClass.h"
 
@@ -42,7 +43,13 @@ inline const char* getCurrentCPEntry(uint16_t index) {
 inline uint16_t resolveType(uint16_t & type)  {
 	if(type & TYPE_UNRESOLVED) {
 		uint16_t cpIndex = *((uint16_t*)getClassTableEntry(getThisClass()->getCT(), type ^ TYPE_UNRESOLVED));
-		type = (*linkedTypes)[std::string(getCurrentCPEntry(cpIndex))];
+		std::map<std::string, uint16_t>::iterator it = linkedTypes->find(std::string(getCurrentCPEntry(cpIndex)));
+		if(it == linkedTypes->end()) {
+			throw NoSuchClassException(std::string("Class '") + getCurrentCPEntry(cpIndex)
+									   + "' not found in internal VM lookup.");
+		} else {
+			type = it->second;
+		}
 	}
 	return type;
 }

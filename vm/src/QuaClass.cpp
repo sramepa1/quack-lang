@@ -54,7 +54,7 @@ QuaMethod* QuaClass::lookupMethod(QuaSignature* sig) {
 	}
 	if(parent == NULL) {
 		ostringstream os;
-		os << "Method \"" << sig->name << "\" with " << (int)sig->argCnt << " arg(s) of class " << className
+		os << "Method '" << sig->name << "' with " << (int)sig->argCnt << " arg(s) of class " << className
 				<< " not found in internal VM lookup.";
 		throw NoSuchMethodException(os.str());
 	}
@@ -68,7 +68,7 @@ uint16_t QuaClass::lookupFieldIndex(const char *fieldName) {
 		return it->second;
 	}
 	if(parent == NULL) {
-		throw NoSuchFieldException(string("Field ") + fieldName + " of class "
+		throw NoSuchFieldException(string("Field '") + fieldName + "' of class "
 								   + className + " not found in internal VM lookup.");
 	}
 	return parent->lookupFieldIndex(fieldName);

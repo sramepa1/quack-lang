@@ -244,6 +244,7 @@ map<uint16_t, JITCompiler::MachineRegister> JITCompiler::allocateRegisters(list<
 	for(int i = 0; i <= maxReg; i++) {
 		allocation[i] = regOrder[i];
 	}
+	allocation[REG_DEV_NULL] = REG_RAX; // for service use anyway, no problem overwriting it after bogus calls
 
 	// TODO: Also return stack locations for spilled virtual registers.
 
