@@ -33,6 +33,7 @@ private:
 	std::multiset<uint16_t> methodRegCounts;
 
 	JITCompiler* compiler;
+	friend void* jitcall(void* retaddr, uint64_t that, uint64_t sigindex);
 
 	Instruction* performCall(QuaMethod* method);
 	Instruction* performReturn(QuaValue retVal);

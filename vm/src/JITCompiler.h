@@ -13,6 +13,8 @@ extern "C" {
 #include "Instruction.h"
 #include "QuaMethod.h"
 
+class Interpreter;
+
 class GiveUpException {};
 
 class JITCompiler
@@ -35,6 +37,8 @@ private:
 	static void* throwLabel;
 
 	static void* whatLabel;
+
+	friend void* jitcall(void* retaddr, uint64_t that, uint64_t sigindex);
 
 	// in encoding order (bit 3 in enum = REX required)
 	enum MachineRegister {
@@ -72,18 +76,23 @@ private:
 	void emitTwoRegInsn(MachineRegister regRM, MachineRegister regR, unsigned char opcode,
 						std::vector<unsigned char>& buffer, bool directAddressing, int32_t displacement = 0);
 
-	void emitClearContext(std::map<uint16_t, MachineRegister> allocation, std::vector<unsigned char>& buffer);
-	void emitSaveContext(std::map<uint16_t, MachineRegister> allocation, std::vector<unsigned char>& buffer);
-	void emitRestoreContext(std::map<uint16_t, MachineRegister> allocation, std::vector<unsigned char>& buffer);
+	void emitPrepareContext(std::map<uint16_t, MachineRegister> allocation, std::vector<unsigned char>& buffer);
+	void emitContextOperation(bool save, std::map<uint16_t, MachineRegister> allocation,
+							  std::vector<unsigned char>& buffer);
 	void emitSwitchPointersToC(std::vector<unsigned char>& buffer);
 	void emitLoadLabelToRax(void* labelPtr, std::vector<unsigned char>& buffer);
 	void emitJumpToLabel(void* labelPtr, std::vector<unsigned char>& buffer);
 
+	void emitCall(	std::map<uint16_t, MachineRegister> allocation, std::vector<unsigned char>& buffer,
+					uint16_t sigIndex, MachineRegister destReg,
+					MachineRegister thatMoveRegRM, unsigned char thatMoveOpcode,
+					bool thatMoveDirectAddressing, int32_t thatMoveDisplacement);
+
 	void translateStackOp(Instruction* insn, unsigned char opcode,
 						std::map<uint16_t, MachineRegister> allocation, std::vector<unsigned char>& buffer);
 
-	void setupReturn(std::vector<unsigned char>& buffer);
-	void finishReturnReg(MachineRegister reg, void* destinationLabel, std::vector<unsigned char>& buffer);
+	void setupLeave(std::vector<unsigned char>& buffer);
+	void finishLeaveReg(MachineRegister reg, void* destinationLabel, std::vector<unsigned char>& buffer);
 };
 
 #endif // JITCOMPILER_H

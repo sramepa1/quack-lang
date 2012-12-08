@@ -4,6 +4,7 @@
 #include "bytecode.h"
 #include "globals.h"
 #include "helpers.h"
+#include "runtime.h"
 
 #include "StringNative.h"
 
@@ -14,12 +15,6 @@
 #include <cstdlib>
 
 using namespace std;
-
-#define CLASS_NO_SUCH_FIELD_EXCEPTION "NoSuchFieldException"
-#define CLASS_NO_SUCH_METHOD_EXCEPTION "NoSuchMethodException"
-#define CLASS_NO_SUCH_CLASS_EXCEPTION "NoSuchClassException"
-#define CLASS_NULL_REFERENCE_EXCEPTION "NullReferenceException"
-#define CLASS_STRING "String"
 
 
 // Top-level functions have been moved to the end to make inlining work (g++ must know the definition to inline a call).
@@ -85,7 +80,7 @@ inline const char* getCCMnemonic(unsigned char subop) {
 
 
 
-inline void Interpreter::functionPrologue(QuaValue that, QuaMethod* method,
+void Interpreter::functionPrologue(QuaValue that, QuaMethod* method,
 										  void* retAddr, bool interpretedOrigin, uint16_t destReg) {
 
 	// push that
@@ -111,9 +106,11 @@ inline void Interpreter::functionPrologue(QuaValue that, QuaMethod* method,
 inline void Interpreter::functionEpilogue() {
 
 	int32_t regCnt = ASP->currMeth->regCount;
-	VMSP = VMBP - regCnt; // discard any pushed locals and this											// mov esp, ebp
 
 	if(ASP->currMeth->action <= QuaMethod::COMPILE) {
+
+		VMSP = VMBP - regCnt; // discard any pushed locals and this									// add esp, N
+
 		// update max register count (for GC)
 		methodRegCounts.erase(regCnt);
 
@@ -123,8 +120,8 @@ inline void Interpreter::functionEpilogue() {
 		}
 	}
 
-	VMSP += (ASP->ARG_COUNT + 1 /*this*/);																// add esp, N
-	VMBP = (QuaValue*)valStackHigh - ASP->BP_OFFSET;													// pop ebp
+	VMSP = VMBP + (ASP->ARG_COUNT + 1 /*this*/);													// mov esp, ebp
+	VMBP = (QuaValue*)valStackHigh - ASP->BP_OFFSET;												// pop ebp
 }
 
 // inline wrappers for the JIT-friendly monstrosity
@@ -276,7 +273,8 @@ __attribute((noinline)) Instruction* Interpreter::transferControl(TransferReason
 
 						// Explanation of the goto: There used to be a "performReturn" call here,
 						// but if that returns to jitted code, it is now one C stack frame above what it used to be.
-						// The only way of avoiding this is behaving like JIT itself
+						// The only way of avoiding this is behaving like JIT itself and jumping to labels
+						// while passing the parameter through the volatile variable.
 
 
 					} catch (QuaValue qex) {
@@ -340,16 +338,13 @@ __attribute((noinline)) Instruction* Interpreter::transferControl(TransferReason
 
 			} else {
 
-				// TODO: distinguish Interpreter and JIT saved contexts!
-
-				++ASP;
+				void* code = (ASP++)->retAddr;
 
 				#ifdef TRACE
 						cout << " to " << CURRENT_METHOD_SIG << " [jumping]" << endl;
 				#endif
 
 				// return value passed through rax, JIT-generated stub will move it to destination register.
-				void* code = ASP->retAddr;
 				MACHINE_JUMP(retVal, code)
 				// no return
 			}
@@ -431,14 +426,9 @@ __attribute((noinline)) Instruction* Interpreter::transferControl(TransferReason
 
 
 inline Instruction* Interpreter::commonException(const char* className, const char* what) {
-
-	QuaValue instance = newRawInstance(linkedTypes->at(className));						// allocate
-	*(--VMSP) = getClassFromType(linkedTypes->at(CLASS_STRING))->deserialize(what);		// push what
-	nativeCall(instance, (QuaSignature*)"\1initN");										// construct
-
-	return performThrow(instance);
+	QuaValue qex = constructException(className, what);
+	return performThrow(qex);
 }
-
 
 inline Instruction* Interpreter::directCall(uint16_t destReg, QuaValue& that, QuaSignature* sig, Instruction* retAddr) {
 	QuaMethod* method;
@@ -1305,7 +1295,7 @@ inline Instruction* Interpreter::handleHLT() {
 
 
 
-__attribute__((flatten)) inline Instruction* Interpreter::processInstruction(Instruction* insn) {
+inline Instruction* Interpreter::processInstruction(Instruction* insn) {
 
 
 	/*

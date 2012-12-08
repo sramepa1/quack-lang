@@ -13,6 +13,7 @@ extern "C" {
 
 #include "Exceptions.h"
 #include "globals.h"
+#include "runtime.h"
 #include "QuaClass.h"
 
 
@@ -110,6 +111,13 @@ inline QuaValue nativeCall(QuaValue& instance, QuaSignature* natSig) {
 	VMSP += (unsigned int)natSig->argCnt + 1 /*this*/;
 
 	return retVal;
+}
+
+inline QuaValue constructException(const char* className, const char* what) {
+	QuaValue instance = newRawInstance(linkedTypes->at(className));						// allocate
+	*(--VMSP) = getClassFromType(linkedTypes->at(CLASS_STRING))->deserialize(what);		// push what
+	nativeCall(instance, (QuaSignature*)"\1initN");										// construct
+	return instance;
 }
 
 __attribute__ ((noreturn)) inline void errorUnknownTag(uint8_t tag) {
