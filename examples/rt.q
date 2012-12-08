@@ -95,6 +95,7 @@ class NotFoundException extends Exception {}
 class NoSuchFieldException extends NotFoundException {}
 class NoSuchMethodException extends NotFoundException {}
 class IOException extends Exception {}
+class NullReferenceException extends Exception {}
 
 
 

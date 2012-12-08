@@ -59,6 +59,7 @@ extern "C" {
 		uint16_t typeInteger;
 		uint16_t typeFloat;
 		uint16_t typeString;
+		uint16_t typeException;
 		uint16_t typeNotFoundException;
 		uint16_t typeIOException;
 	} typeCache;

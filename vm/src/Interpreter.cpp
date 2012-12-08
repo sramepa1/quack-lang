@@ -17,6 +17,7 @@ using namespace std;
 
 #define CLASS_NO_SUCH_FIELD_EXCEPTION "NoSuchFieldException"
 #define CLASS_NO_SUCH_METHOD_EXCEPTION "NoSuchMethodException"
+#define CLASS_NULL_REFERENCE_EXCEPTION "NullReferenceException"
 #define CLASS_STRING "String"
 
 
@@ -27,6 +28,7 @@ using namespace std;
 
 Interpreter::Interpreter(bool jit) : regs(vector<QuaValue>(65536)), compiler(new JITCompiler(jit))
 {
+	methodRegCounts.insert(0);
 }
 
 
@@ -91,6 +93,9 @@ inline void Interpreter::functionPrologue(QuaValue that, QuaMethod* method,
 	VMBP = VMSP;
 
 	if(method->action <= QuaMethod::INTERPRET) {
+		// note how many registers this says it may use (for GC)
+		methodRegCounts.insert(method->regCount);
+
 		// save context depending on the callee
 		int32_t regCnt = method->regCount;
 		for(int32_t i = 0; i < regCnt; i++) {
@@ -108,6 +113,9 @@ inline void Interpreter::functionEpilogue() {
 	VMSP = VMBP - regCnt; // discard any pushed locals and this											// mov esp, ebp
 
 	if(ASP->currMeth->action <= QuaMethod::COMPILE) {
+		// update max register count (for GC)
+		methodRegCounts.erase(regCnt);
+
 		// Restore context saved when this was called
 		for(int32_t i = regCnt - 1; i >= 0; i--) {
 			regs[i] = *(VMSP++);
@@ -132,7 +140,7 @@ inline Instruction* Interpreter::performThrow(QuaValue& qex) {
 }
 
 
-Instruction* Interpreter::performCall(QuaMethod* method) {
+inline Instruction* Interpreter::performCall(QuaMethod* method) {
 
 	return transferControl(REASON_CALL, (uint64_t)method);
 }
@@ -359,26 +367,7 @@ __attribute((noinline)) Instruction* Interpreter::transferControl(TransferReason
 
 			while(1) {
 				if(ASP->FRAME_TYPE == EXIT) {
-					#ifdef TRACE
-						cout << " ...no suitable handler found!" << endl;
-					#endif
-
-					ostringstream os;
-					os << "Unhandled exception of class " << getClassFromValue(qex)->getName() << endl;
-
-					// Attempt to extract qex.what
-					try {
-						QuaValue qwhat = getFieldByIndex(qex, 0);
-						if(qwhat.type != typeCache.typeString) {
-							throw runtime_error("'what' field is not a string.");
-						}
-						os << stringSerializer(qwhat);
-
-					} catch(runtime_error& e) {
-						os << "Error when extracting exception message:" << endl << e.what();
-					}
-
-					throw runtime_error(os.str());
+					return unhandledException(qex); // throws a runtime_error
 
 				} else if (ASP->FRAME_TYPE == EXCEPTION && instanceOf(qex, ASP->EXCEPTION_TYPE)) {
 					// correct handler
@@ -489,6 +478,46 @@ inline Instruction* Interpreter::handleIllegalSubOp(Instruction* insn) {
 	throw runtime_error(os.str());
 }
 
+
+Instruction* Interpreter::unhandledException(QuaValue qex) {
+	#ifdef TRACE
+		cout << " ...no suitable handler found!" << endl;
+	#endif
+
+	ostringstream os;
+	os << "Unhandled exception of class " << getClassFromValue(qex)->getName() << endl;
+
+	// Attempt to extract qex.what
+	try {
+		try { // it is most likely an Exception and has a 'what' field - duck-typed extraction approach
+			QuaValue qwhat = getFieldByName(qex, "what");
+			if(qwhat.type != typeCache.typeString) {
+				throw runtime_error("'what' field is not a string.");
+			}
+			os << stringSerializer(qwhat);
+
+		} catch(NoSuchFieldException& e) { // not an Exception - at least try stringValue...
+
+			try {
+				os << stringSerializer(nativeCall(qex, (QuaSignature*)"\0_stringValueN"));
+				// TODO: this will fail if it is not a runtime native type:
+				// Solve how to restart interpreter to evaluate a _stringValue loop
+				// And what to do with unhandled exceptions possibly produced in that loop...
+
+			} catch(NoSuchMethodException& e2) {
+				os << "Neither 'what' nor '_stringValue' could be extracted from the thrown exception." << endl
+				   << "No message available.";
+			}
+		}
+
+	} catch(runtime_error& e) {
+		os << "Error when extracting exception message:" << endl << e.what();
+	}
+
+	throw runtime_error(os.str());
+}
+
+
 inline QuaValue Interpreter::extractTaggedValue(Instruction* insn) {
 	return QuaValue(insn->IMM, getTaggedType(insn->subop), insn->subop);
 }
@@ -573,6 +602,8 @@ inline Instruction* Interpreter::handleLDF(Instruction* insn) {
 
 	} catch (NoSuchFieldException& e) {
 		return commonException(CLASS_NO_SUCH_FIELD_EXCEPTION, e.what());
+	} catch (NullReferenceException& e) {
+		return commonException(CLASS_NULL_REFERENCE_EXCEPTION, e.what());
 	}
 
 	return ++insn;
@@ -590,6 +621,8 @@ inline Instruction* Interpreter::handleSTF(Instruction* insn) {
 
 	} catch (NoSuchFieldException& e) {
 		return commonException(CLASS_NO_SUCH_FIELD_EXCEPTION, e.what());
+	} catch (NullReferenceException& e) {
+		return commonException(CLASS_NULL_REFERENCE_EXCEPTION, e.what());
 	}
 
 	return ++insn;
@@ -602,7 +635,11 @@ inline Instruction* Interpreter::handleLDMYF(Instruction* insn) {
 	cout << "LDMYF r" << insn->ARG0 << ", " << insn->ARG1 << endl;
 #endif
 
-	regs[insn->ARG0] = getFieldByIndex(*VMBP, insn->ARG1);
+	try {
+		regs[insn->ARG0] = getFieldByIndex(*VMBP, insn->ARG1);
+	} catch (NullReferenceException& e) {
+		return commonException(CLASS_NULL_REFERENCE_EXCEPTION, e.what());
+	}
 	return ++insn;
 }
 
@@ -613,7 +650,11 @@ inline Instruction* Interpreter::handleSTMYF(Instruction* insn) {
 	cout << "STMYF " << insn->ARG0 << ", r" << insn->ARG1 << endl;
 #endif
 
-	getFieldByIndex(*VMBP, insn->ARG0) = regs[insn->ARG1];
+	try {
+		getFieldByIndex(*VMBP, insn->ARG0) = regs[insn->ARG1];
+	} catch (NullReferenceException& e) {
+		return commonException(CLASS_NULL_REFERENCE_EXCEPTION, e.what());
+	}
 	return ++insn;
 }
 
@@ -1358,7 +1399,7 @@ void Interpreter::start(vector<char*>& args) {
 	while(1) {
 
 		#ifdef TRACE
-				cout << "# " << CURRENT_METHOD_SIG << ":\t";
+			cout << "# " << CURRENT_METHOD_SIG << ":\t";
 		#endif
 		pc = processInstruction(pc);
 	}

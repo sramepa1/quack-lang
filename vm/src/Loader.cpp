@@ -45,6 +45,7 @@ Loader::Loader() : mmapedClsFiles(new vector<pair<void*, size_t> >()) {
 	typeCache.typeInteger = linkedTypes->at("Integer");
 //    typeCache.typeFloat = linkedTypes->at("Float");
 	typeCache.typeString = linkedTypes->at("String");
+	typeCache.typeException = linkedTypes->at("Exception");
 	typeCache.typeNotFoundException = linkedTypes->at("NotFoundException");
 	typeCache.typeIOException = linkedTypes->at("IOException");
 

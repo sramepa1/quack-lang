@@ -5,6 +5,7 @@ extern "C" {
 	#include <stdint.h>
 }
 #include <vector>
+#include <set>
 
 #include "Instruction.h"
 #include "JITCompiler.h"
@@ -23,10 +24,13 @@ public:
 	void start(std::vector<char*>& args);
 	Instruction* processInstruction(Instruction* insn);
 
+	// GC interface
 	QuaValue readRegister(uint16_t index) { return regs[index]; }
+	uint16_t getMaxRegCount() { return *(methodRegCounts.rbegin()); }
 
 private:
 	std::vector<QuaValue> regs;
+	std::multiset<uint16_t> methodRegCounts;
 
 	JITCompiler* compiler;
 
@@ -50,8 +54,11 @@ private:
 
 	bool taggedA3Possible(uint8_t leftTag, uint16_t rightReg);
 
+	// Declared as returning Instruction* to allow future implementations to recover via interpreted code
+	// instead of just halting the VM by throwing an exception.
 	static Instruction* handleIllegalInstruction(Instruction* insn);
 	static Instruction* handleIllegalSubOp(Instruction* insn);
+	static Instruction* unhandledException(QuaValue qex);
 
 	static bool isNull(QuaValue v);
 	static bool parseTaggedBool(QuaValue v);
