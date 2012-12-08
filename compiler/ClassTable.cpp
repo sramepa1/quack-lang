@@ -41,7 +41,7 @@ uint16_t ClassDefinition::addField(string name, uint16_t flags) {
         data.flags = flags;
 
         fieldIndicies.push_back(data);
-        fieldLookup.insert(make_pair(name, fieldIndex));
+        fieldLookup.insert(make_pair(name, fieldLookup.size()));
         
     } else {
         fieldIndex = it->second;
