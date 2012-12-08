@@ -257,7 +257,7 @@ catches:
 
 catch:
     K_CATCH T_IDENTIFIER block {$$ = new NCatch($2, NULL, $3);}
-  | K_CATCH T_IDENTIFIER K_AS T_IDENTIFIER block {$$ = new NCatch($2, $4, $5);}
+  | K_CATCH T_IDENTIFIER K_AS T_IDENTIFIER block {$$ = new NCatch($4, $2, $5);}
 ;
 
 return:
