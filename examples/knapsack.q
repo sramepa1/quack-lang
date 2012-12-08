@@ -14,8 +14,8 @@ class InstanceFile {
         
     init(filename) {
         
-        in = new InFile(filename);
-        out = new OutFile(filename + ".result");
+        this.in = new InFile(filename);
+        this.out = new OutFile(filename + ".result");
 
     }
 
@@ -61,8 +61,8 @@ class InstanceFile {
         
         while(currentConfig < mask) {
 
-            configWeight = computeWeight(currentConfig->_intValue(), n, itemsArr);
-            configCost = computeCost(currentConfig->_intValue(), n, itemsArr);
+            configWeight = computeWeight(new Integer(currentConfig), n, itemsArr);
+            configCost = computeCost(new Integer(currentConfig), n, itemsArr);
             
             if(configWeight <= M && configCost > currentMaxCost) {
                 bestConfig = currentConfig;
@@ -79,8 +79,10 @@ class InstanceFile {
     fun computeSolution() {
 
         cout = @System.out;
+        inField = this.in;
+        outField = this.out;
 
-        inputLine = in->readLine();
+        inputLine = inField->readLine();
         tokens = inputLine->explode(" ");
 
         currentToken = tokens->getElem(0);
@@ -92,7 +94,7 @@ class InstanceFile {
 
         items = new Array(n);
         
-        while(!in->eof()) {
+        while(!inField->eof()) {
 
             cout->write("Instance ID " + id + " - n = " + n + "; M = " + M);
             
@@ -113,7 +115,7 @@ class InstanceFile {
 
             //////////////////////////////////////
 
-            inputLine = in->readLine();
+            inputLine = inField->readLine();
             tokens = inputLine->explode(" ");
 
             currentToken = tokens->getElem(0);
@@ -124,8 +126,8 @@ class InstanceFile {
             M = currentToken->_intValue();
         }
 
-        in->close();
-        out->close();
+        inField->close();
+        outField->close();
     
     }
 }
@@ -134,15 +136,15 @@ statclass Main {
 
     fun main(args) {
         
-        //cout = @System.out;
+        cout = @System.out;
 
-        //try {
+        try {
             in = new InstanceFile("./knap_10.inst.dat");
             in->computeSolution();
-        //} catch e as IOException {
-        //    cout->writeLine("Input file cannot be opened!");
-        //    cout->writeLine("Reason: " + e.what);
-        //}
+        } catch e as IOException {
+            cout->writeLine("Input file cannot be opened!");
+            cout->writeLine("Reason: " + e.what);
+        }
 
     }
 }

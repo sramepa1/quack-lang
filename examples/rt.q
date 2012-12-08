@@ -337,19 +337,23 @@ class Array {
         return _opIndexN(index);
     }
 
-    fun setElem(index, elem) {
+    fun _opIndexW(index, elem) {
         while(!(index istype Integer)) {
             index = index->_intValue();
         }
-        return setElemN(index, elem);
+        return _opIndexWN(index, elem);
     }
 
     fun getElem(index) {
         return _opIndex(index);
     }
+
+    fun setElem(index, elem) {
+        return _opIndexW(index, elem);
+    }
     
     fun initN(size) #flags 0x0001 {}
     fun _opIndexN(index) #flags 0x0001 {}
-    fun setElemN(index, elem) #flags 0x0001 {}
+    fun _opIndexWN(index, elem) #flags 0x0001 {}
 
 }

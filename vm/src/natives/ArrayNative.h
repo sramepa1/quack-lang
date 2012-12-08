@@ -14,13 +14,13 @@ public:
                           __extension__ (void*)&ArrayNative::init1NativeImpl);
         loader->registerNativeMethod(name, (QuaSignature*)"\1_opIndexN",
                           __extension__ (void*)&ArrayNative::_opIndexNativeImpl);
-        loader->registerNativeMethod(name, (QuaSignature*)"\2setElemN",
-                          __extension__ (void*)&ArrayNative::setElemNativeImpl);
+        loader->registerNativeMethod(name, (QuaSignature*)"\2_opIndexWN",
+                          __extension__ (void*)&ArrayNative::_opIndexWNativeImpl);
     }
 
     static QuaValue init1NativeImpl();                  // native initN(size)
     static QuaValue _opIndexNativeImpl();               // native fun _opIndexN(index)
-    static QuaValue setElemNativeImpl();                // native fun setElemN(index, elem)
+    static QuaValue _opIndexWNativeImpl();              // native fun _opIndexWN(index, elem)
 
 };
 

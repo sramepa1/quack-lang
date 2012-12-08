@@ -14,6 +14,6 @@ QuaValue ArrayNative::_opIndexNativeImpl() {
 }
 
 
-QuaValue ArrayNative::setElemNativeImpl() {
+QuaValue ArrayNative::_opIndexWNativeImpl() {
     throw runtime_error("Native method not yet implemented.");
 }

@@ -38,7 +38,21 @@ QuaValue FileNative::initNativeImpl() {
 
 
 QuaValue FileNative::readLineNativeImpl() {
-	throw runtime_error("Native method not yet implemented.");
+
+    if(getFieldByIndex(*VMBP, 0).value & FILE_FLAG_CLOSED) {
+        throw createException(typeCache.typeIOException, "File is already closed!");
+    }
+
+    istream* thisStream = (istream*)ptrFromQuaValues(getFieldByIndex(*VMBP, 1), getFieldByIndex(*VMBP, 2));
+
+    string loadedString;
+    std::getline(*thisStream, loadedString);
+
+    if(thisStream->bad() || thisStream->fail()) {
+        throw createException(typeCache.typeIOException, "Reading operation failed!");
+    }
+
+    return stringDeserializer(loadedString.c_str());
 }
 
 
