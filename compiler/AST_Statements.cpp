@@ -213,10 +213,25 @@ void STry::generateCode(BlockTranslator* translator) {
     translator->instructions.at(tryInstr)->ARG0 = translator->instructions.size() - 1 - tryInstr;
 }
 
-void NCatch::generateCode(BlockTranslator* translator) {
-    uint16_t exRegister = translator->localVariables->at(*variable->variableName);
-    translator->addInstruction(OP_POP, SOP_STACK_1, exRegister, 0, 0);
+NCatch::NCatch(std::string* _className, std::string* _variableName, NBlock* _block) : className(_className), block(_block) {
+    
+    if(_variableName != NULL) {
+        variable = new ELocalVariable(_variableName);
+    }
+    
+}
 
+
+void NCatch::generateCode(BlockTranslator* translator) {
+    
+    if(variable == NULL) {
+        translator->addInstruction(OP_POP, SOP_STACK_1, 0xFFFF, 0, 0);
+    } else {
+        uint16_t exRegister = translator->localVariables->at(*variable->variableName);
+        translator->addInstruction(OP_POP, SOP_STACK_1, exRegister, 0, 0);
+    }
+    
     block->generateCode(translator);
     translator->addInstruction(OP_FIN, NO_SOP, 0, 0, 0);
+
 }

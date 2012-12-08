@@ -224,7 +224,7 @@ statement_list:
 ;
 
 block_statement:
-    try {$$ = NULL;}
+    try {$$ = $1;}
   | if {$$ = $1;}
   | for {$$ = $1;}
   | while {$$ = $1;}
@@ -232,7 +232,7 @@ block_statement:
   | return T_SEMICOLON {$$ = $1;}
   | assignment T_SEMICOLON {$$ = $1;}
   | call T_SEMICOLON {$$ = $1;}
-  | T_SEMICOLON {$$ = NULL;}
+  | T_SEMICOLON {$$ = new SEmpty();}
 ;
 
 standalone_statement:

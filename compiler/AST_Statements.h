@@ -24,6 +24,14 @@ public:
     }
 };
 
+class SEmpty : public NStatement {
+public:
+    virtual ~SEmpty() {}
+    
+    virtual void generateCode(BlockTranslator* translator) {}
+    virtual void findLocals(std::map<std::string, uint16_t>* locals) {}
+};
+
 class SReturn : public NStatement {
 public:
     SReturn(NExpression* _expression = NULL) : expression(_expression) {}
@@ -55,10 +63,7 @@ public:
 
 class NCatch : public Node, public Scope {
 public:
-    NCatch(std::string* _className, std::string* _variableName, NBlock* _block)
-        : className(_className), block(_block) {
-             variable = new ELocalVariable(_variableName);
-        }
+    NCatch(std::string* _className, std::string* _variableName, NBlock* _block);
     virtual ~NCatch() {}
     
     std::string* className;
