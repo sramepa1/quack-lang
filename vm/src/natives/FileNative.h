@@ -18,6 +18,11 @@ public:
                           __extension__ (void*)&FileNative::initNativeImpl);
         loader->registerNativeMethod(name, (QuaSignature*)"\0readLine",
                           __extension__ (void*)&FileNative::readLineNativeImpl);
+        loader->registerNativeMethod(name, (QuaSignature*)"\0readInt",
+                          __extension__ (void*)&FileNative::readIntNativeImpl);
+        loader->registerNativeMethod(name, (QuaSignature*)"\0readFloat",
+                          __extension__ (void*)&FileNative::readFloatNativeImpl);
+
         loader->registerNativeMethod(name, (QuaSignature*)"\1writeLineN",
                           __extension__ (void*)&FileNative::writeLineNativeImpl);
         loader->registerNativeMethod(name, (QuaSignature*)"\0eof",
@@ -28,6 +33,9 @@ public:
 
     static QuaValue initNativeImpl();       // native init(filename);
     static QuaValue readLineNativeImpl();   // native fun readLine();
+    static QuaValue readIntNativeImpl();    // native fun readInt();
+    static QuaValue readFloatNativeImpl();  // native fun readFloat();
+
     static QuaValue writeLineNativeImpl();  // native fun writeLine(string);
     static QuaValue eofNativeImpl();        // native fun eof();
     static QuaValue finalizeNativeImpl();   // native fun finalize();

@@ -3,6 +3,12 @@
 
 #include "NativeLoader.h"
 
+extern "C" {
+    #include <stdint.h>
+}
+
+int32_t integerSerializer(QuaValue val);
+
 class IntegerNative
 {
     const char* const name;

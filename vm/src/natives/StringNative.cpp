@@ -6,6 +6,8 @@
 #include "helpers.h"
 #include "ExceptionNative.h"
 
+#include <iostream>
+
 using namespace std;
 
 QuaValue stringDeserializer(const char* data) {
@@ -14,13 +16,11 @@ QuaValue stringDeserializer(const char* data) {
 	QuaValue blobRef = heap->allocateNew(typeCache.typeDataBlob, length);
 
 	for(uint32_t i = 0; i < length; i++) {
-		getFieldByIndex(blobRef, i).tag = TAG_INT;
-		getFieldByIndex(blobRef, i).value = (unsigned char)data[i];
+        getFieldByIndex(blobRef, i) = createInteger((unsigned char)data[i]);
 	}
 
 	getFieldByIndex(strRef, 0) = blobRef;
-	getFieldByIndex(strRef, 1).tag = TAG_INT;
-	getFieldByIndex(strRef, 1).value = length;
+    getFieldByIndex(strRef, 1) = createInteger(length);
 
 	return strRef;
 }
@@ -60,7 +60,7 @@ QuaValue StringNative::_opPlusNativeImpl() {
 
         return stringDeserializer((first + second).c_str());
     } catch (runtime_error& ex) {
-        throw createException(typeCache.typeIOException,
+        throw createException(linkedTypes->at("BadArgumentException"),
                               "Attempt to call with argument which is not an instance of String!");
     }
     return QuaValue();
@@ -88,5 +88,47 @@ QuaValue StringNative::_floatValueNativeImpl() {
 
 
 QuaValue StringNative::explodeNativeImpl() {
-	throw runtime_error("Native method not yet implemented.");
+
+    // TODO: does not work yet
+    const char* delim = NULL;
+
+    try {
+        delim = stringSerializer(*(VMBP + 1)).c_str();
+    } catch (runtime_error& ex) {
+        throw createException(typeCache.typeIOException,
+                              "Attempt to call with argument which is not an instance of String!");
+    }
+
+    string me = stringSerializer(*VMBP);
+    char* myCopy = new char[me.size() + 1];
+    strncpy(myCopy, me.c_str(), me.size() + 1);
+    vector<QuaValue> stringRefs;
+
+    char* token;
+    token = strtok(myCopy, delim);
+
+    while(token != NULL) {
+        stringRefs.push_back(stringDeserializer(token));
+        token = strtok(NULL, delim);
+    }
+
+    QuaValue tokenCount = createInteger(stringRefs.size());
+    *(--VMSP) = tokenCount;
+    QuaValue arrRef = newRawInstance(typeCache.typeArray);
+    nativeCall(arrRef, (QuaSignature*)"\1initN");
+
+    uint32_t index = 0;
+    for(vector<QuaValue>::iterator it = stringRefs.begin(); it != stringRefs.end(); ++it) {
+
+        *(--VMSP) = (*it);
+
+        QuaValue indexRef = createInteger(index);
+        *(--VMSP) = indexRef;
+
+        nativeCall(arrRef, (QuaSignature*)"\2_opIndexWN");
+        index++;
+    }
+
+    delete[] myCopy;
+    return arrRef;
 }

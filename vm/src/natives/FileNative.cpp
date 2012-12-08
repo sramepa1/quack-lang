@@ -25,11 +25,28 @@ QuaValue fileConstructor() {
         quaValuesFromPtr(newFile, getFieldByIndex(*VMBP, 1), getFieldByIndex(*VMBP, 2));
 
     } catch (runtime_error& ex) {
-        throw createException(typeCache.typeIOException,
+        throw createException(linkedTypes->at("BadArgumentException"),
                               "Attempt to call with argument which is not an instance of String!");
     }
 
     return QuaValue();
+}
+
+void testClosed() {
+    if(getFieldByIndex(*VMBP, 0).value & FILE_FLAG_CLOSED) {
+        throw createException(typeCache.typeIOException, "File is already closed!");
+    }
+}
+
+void testFailAndBad(ios* stream, const char* errStr) {
+    if(stream->bad() || stream->fail()) {
+        throw createException(typeCache.typeIOException, errStr);
+    }
+}
+
+istream* getIStream() {
+    testClosed();
+    return (istream*)ptrFromQuaValues(getFieldByIndex(*VMBP, 1), getFieldByIndex(*VMBP, 2));
 }
 
 QuaValue FileNative::initNativeImpl() {
@@ -39,53 +56,66 @@ QuaValue FileNative::initNativeImpl() {
 
 QuaValue FileNative::readLineNativeImpl() {
 
-    if(getFieldByIndex(*VMBP, 0).value & FILE_FLAG_CLOSED) {
-        throw createException(typeCache.typeIOException, "File is already closed!");
-    }
-
-    istream* thisStream = (istream*)ptrFromQuaValues(getFieldByIndex(*VMBP, 1), getFieldByIndex(*VMBP, 2));
-
+    istream* thisStream = getIStream();
     string loadedString;
     std::getline(*thisStream, loadedString);
-
-    if(thisStream->bad() || thisStream->fail()) {
-        throw createException(typeCache.typeIOException, "Reading operation failed!");
-    }
+    testFailAndBad(thisStream, "Reading operation failed!");
 
     return stringDeserializer(loadedString.c_str());
 }
 
 
+QuaValue FileNative::readIntNativeImpl() {
+    istream* thisStream = getIStream();
+    int32_t loadedInt;
+    (*thisStream) >> loadedInt;
+    cout << "Loaded int: " << loadedInt << endl;
+    testFailAndBad(thisStream, "Reading operation failed!");
+    return createInteger(loadedInt);
+}
+
+
+QuaValue FileNative::readFloatNativeImpl() {
+    throw runtime_error("Native method not yet implemented.");
+}
+
+
 QuaValue FileNative::writeLineNativeImpl() {
-
-	if(getFieldByIndex(*VMBP, 0).value & FILE_FLAG_CLOSED) {
-		throw createException(typeCache.typeIOException, "File is already closed!");
-	}
-
+    testClosed();
 	ostream* thisStream = (ostream*)ptrFromQuaValues(getFieldByIndex(*VMBP, 1), getFieldByIndex(*VMBP, 2));
 
     try {
         (*thisStream) << stringSerializer(*(VMBP + 1)) << endl;
     } catch (runtime_error& ex) {
-        throw createException(typeCache.typeIOException,
+        throw createException(linkedTypes->at("BadArgumentException"),
                               "Attempt to call with argument which is not an instance of String!");
     }
 
-    if(thisStream->bad() || thisStream->fail()) {
-        throw createException(typeCache.typeIOException, "Writing operation failed!");
-    }
-
+    testFailAndBad(thisStream, "Writing operation failed!");
 	return QuaValue();
 }
 
 
 QuaValue FileNative::eofNativeImpl() {
-	throw runtime_error("Native method not yet implemented.");
+    testClosed();
+    ios* thisStream = (ios*)ptrFromQuaValues(getFieldByIndex(*VMBP, 1), getFieldByIndex(*VMBP, 2));
+    if(thisStream->eof()) {
+        cout << "EOF found" << endl;
+        return createBool(true);
+    } else {
+        cout << "EOF not found" << endl;
+        return createBool(false);
+    }
 }
 
 
 QuaValue FileNative::finalizeNativeImpl() {
-	throw runtime_error("Native method not yet implemented.");
+    if(!((getFieldByIndex(*VMBP, 0).value & FILE_FLAG_CLOSED)
+            || (getFieldByIndex(*VMBP, 0).value & FILE_FLAG_UNCLOSEABLE))) {
+        delete (ios*)ptrFromQuaValues(getFieldByIndex(*VMBP, 1), getFieldByIndex(*VMBP, 2));
+        getFieldByIndex(*VMBP, 0).value |= FILE_FLAG_CLOSED;
+    }
+    return QuaValue();
 }
 
 
@@ -97,4 +127,6 @@ QuaValue OutFileNative::initNativeImpl() {
 QuaValue InFileNative::initNativeImpl() {
     return fileConstructor<ifstream>();
 }
+
+
 

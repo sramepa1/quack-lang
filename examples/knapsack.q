@@ -49,6 +49,8 @@ class InstanceFile {
 
     fun bruteForce(n, M, itemsArr) {
 
+        cout = @System.out;
+
         currentMaxCost = 0;
 
         currentConfig = 0;
@@ -73,6 +75,7 @@ class InstanceFile {
 
         }
 
+        cout->writeLine("The best cost is " + currentMaxCost);
     }
 
 
@@ -82,48 +85,34 @@ class InstanceFile {
         inField = this.in;
         outField = this.out;
 
-        inputLine = inField->readLine();
-        tokens = inputLine->explode(" ");
+        id = inField->readInt();
+        n = inField->readInt();
+        M = inField->readInt();
 
-        currentToken = tokens->getElem(0);
-        id = currentToken->_intValue();
-        currentToken = tokens->getElem(1);
-        n = currentToken->_intValue();
-        currentToken = tokens->getElem(2);
-        M = currentToken->_intValue();
-
+                
         items = new Array(n);
-        
-        while(!inField->eof()) {
+        //cout->writeLine("Instance ID " + id + " - n = " + n + "; M = " + M);
 
-            cout->write("Instance ID " + id + " - n = " + n + "; M = " + M);
+        while(!(inField->eof())) {
             
             for(i = 0; i < n; i = i + 1) {
                 newItem = new Item();
 
-                currentToken = tokens->getElem(3 + (2*i));
-                newItem.weight = currentToken->_intValue();
-                currentToken = tokens->getElem(3 + (2*i + 1));
-                newItem.cost = currentToken->_intValue();
-
+                newItem.weight = inField->readInt();
+                newItem.cost = inField->readInt();
+                
                 items->setElem(i, newItem);
             }
             
-            cout->write("Instance successfuly loaded!");
+            cout->writeLine("Instance successfuly loaded!");
             this->bruteForce(n, M, items);
-
 
             //////////////////////////////////////
 
-            inputLine = inField->readLine();
-            tokens = inputLine->explode(" ");
-
-            currentToken = tokens->getElem(0);
-            id = currentToken->_intValue();
-            currentToken = tokens->getElem(1);
-            n = currentToken->_intValue();
-            currentToken = tokens->getElem(2);
-            M = currentToken->_intValue();
+            id = inField->readInt();
+            n = inField->readInt();
+            M = inField->readInt();
+        
         }
 
         inField->close();
@@ -145,6 +134,5 @@ statclass Main {
             cout->writeLine("Input file cannot be opened!");
             cout->writeLine("Reason: " + e.what);
         }
-
     }
 }

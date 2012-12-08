@@ -34,6 +34,8 @@ class File #flags 0x0002 {
 
     fun initN(fileName) #flags 0x0001 {}
     fun readLine() #flags 0x0001 {}
+    fun readInt() #flags 0x0001 {}
+    fun readFloat() #flags 0x0001 {}
 
     fun writeLine(string) {
         while(!(string istype String)) {
@@ -60,6 +62,14 @@ class OutFile extends File #flags 0x0002 {
     fun initN(fileName) #flags 0x0001 {}
 
     fun readLine() {
+        throw new IOException("Output file does not support read operation!");
+    }
+
+    fun readInt() {
+        throw new IOException("Output file does not support read operation!");
+    }
+    
+    fun readFloat() {
         throw new IOException("Output file does not support read operation!");
     }
 }
@@ -97,7 +107,8 @@ class NoSuchMethodException extends NotFoundException {}
 class NoSuchClassException extends NotFoundException {}
 class IOException extends Exception {}
 class NullReferenceException extends Exception {}
-
+class ArrayIndexOfBoundException extends Exception {}
+class BadArgumentException extends Exception {}
 
 
 class String {

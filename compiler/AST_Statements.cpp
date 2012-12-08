@@ -205,7 +205,7 @@ void STry::generateCode(BlockTranslator* translator) {
 
     for(list<NCatch*>::iterator it = catches->begin(); it != catches->end(); ++it) {
         translator->instructions.at(catchInstrs.at(catchInstrs.size() - 1))->ARG1
-                = translator->instructions.size() - 1 - tryInstr;
+                = translator->instructions.size() - 1 - catchInstrs.at(catchInstrs.size() - 1);
         catchInstrs.pop_back();
         (*it)->generateCode(translator);
     }
