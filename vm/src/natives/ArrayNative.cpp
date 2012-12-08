@@ -10,7 +10,7 @@ using namespace std;
 
 
 void checkIndex(int32_t index) {
-    int32_t arraySize = heap->dereference(getFieldByIndex(*VMBP, 0)).size;
+    int32_t arraySize = heap->dereference(getFieldByIndex(*VMBP, 0)).instanceCount;
 
     if(index >= arraySize) {
         stringstream errStr;
