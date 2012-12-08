@@ -10,7 +10,7 @@ using namespace std;
 
 
 void checkIndex(int32_t index) {
-    int32_t arraySize = heap->dereference(getFieldByIndex(*VMBP, 0)).instanceCount;
+    int32_t arraySize = heap->dereference(getFieldByIndex(*VMBP, 0)).fieldCount;
 
     if(index >= arraySize) {
         stringstream errStr;
@@ -33,13 +33,13 @@ QuaValue ArrayNative::init1NativeImpl() {
 QuaValue ArrayNative::_opIndexNativeImpl() {
     int32_t index = integerSerializer(*(VMBP + 1));
     checkIndex(index);
-    return heap->dereference(getFieldByIndex(*VMBP, 0)).instance->fields[index];
+    return heap->dereference(getFieldByIndex(*VMBP, 0)).field->fields[index];
 }
 
 
 QuaValue ArrayNative::_opIndexWNativeImpl() {
     int32_t index = integerSerializer(*(VMBP + 1));
     checkIndex(index);
-    heap->dereference(getFieldByIndex(*VMBP, 0)).instance->fields[index] = *(VMBP + 2);
+    heap->dereference(getFieldByIndex(*VMBP, 0)).field->fields[index] = *(VMBP + 2);
     return QuaValue();
 }

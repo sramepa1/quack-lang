@@ -43,7 +43,7 @@ extern "C" {
 	TypeCache typeCache;
 
 
-void initGlobals(bool jit, size_t valStackSize, size_t addrStackSize, size_t heapSize) {
+void initGlobals(bool jit, size_t valStackSize, size_t addrStackSize, size_t volHeapSize, size_t permHeapSize) {
 
 #ifdef DEBUG
 	cout << "=== Initializing core VM structures... ===" << endl;
@@ -75,7 +75,7 @@ void initGlobals(bool jit, size_t valStackSize, size_t addrStackSize, size_t hea
 	typeArray = new QuaClass*[65536];
 	linkedTypes = new map<string, uint16_t>();
 
-	heap = new Heap(heapSize);
+	heap = new Heap(volHeapSize, permHeapSize);
 
 #ifdef DEBUG
 	cout << "Heap initialized successfully" << endl;

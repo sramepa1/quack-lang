@@ -16,7 +16,7 @@ extern "C" {
 // this is for the type field
 #define TYPE_UNRESOLVED 0x8000
 
-#define FLAG_REF_PERMANENT 0x0001
+#define FLAG_REF_PERMANENT 0x01
 
 #pragma pack(1)
 

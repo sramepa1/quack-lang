@@ -76,7 +76,7 @@ inline QuaValue newRawInstance(uint16_t & type) {
 }
 
 inline QuaValue& getFieldByIndex(QuaValue that, uint16_t index) {
-	return heap->dereference(that).instance->fields[index];
+	return heap->dereference(that).field->fields[index];
 }
 
 inline uint16_t getFieldIndex(QuaValue& that, const char* fieldName) {

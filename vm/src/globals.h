@@ -46,7 +46,7 @@ extern "C" {
 	extern Loader* loader;
 	extern Interpreter* interpreter;
 
-	void initGlobals(bool jit, size_t valStackSize, size_t addrStackSize, size_t heapSize);
+	void initGlobals(bool jit, size_t valStackSize, size_t addrStackSize, size_t volHeapSize, size_t permHeapSize);
 
 	extern sigjmp_buf jmpEnv;
 

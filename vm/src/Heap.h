@@ -14,44 +14,34 @@ extern "C" {
 #include "QuaObject.h"
 
 
-#define F_NORMAL 0x0000
-#define F_STATIC 0x0001
-
-
-
 #pragma pack(1)
 
 struct ObjRecord
 {
     uint16_t type;
     uint16_t flags;
-    uint32_t instanceCount;
-    QuaObject* instance;
+    uint32_t fieldCount;
+    QuaObject* field;
 };
 
 #pragma pack()
 
-
-
-class Heap
-{
+class AbstractHeap {
 public:
-    Heap(size_t size);
-    Heap(size_t statSize, size_t dynSize);
+    virtual ~AbstractHeap() {}
+    AbstractHeap(size_t size);
 
     void* getBase();
     void* getEnd();
 
     const ObjRecord& dereference(QuaValue ref);
-
     QuaValue allocateNew(uint16_t type, uint32_t fieldCount);
-    QuaValue allocateNewStatic(uint16_t type, uint32_t fieldCount);
 
-private:
+protected:
     void* heapBase;
     void* tableBase;
     
-    size_t totalSize; 
+    size_t allocatedSize; 
     size_t heapSize;
     size_t tableSize;
     
@@ -60,48 +50,69 @@ private:
     void* freeHeapPtr;
     void* freeTablePtr;
     
-    bool firstGeneration;
+    uint8_t qValueFlags;
     
+    virtual void prepareFreeTableEtry() = 0;
+    virtual void collectGarbage() = 0;
     
-    void* statHeapBase;
-    uint32_t statHeapTotalSize;
-    uint32_t statHeapAvailableSize;
-    void* statFreePtr;
-
-    void* objectTableBase;
-    uint32_t objectTableSize;
-    
-    //uint32_t freeIndex;
-    
-    void testFreeSpaceForNew(uint32_t fieldCount);
-    void findFreeTablePointer() {
-        if(firstGeneration) {
-            freeTablePtr = (void*) ((ObjRecord*) freeTablePtr - 1);
-            freeTableIndex++;
-        }
-
-        // TODO search for free index
-    }
-    
-    void addRecord(ObjRecord* record){
-        findFreeTablePointer();
+    virtual void addRecord(ObjRecord* record) {
+        prepareFreeTableEtry();
         memcpy(freeTablePtr, record, sizeof(ObjRecord));
+        tableSize += sizeof(ObjRecord);
     }
-    
-    const ObjRecord* getRecord(uint32_t index) {
+
+    virtual const ObjRecord* getRecord(uint32_t index) {
         return ((const ObjRecord*) tableBase - index - 1);
     }
     
-    /*
-    std::vector<ObjRecord*> objectTable;
-    
-    std::vector<int> objectTable;
-    std::map<int, ObjRecord*> staticCache;
-
-     */
 };
 
 
+class BakerHeap : public AbstractHeap {
+public:
+    virtual ~BakerHeap() {}
+    BakerHeap(size_t size);
+
+protected:
+    
+    bool firstGeneration;
+    
+    virtual void prepareFreeTableEtry();
+    virtual void collectGarbage();
+ 
+};
+
+
+class PermanentHeap : public AbstractHeap {
+public:
+    virtual ~PermanentHeap() {}
+    PermanentHeap(size_t size);
+
+protected:
+    
+    virtual void prepareFreeTableEtry();
+    virtual void collectGarbage();
+ 
+};
+
+
+class Heap {
+public:
+    Heap(size_t volatileSize, size_t permanentSize);
+
+    void* getVolatileBase() {return volatileHeap.getBase();}
+    void* getVolatileEnd() {return volatileHeap.getEnd();}
+    void* getPermanentBase() {return permanentHeap.getBase();}
+    void* getPermanentEnd() {return permanentHeap.getEnd();}
+
+    const ObjRecord& dereference(QuaValue ref);
+    QuaValue allocateNew(uint16_t type, uint32_t fieldCount);
+    
+private:
+    BakerHeap volatileHeap;
+    PermanentHeap permanentHeap;          
+};
 
 
 #endif // HEAP_H
+
