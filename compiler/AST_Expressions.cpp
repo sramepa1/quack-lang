@@ -30,7 +30,7 @@ void ENew::generateCode(BlockTranslator* translator) {
 
     string constructorName("\0init", 5);
     constructorName.at(0) = (unsigned char)parameters->size();
-    translator->addInstruction(OP_NEW, NO_SOP, resultRegister, constantPool.addString(*className),
+    translator->addInstruction(OP_NEW, NO_SOP, resultRegister, getTypeID(*className),
                                constantPool.addString(constructorName));
 }
 
@@ -69,7 +69,7 @@ void EThisField::generateCode(BlockTranslator* translator) {
 void CString::generateCode(BlockTranslator* translator) {
     CHECK_RESULT_REGISTER(this);
     translator->addInstruction(OP_LDC, NO_SOP, resultRegister, getTypeID("String"),
-                               constantPool.addString(*value));
+                               constantPool.addString(value->substr(1, value->size() - 2)));
 }
 
 void CInt::generateCode(BlockTranslator* translator) {

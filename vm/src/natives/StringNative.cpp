@@ -4,6 +4,7 @@
 #include <cstring>
 
 #include "helpers.h"
+#include "ExceptionNative.h"
 
 using namespace std;
 
@@ -53,7 +54,16 @@ QuaValue StringNative::init1NativeImpl() {
 
 
 QuaValue StringNative::_opPlusNativeImpl() {
-	throw runtime_error("Native method not yet implemented.");
+    try {
+        string first = stringSerializer(*VMBP);
+        string second = stringSerializer(*(VMBP + 1));
+
+        return stringDeserializer((first + second).c_str());
+    } catch (runtime_error& ex) {
+        throw createException(typeCache.typeIOException,
+                              "Attempt to call with argument which is not an instance of String!");
+    }
+    return QuaValue();
 }
 
 

@@ -10,8 +10,30 @@
 
 using namespace std;
 
+template <typename streamType>
+QuaValue fileConstructor() {
+    try {
+        string fileName = stringSerializer(*(VMBP + 1));
+
+        streamType* newFile = new streamType(fileName.c_str());
+
+        if(newFile->bad() || newFile->fail()) {
+            throw createException(typeCache.typeIOException, string("File " + fileName + " cannot be opened!").c_str());
+        }
+
+        getFieldByIndex(*VMBP, 0) = createInteger(0); // no flags
+        quaValuesFromPtr(newFile, getFieldByIndex(*VMBP, 1), getFieldByIndex(*VMBP, 2));
+
+    } catch (runtime_error& ex) {
+        throw createException(typeCache.typeIOException,
+                              "Attempt to call with argument which is not an instance of String!");
+    }
+
+    return QuaValue();
+}
+
 QuaValue FileNative::initNativeImpl() {
-	throw runtime_error("Native method not yet implemented.");
+    return fileConstructor<fstream>();
 }
 
 
@@ -54,11 +76,11 @@ QuaValue FileNative::finalizeNativeImpl() {
 
 
 QuaValue OutFileNative::initNativeImpl() {
-	throw runtime_error("Native method not yet implemented.");
+    return fileConstructor<ofstream>();
 }
 
 
 QuaValue InFileNative::initNativeImpl() {
-	throw runtime_error("Native method not yet implemented.");
+    return fileConstructor<ifstream>();
 }
 

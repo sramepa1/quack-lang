@@ -12,8 +12,7 @@ QuaValue SystemNative::initNativeImpl() {
     // create out stream
     QuaValue outRef = newRawInstance(linkedTypes->at("OutFile"));
 
-    getFieldByIndex(outRef, 0).tag = TAG_INT;
-    getFieldByIndex(outRef, 0).value = FILE_FLAG_UNCLOSEABLE /*| FILE_FLAG_CLOSED*/;
+    getFieldByIndex(outRef, 0) = createInteger(FILE_FLAG_UNCLOSEABLE /*| FILE_FLAG_CLOSED*/);
     quaValuesFromPtr(&cout, getFieldByIndex(outRef, 1), getFieldByIndex(outRef, 2));
     getFieldByIndex(*VMBP, 1) = outRef;
 

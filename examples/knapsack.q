@@ -133,9 +133,16 @@ class InstanceFile {
 statclass Main {
 
     fun main(args) {
+        
+        //cout = @System.out;
 
-        in = new InstanceFile("./knap_15.inst.dat");
-        in->computeSolution();
+        //try {
+            in = new InstanceFile("./knap_10.inst.dat");
+            in->computeSolution();
+        //} catch e as IOException {
+        //    cout->writeLine("Input file cannot be opened!");
+        //    cout->writeLine("Reason: " + e.what);
+        //}
 
     }
 }
