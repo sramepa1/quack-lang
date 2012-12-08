@@ -914,6 +914,7 @@ inline Instruction* Interpreter::handleA3REG(Instruction* insn) {
 	}
 
 	// in case tagged operation was not possible
+	*(--VMSP) = regs[insn->ARG2];
 	return directCall(insn->ARG0, regs[insn->ARG1], opSig, insn + 1);
 }
 

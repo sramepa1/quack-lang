@@ -239,18 +239,11 @@ map<uint16_t, JITCompiler::MachineRegister> JITCompiler::allocateRegisters(list<
 
 	// TODO: Use Linear Scan's output to map unspilled virtual registers to those 12 machine ones
 
-	allocation[0] = REG_RCX;
-	allocation[1] = REG_RDX;
-	allocation[2] = REG_RSI;
-	allocation[3] = REG_RDI;
-	allocation[4] = REG_R8;
-	allocation[5] = REG_R9;
-	allocation[6] = REG_R10;
-	allocation[7] = REG_R11;
-	allocation[8] = REG_R12;
-	allocation[9] = REG_R13;
-	allocation[10] = REG_R14;
-	allocation[11] = REG_R15;
+	MachineRegister regOrder[] = { REG_RCX, REG_RDX, REG_RSI, REG_RDI,
+								   REG_R8, REG_R9, REG_R10, REG_R11, REG_R12, REG_R13, REG_R14, REG_R15 };
+	for(int i = 0; i <= maxReg; i++) {
+		allocation[i] = regOrder[i];
+	}
 
 	// TODO: Also return stack locations for spilled virtual registers.
 
@@ -370,11 +363,24 @@ inline void JITCompiler::finishReturnReg(MachineRegister reg, void* destinationL
 	emitJumpToLabel(destinationLabel, buffer);	// Leave JITted code
 }
 
+inline void JITCompiler::emitClearContext(map<uint16_t, MachineRegister> allocation, vector<unsigned char>& buffer) {
+	for(map<uint16_t, JITCompiler::MachineRegister>::iterator it = allocation.begin(); it != allocation.end(); ++it) {
+		emitTwoRegInsn(it->second, it->second, 0x31, buffer, true); // xor reg, reg
+	}
+	// slightly suoptimal for the first 4 regs (redundant prefix), but works correctly
+}
+
+inline void JITCompiler::emitSaveContext(map<uint16_t, MachineRegister> allocation, vector<unsigned char>& buffer) {
+	for(map<uint16_t, JITCompiler::MachineRegister>::iterator it = allocation.begin(); it != allocation.end(); ++it) {
+		emitOneByteInsn(it->second, 0x50, buffer); // push push push push push...
+	}
+}
 
 
 void JITCompiler::generate(list<Instruction*> insns, map<uint16_t, MachineRegister> allocation,
 						   vector<unsigned char>& buffer ) {
 
+	emitClearContext(allocation, buffer);
 
 	for(list<Instruction*>::iterator it = insns.begin(); it != insns.end(); ++it) {
 

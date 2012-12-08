@@ -71,6 +71,9 @@ private:
 	void emitOneByteInsn(MachineRegister reg, unsigned char machineOp, std::vector<unsigned char>& buffer);
 	void emitTwoRegInsn(MachineRegister regRM, MachineRegister regR, unsigned char opcode,
 						std::vector<unsigned char>& buffer, bool directAddressing, int32_t displacement = 0);
+
+	void emitClearContext(std::map<uint16_t, MachineRegister> allocation, std::vector<unsigned char>& buffer);
+	void emitSaveContext(std::map<uint16_t, MachineRegister> allocation, std::vector<unsigned char>& buffer);
 	void emitSwitchPointersToC(std::vector<unsigned char>& buffer);
 	void emitLoadLabelToRax(void* labelPtr, std::vector<unsigned char>& buffer);
 	void emitJumpToLabel(void* labelPtr, std::vector<unsigned char>& buffer);
