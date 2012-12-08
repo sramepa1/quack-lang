@@ -29,9 +29,16 @@ string stringSerializer(QuaValue val) {
 		throw runtime_error("Attempted to serialize a non-String as a String.");
 	}
 
-	// TODO: Code from FileNative::writeLineN ?
+    uint32_t stringLength = getFieldByIndex(val, 1).value;
+    string buffer;
+    buffer.reserve(stringLength);
 
-	return string("String serialization not yet implemented");
+    QuaValue stringRef = getFieldByIndex(val, 0);
+    for(uint32_t i = 0; i < stringLength; i++) {
+        buffer.append(1, (unsigned char)(getFieldByIndex(stringRef, i).value));
+    }
+
+    return buffer;
 }
 
 

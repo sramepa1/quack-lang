@@ -6,6 +6,7 @@
 
 #include "helpers.h"
 #include "ExceptionNative.h"
+#include "StringNative.h"
 
 using namespace std;
 
@@ -27,18 +28,17 @@ QuaValue FileNative::writeLineNativeImpl() {
 
 	ostream* thisStream = (ostream*)ptrFromQuaValues(getFieldByIndex(*VMBP, 1), getFieldByIndex(*VMBP, 2));
 
-	// TODO: test if arg is string... if not, call stringValue
-	uint32_t stringLength = getFieldByIndex(*(VMBP + 1), 1).value;
-	string buffer;
-	buffer.reserve(stringLength);
+    try {
+        (*thisStream) << stringSerializer(*(VMBP + 1)) << endl;
+    } catch (runtime_error& ex) {
+        throw createException(typeCache.typeIOException,
+                              "Attempt to call with argument which is not an instance of String!");
+    }
 
-	QuaValue stringRef = getFieldByIndex(*(VMBP + 1), 0);
-	for(uint32_t i = 0; i < stringLength; i++) {
-		buffer.append(1, (unsigned char)(getFieldByIndex(stringRef, i).value));
-	}
+    if(thisStream->bad() || thisStream->fail()) {
+        throw createException(typeCache.typeIOException, "Writing operation failed!");
+    }
 
-	// TODO: test stream fail and bad bit
-	(*thisStream) << buffer << endl;
 	return QuaValue();
 }
 
