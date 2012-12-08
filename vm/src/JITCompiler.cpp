@@ -377,6 +377,14 @@ inline void JITCompiler::emitSaveContext(map<uint16_t, MachineRegister> allocati
 	}
 }
 
+inline void JITCompiler::emitRestoreContext(map<uint16_t, MachineRegister> allocation, vector<unsigned char>& buffer) {
+	for(map<uint16_t, JITCompiler::MachineRegister>::reverse_iterator rit = allocation.rbegin();
+		rit != allocation.rend(); ++rit) {
+
+		emitOneByteInsn(rit->second, 0x58, buffer);
+	}
+}
+
 
 void JITCompiler::generate(list<Instruction*> insns, map<uint16_t, MachineRegister> allocation,
 						   vector<unsigned char>& buffer ) {

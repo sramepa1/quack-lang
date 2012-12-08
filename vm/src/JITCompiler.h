@@ -74,6 +74,7 @@ private:
 
 	void emitClearContext(std::map<uint16_t, MachineRegister> allocation, std::vector<unsigned char>& buffer);
 	void emitSaveContext(std::map<uint16_t, MachineRegister> allocation, std::vector<unsigned char>& buffer);
+	void emitRestoreContext(std::map<uint16_t, MachineRegister> allocation, std::vector<unsigned char>& buffer);
 	void emitSwitchPointersToC(std::vector<unsigned char>& buffer);
 	void emitLoadLabelToRax(void* labelPtr, std::vector<unsigned char>& buffer);
 	void emitJumpToLabel(void* labelPtr, std::vector<unsigned char>& buffer);

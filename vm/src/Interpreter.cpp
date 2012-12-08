@@ -93,7 +93,7 @@ inline void Interpreter::functionPrologue(QuaValue that, QuaMethod* method,
 	QuaValue* oldBP = VMBP;
 	VMBP = VMSP;
 
-	if(method->action <= QuaMethod::INTERPRET) {
+	if(method->action <= QuaMethod::COMPILE) { // compile may fail-> save context anyway
 		// note how many registers this says it may use (for GC)
 		methodRegCounts.insert(method->regCount);
 
@@ -233,6 +233,13 @@ __attribute((noinline)) Instruction* Interpreter::transferControl(TransferReason
 					#endif
 
 					if(compiler->compile(method)) {
+
+						// discard saved context and GC info
+						// - not needed when compilation was successful and the method will not be interpreted
+						methodRegCounts.erase(method->regCount);
+						VMSP += method->regCount;
+
+
 						method->action = QuaMethod::JUMPTO;
 
 					} else {
