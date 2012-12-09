@@ -12,8 +12,12 @@
 
 using namespace std;
 
+static PermanentHeap* permHeap;
 
-Heap::Heap(size_t volatileSize, size_t permanentSize) : volatileHeap(volatileSize), permanentHeap(permanentSize) {}
+
+Heap::Heap(size_t volatileSize, size_t permanentSize) : volatileHeap(volatileSize), permanentHeap(permanentSize) {
+    permHeap = &permanentHeap;
+}
 
 const ObjRecord& Heap::dereference(QuaValue ref) {
     if(ref.flags & FLAG_REF_PERMANENT) {
@@ -44,7 +48,7 @@ void allocateHeap(size_t* size, void** heapBase, void** tableBase) {
     *tableBase = (void*) ((char*) *heapBase + *size - 1);
     
 #ifdef DEBUG
-	cout << "Heap of rounded size " << *size << " created at " << *heapBase << " with object table at " << *tableBase << endl;
+	cout << "A heap of rounded size " << *size << "B allocated at " << *heapBase << " with object table at " << *tableBase << endl;
 #endif
     
     //mprotect( (void*) ((char*) *heapBase + *heapAvailableSize + 1), getpagesize(), PROT_NONE);
@@ -124,7 +128,7 @@ void* AbstractHeap::getEnd() {
 
 ////////////////////////////// Baker
 
-BakerHeap::BakerHeap(size_t size) : AbstractHeap::AbstractHeap(size) {
+BakerHeap::BakerHeap(size_t size) : AbstractHeap::AbstractHeap(size / 2) {
     qValueFlags = 0;
     
     firstGeneration = true;
@@ -137,15 +141,73 @@ BakerHeap::BakerHeap(size_t size) : AbstractHeap::AbstractHeap(size) {
 void BakerHeap::prepareFreeTableEtry() {
     if(firstGeneration) {
         freeTablePtr = (void*) ((ObjRecord*) freeTablePtr - 1);
-        freeTableIndex++;
+        _topTablePtr = freeTablePtr; // remember start(end) of the table
+        _topTableIndex = ++freeTableIndex;
     }
 
     // TODO search for free index
 }
 
 void BakerHeap::collectGarbage() {
+    
+#ifdef DEBUG
+    cout << "Insufficient heap space, initiating garbage collection" << endl;
+#endif
+    
+    firstGeneration = false;
+    
+    // create the second heap part
+    _allocatedSize = allocatedSize;
+    allocateHeap(&_allocatedSize, &_heapBase, &_tableBase);
+
+    _freeHeapPtr = _heapBase;
+    _freeTablePtr = _tableBase;
+    _freeTableIndex = (uint32_t) -1;
+    
+    _heapSize = 0;
+    _tableSize = 0;
+    
+    // copy class table
+    void* src = _topTablePtr;
+    void* dest = ((ObjRecord*) _tableBase - _topTableIndex - 1);
+    size_t size = sizeof(ObjRecord) * (_topTableIndex + 1);
+    memcpy(src, dest, size);
+    
+#ifdef DEBUG
+    cout << "Copying object table of size " << size << " from " << src << " to " << dest << endl;
+    cout << "Table base position check is " << (void*) ((char*) dest + size) << endl;
+#endif
+    
+    // copy objects from the root set
+    // TODO manualy add null
+    for(uint32_t i = 1; i <= permHeap->freeTableIndex; ++i) {
+        const ObjRecord* record = permHeap->getRecord(i);
+        
+        for(uint32_t j = 0; j < record->fieldCount; j++) {
+            QuaValue& qval = record->field->fields[j];
+            if(qval.tag == TAG_REF && qval.flags == 0) {
+                saveRootsetObject(qval);
+            }
+        }
+        
+    }
+                
+    // TODO free unused end of object table
+    
     // TODO implement
+    throw runtime_error("TODO impement GC - volatile heap run out of memory. Teporal fix can be done by creating bigger heap.");
 }
+
+void BakerHeap::saveRootsetObject(QuaValue& qval) {
+    //copy
+
+    //recursion
+
+    //update table
+}
+
+
+
 
 ////////////////////////////// Permanent
 

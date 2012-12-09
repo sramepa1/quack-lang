@@ -55,13 +55,13 @@ protected:
     virtual void prepareFreeTableEtry() = 0;
     virtual void collectGarbage() = 0;
     
-    virtual void addRecord(ObjRecord* record) {
+    void addRecord(ObjRecord* record) {
         prepareFreeTableEtry();
         memcpy(freeTablePtr, record, sizeof(ObjRecord));
         tableSize += sizeof(ObjRecord);
     }
 
-    virtual const ObjRecord* getRecord(uint32_t index) {
+    const ObjRecord* getRecord(uint32_t index) {
         return ((const ObjRecord*) tableBase - index - 1);
     }
     
@@ -77,9 +77,25 @@ protected:
     
     bool firstGeneration;
     
+    void* _heapBase;
+    void* _tableBase;
+    
+    size_t _allocatedSize; 
+    size_t _heapSize;
+    size_t _tableSize;
+    
+    uint32_t _freeTableIndex;
+    
+    void* _freeHeapPtr;
+    void* _freeTablePtr;
+    
+    void* _topTablePtr;
+    uint32_t _topTableIndex;
+    
     virtual void prepareFreeTableEtry();
     virtual void collectGarbage();
  
+    void saveRootsetObject(QuaValue& qval);
 };
 
 
@@ -93,6 +109,7 @@ protected:
     virtual void prepareFreeTableEtry();
     virtual void collectGarbage();
  
+    friend class BakerHeap;
 };
 
 
