@@ -168,7 +168,6 @@ bool BakerHeap::testGCNeed() {
 }
 
 void BakerHeap::prepareFreeTableEtry() {
-    bool flag = true;
     
     if(firstGeneration) {
         freeTablePtr = (void*) ((ObjRecord*) freeTablePtr - 1);
