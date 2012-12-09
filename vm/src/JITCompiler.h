@@ -82,6 +82,7 @@ private:
 	void emitContextOperation(bool save, std::map<uint16_t, MachineRegister> allocation,
 							  std::vector<unsigned char>& buffer);
 	void emitSwitchPointersToC(std::vector<unsigned char>& buffer);
+	void emitSwitchPointersToJIT(std::vector<unsigned char>& buffer);
 	void emitLoadLabelToRax(void* labelPtr, std::vector<unsigned char>& buffer);
 	void emitJumpToLabel(void* labelPtr, std::vector<unsigned char>& buffer);
 
@@ -108,6 +109,9 @@ private:
 
 	void translateStackOp(Instruction* insn, unsigned char opcode,
 						std::map<uint16_t, MachineRegister> allocation, std::vector<unsigned char>& buffer);
+
+	void translateFieldAccess(std::map<uint16_t, MachineRegister> allocation, std::vector<unsigned char>& buffer,
+						unsigned char quackOp, uint16_t imm16, MachineRegister regDestSrc, MachineRegister regThat);
 
 	void setupLeave(std::vector<unsigned char>& buffer);
 	void finishLeaveReg(MachineRegister reg, void* destinationLabel, std::vector<unsigned char>& buffer);

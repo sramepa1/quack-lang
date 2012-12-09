@@ -312,7 +312,7 @@ void JITCompiler::emitModRMInsn(MachineRegister regRM, MachineRegister regR, // 
 
 	buffer.push_back(modRM);
 
-	if(regRM == REG_RSP || regRM == REG_R12) {  // SIB required
+	if(!directAddressing && (regRM == REG_RSP || regRM == REG_R12)) {  // SIB required
 		buffer.push_back((unsigned char)regRM); // SIB: scale and index zero, base RSP or R12
 	}
 
@@ -333,6 +333,20 @@ void JITCompiler::emitSwitchPointersToC(vector<unsigned char>& buffer) {
 	append(buffer, "\x48\xB8", 2);								// mov rax, qword VMSP
 	append(buffer, (char*)&ptrToVMSP, sizeof(void*));
 	append(buffer, "\x48\x87\x20", 3);							// xchg rsp, [rax]
+}
+
+
+void JITCompiler::emitSwitchPointersToJIT(vector<unsigned char>& buffer) {
+
+	// The same swap via RDX. To be used after a helper call to avoid corrupting return value in RAX.
+
+	append(buffer, "\x48\xBA", 2);								// mov rdx, qword VMBP
+	append(buffer, (char*)&ptrToVMBP, sizeof(void*));
+	append(buffer, "\x48\x87\x2A", 3);							// xchg rbp, [rdx]
+
+	append(buffer, "\x48\xBA", 2);								// mov rax, qword VMSP
+	append(buffer, (char*)&ptrToVMSP, sizeof(void*));
+	append(buffer, "\x48\x87\x22", 3);							// xchg rsp, [rax]
 }
 
 
@@ -615,7 +629,7 @@ void JITCompiler::translateA3REG(map<uint16_t, MachineRegister> allocation, vect
 	buffer.push_back(0xB8);
 	append(buffer, (const char*)&quaValueUpper, 4);
 	// mov eax, imm32
-	append(buffer, "\x48\xC1\xE0\x20\x48\x09\xD0\xEB\x00\x00\x00\x00", 12);
+	append(buffer, "\x48\xC1\xE0\x20\x48\x09\xD0\xE9\x00\x00\x00\x00", 12);
 	/*	shl rax, 32
 		or rax, rdx
 		jmp near finished
@@ -765,6 +779,80 @@ void JITCompiler::translateISTYPE(vector<unsigned char>& buffer,
 }
 
 
+__attribute__((noreturn)) void OhShit(runtime_error& e) {
+	ostringstream os;
+	os << "An exception was encountered while executing an inner helper of JITted code." << endl
+	   << "Proper translation to Quack exceptions is not yet implemented." << endl
+	   << "Sorry for inconvenience, try running the same code with -nojit." << endl
+	   << "The exception's message was:" << endl
+	   << e.what();
+	throw runtime_error(os.str());
+}
+
+
+uint64_t jitFieldAccess(uint64_t quackOpAndImm16, uint64_t qvThat, uint64_t qvToStore) {
+	// struct-like with hand-defined packing (I'm generating it in asm so I take the responsibility here)
+	uint16_t quackOp = (uint16_t)(quackOpAndImm16 >> 16);
+	uint16_t imm16 = (uint16_t) quackOpAndImm16;
+	try {
+		switch(quackOp) {	// determines which parameter is ignored , how to interpret imm64 and what to return
+							// having separate helpers is too cumbersome given the pain of generating
+							// parameters for a C++ call...
+			case OP_LDMYF:
+				{
+					QuaValue retVal = getFieldByIndex(*VMBP, imm16);
+					return *(uint64_t*)&retVal;
+				}
+			case OP_LDF:
+				{
+					QuaValue retVal = getFieldByName(*(QuaValue*)&qvThat, getCurrentCPEntry(imm16));
+					return *(uint64_t*)&retVal;
+				}
+			case OP_STMYF:
+				getFieldByIndex(*VMBP, imm16) = *(QuaValue*)&qvToStore;
+				return 0;
+			case OP_STF:
+				getFieldByName(*(QuaValue*)&qvThat, getCurrentCPEntry(imm16)) = *(QuaValue*)&qvToStore;
+				return 0;
+			default:
+				throw runtime_error("Unexpected field access sub-op passed from JIT, try running with -nojit");
+		}
+
+	} catch(NoSuchFieldException& e) {
+		OhShit(e);	// TODO: return a struct - QuaValue/jmpAddr + bool. bool nonzero = jump there
+					// (not implemented due to time constraints, it's 2 hours to deadline as of writing this)
+	} catch(NullReferenceException& e) {
+		OhShit(e);
+	}
+}
+
+
+void JITCompiler::translateFieldAccess(map<uint16_t, MachineRegister> allocation, vector<unsigned char>& buffer,
+					unsigned char quackOp, uint16_t imm16, MachineRegister regDestSrc, MachineRegister regThat) {
+
+	emitContextOperation(true, allocation, buffer);
+
+	emitModRMInsn(REG_RDX, regDestSrc, "\x89", 1, buffer, true);	// mov rdx, r?	;	param 3 (qvToStore)
+	emitModRMInsn(REG_RSI, regThat, "\x89", 1, buffer, true);		// mov rsi, r??	;	param 2 (qvThat)
+	buffer.push_back(0xBF);											// mov edi, imm32;	param 1 (quackOpAndImm16)
+	uint32_t imm32 = ((uint32_t)quackOp) << 16;
+	imm32 |= imm16;
+	append(buffer, (const char*)&imm32, 4);
+
+	emitSwitchPointersToC(buffer);
+
+	append(buffer, "\x48\xB8", 2);									// mov rax, imm64
+	void* ptrToFieldAccess =  __extension__ (void*)jitFieldAccess;
+	append(buffer, (const char*)&ptrToFieldAccess, sizeof(void*));
+	append(buffer, "\xFF\xD0", 2);									// call rax
+
+	emitSwitchPointersToJIT(buffer);
+	emitContextOperation(false, allocation, buffer);
+
+	// return value is in rax
+}
+
+
 
 void JITCompiler::generate(list<Instruction*> insns, map<uint16_t, MachineRegister> allocation,
 						   vector<unsigned char>& buffer ) {
@@ -828,6 +916,28 @@ void JITCompiler::generate(list<Instruction*> insns, map<uint16_t, MachineRegist
 					emitOneByteInsn(allocation[(*it)->REG], 0xB8, buffer, true);	// mov r?, imm64
 					append(buffer, (char*)&imm, 8);
 				}
+				break;
+
+			case OP_LDF:
+				translateFieldAccess(allocation, buffer, (*it)->op, (*it)->ARG2,
+									 allocation[(*it)->ARG0], allocation[(*it)->ARG1]);
+				emitModRMInsn(allocation[(*it)->ARG0], REG_RAX, "\x89", 1, buffer, true);
+				break;
+
+			case OP_STF:
+				translateFieldAccess(allocation, buffer, (*it)->op, (*it)->ARG1,
+									 allocation[(*it)->ARG2], allocation[(*it)->ARG0]);
+				break;
+
+			case OP_LDMYF:
+				translateFieldAccess(allocation, buffer, (*it)->op, (*it)->ARG1,
+									 allocation[(*it)->ARG0], REG_RAX /*ignored*/);
+				emitModRMInsn(allocation[(*it)->ARG0], REG_RAX, "\x89", 1, buffer, true);
+				break;
+
+			case OP_STMYF:
+				translateFieldAccess(allocation, buffer, (*it)->op, (*it)->ARG0,
+									 allocation[(*it)->ARG1], REG_RAX /*ignored*/);
 				break;
 
 			case OP_MOV:
@@ -925,7 +1035,7 @@ void JITCompiler::generate(list<Instruction*> insns, map<uint16_t, MachineRegist
 				break;
 
 			case OP_ISTYPE:
-				translateISTYPE(buffer, allocation[(*it)->ARG0], allocation[(*it)->ARG1], (*it)->ARG2);
+				translateISTYPE(buffer, allocation[(*it)->ARG0], allocation[(*it)->ARG1], resolveType((*it)->ARG2));
 				break;
 
 			case OP_CNVT:
