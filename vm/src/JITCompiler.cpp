@@ -277,7 +277,9 @@ void JITCompiler::emitModRMInsn(MachineRegister regRM, MachineRegister regR, // 
 		REX |= 0x4;
 	}
 
-	buffer.push_back(REX);
+	if(REX != 0x40) {
+		buffer.push_back(REX);
+	}
 	append(buffer, opcode, opLength);
 
 	unsigned char modRM;
@@ -455,6 +457,11 @@ inline void JITCompiler::translateCall(	map<uint16_t, MachineRegister> allocatio
 	emitContextOperation(false, allocation, buffer);
 }
 
+enum OperationMode {
+	MODE_BASIC,
+	MODE_DIV
+};
+
 
 void JITCompiler::translateA3REG(map<uint16_t, MachineRegister> allocation, vector<unsigned char>& buffer,
 				unsigned char quackSop, MachineRegister destReg, MachineRegister leftReg, MachineRegister rightReg) {
@@ -462,33 +469,33 @@ void JITCompiler::translateA3REG(map<uint16_t, MachineRegister> allocation, vect
 	CallDestination destination;
 	const char* opcode = NULL;
 	int opLength = 1;
-	bool normOrder = true;
+	OperationMode mode;
 	switch(quackSop) {
 		case SOP_ADD:
 			destination.sig = (QuaSignature*)"\1_opPlus";
 			opcode = "\x01";
+			mode = MODE_BASIC;
 			break;
 		case SOP_SUB:
 			destination.sig = (QuaSignature*)"\1_opMinus";
 			opcode = "\x29";
+			mode = MODE_BASIC;
 			break;
 		case SOP_MUL:
 			destination.sig = (QuaSignature*)"\1_opMul";
 			opcode = "\x0F\xAF";
 			opLength = 2;
-			normOrder = false;
+			mode = MODE_BASIC;
 			break;
-#if PIGS_CAN_FLY
 		case SOP_DIV:
 			destination.sig = (QuaSignature*)"\1_opDiv";
-			opcode = 0x01;
-			throw GiveUpException();
+			mode = MODE_DIV;
 			break;
 		case SOP_MOD:
 			destination.sig = (QuaSignature*)"\1_opMod";
-			opcode = 0x01;
-			throw GiveUpException();
+			mode = MODE_DIV;
 			break;
+#if PIGS_CAN_FLY
 		case SOP_EQ:
 			destination.sig = (QuaSignature*)"\1_opEq";
 			opcode = 0x01;
@@ -527,12 +534,26 @@ void JITCompiler::translateA3REG(map<uint16_t, MachineRegister> allocation, vect
 	unsigned int shortjump1 = buffer.size() - 5;
 	unsigned int shortjump2 = buffer.size() - 1;
 
-	// Actual arithmetic operation
-	emitModRMInsn(REG_RDX, leftReg, "\x89", 1, buffer, true, 0, false);		// mov *E*dx, r?d
 
-	emitModRMInsn(normOrder ? REG_RDX : rightReg,
-				  normOrder ? rightReg : REG_RDX,
-				  opcode, opLength, buffer, true, 0 , false); // (op) edx, r??d
+	// Actual arithmetic operation (result in edx)
+	switch(mode){
+		case MODE_BASIC:
+			emitModRMInsn(REG_RDX, leftReg, "\x89", 1, buffer, true, 0, false);					// mov *E*dx, r?d
+			if(quackSop == SOP_MUL) {
+				emitModRMInsn(rightReg, REG_RDX, opcode, opLength, buffer, true, 0 , false);	// imul edx, r??d
+			} else {
+				emitModRMInsn(REG_RDX, rightReg, opcode, opLength, buffer, true, 0 , false);	// (op) edx, r??d
+			}
+			break;
+		case MODE_DIV:
+			emitModRMInsn(REG_RAX, leftReg, "\x89", 1, buffer, true, 0, false);					// mov eax, r?d
+			append(buffer, "\x31\xD2", 2);														// xor edx, edx
+			emitModRMInsn(rightReg, (MachineRegister)0x7, "\xF7", 1, buffer, true, 0, false);	// idiv r??d
+			if(quackSop == SOP_DIV) {
+				buffer.push_back(0x92);															// xchg eax, edx
+			}
+			break;
+	}
 
 	// QuaValue upper part rebuild
 	emitModRMInsn(REG_RAX, leftReg, "\x89", 1, buffer, true);				// mov rax, r?
