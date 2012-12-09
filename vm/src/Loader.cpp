@@ -243,7 +243,7 @@ QuaClass::QuaClass(void* constantPool, void* classDef, const string& className, 
 		}
 
 		// TODO: check index overflow!!!
-		fieldIndices.insert(make_pair(fieldEntry, ancestorFieldCount + fieldIndices.size()));
+        fieldIndices.insert(make_pair(fieldEntry, ancestorFieldCount + i));
 	}
 
 	// methods
