@@ -29,7 +29,7 @@ void handlerSEGV(int sig, siginfo_t *si, void *unused)
 	if( !(  testPointer(si->si_addr, valStackLow, valStackHigh, "That is on the VM value stack!")
 		||  testPointer(si->si_addr, addrStackLow, addrStackHigh, "That is on the VM address stack!")
 		||  testPointer(si->si_addr, heap->getVolatileBase(), heap->getVolatileEnd(), "That is on the VM volatile heap!")
-                ||  testPointer(si->si_addr, heap->getPermanentBase(), heap->getPermanentEnd(), "That is on the VM permanent heap!"))) {
+				||  testPointer(si->si_addr, heap->getPermanentBase(), heap->getPermanentEnd(), "That is on the VM permanent heap!"))) {
 		cerr << "That is not in any mmapped region, must be a bug in the VM itself!" << endl;
 	}
 	siglongjmp(jmpEnv, 1);
@@ -37,23 +37,23 @@ void handlerSEGV(int sig, siginfo_t *si, void *unused)
 }
 
 void handlerFPE(int sig) {
-    siglongjmp(jmpEnvFPE, 1);
+	siglongjmp(jmpEnvFPE, 1);
 }
 
 void initSigsegv() {
 	struct sigaction sa;
-    sa.sa_sigaction = handlerSEGV;
+	sa.sa_sigaction = handlerSEGV;
 	sa.sa_flags = SA_SIGINFO;
 	sigemptyset(&sa.sa_mask);
 	if(sigaction(SIGSEGV, &sa, NULL) != 0) {
-        cerr << "Warning: Unable to correctly install signal handler for SIGSEGV!" << endl;
+		cerr << "Warning: Unable to correctly install signal handler for SIGSEGV!" << endl;
 	}
 }
 
 void initSigfpe() {
-    if (signal(SIGFPE, handlerFPE) == SIG_ERR) {
-        cerr << "Warning: Unable to correctly install signal handler for SIGFPE!" << endl;
-    }
+	if (signal(SIGFPE, handlerFPE) == SIG_ERR) {
+		cerr << "Warning: Unable to correctly install signal handler for SIGFPE!" << endl;
+	}
 }
 
 
@@ -69,13 +69,13 @@ int main(int argc, char* argv[]) {
 			throw invalid_argument("Not enough command line arguments.");
 		}
 
-        if(sigsetjmp(jmpEnvFPE, 1) != 0) {
-            // SIGFPE handler long jump landing
-            throw runtime_error("Handling division by zero is not yet implemented!");
-        }
-        initSigfpe();
+		if(sigsetjmp(jmpEnvFPE, 1) != 0) {
+			// SIGFPE handler long jump landing
+			throw runtime_error("Handling division by zero is not yet implemented!");
+		}
+		initSigfpe();
 
-        if(sigsetjmp(jmpEnv, 1) == 0) {
+		if(sigsetjmp(jmpEnv, 1) == 0) {
 			initSigsegv();
 
 			int i;
@@ -90,7 +90,7 @@ int main(int argc, char* argv[]) {
 				throw invalid_argument("Expected class file name.");
 			}
 
-               initGlobals(jit, 2*getpagesize(), 2*getpagesize(), 1000*getpagesize(), 20*getpagesize()); // super-tight for testing
+			initGlobals(jit, 256*getpagesize(), 4096*getpagesize(), 65536*getpagesize(), 4096*getpagesize());
 			for( ; i < argc && strcmp(argv[i], "-args") != 0; i++) {
 				loader->loadClassFile(argv[i]);	// TODO: Are we fully ready for this? What about cross-CF inheritance?
 			}
