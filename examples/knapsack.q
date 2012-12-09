@@ -111,10 +111,11 @@ class InstanceFile {
             cout->writeLine("Instance successfuly loaded!");
             this->bruteForce(n, M, items);
 
-            id = inField->readInt();
-            n = inField->readInt();
-            M = inField->readInt();
-        
+            if(!(inField->eof())) {
+                id = inField->readInt();
+                n = inField->readInt();
+                M = inField->readInt();
+            }
         }
 
         inField->close();
@@ -128,13 +129,20 @@ statclass Main {
     fun main(args) {
         
         cout = @System.out;
+        cerr = @System.err;
 
+        if(args.length == 0) {
+            cerr->writeLine("Need the input filename as first argument!");
+            return;
+        }
+        cout->writeLine("Input filename: " + args->getElem(0));
+        
         try {
-            in = new InstanceFile("./knap_10.inst.dat");
+            in = new InstanceFile(args->getElem(0));
             in->computeSolution();
         } catch e as IOException {
-            cout->writeLine("Input file cannot be opened!");
-            cout->writeLine("Reason: " + e.what);
+            cerr->writeLine("Input file cannot be opened!");
+            cerr->writeLine("Reason: " + e.what);
         }
     }
 }

@@ -41,6 +41,7 @@ void testClosed() {
 void testFlags(ios* stream, const char* errStr) {
     if(stream->eof()) {
         getFieldByIndex(*VMBP, 0).value |= FILE_FLAG_EOF;
+        return; // EOF is not considered as an error
     } else {
         getFieldByIndex(*VMBP, 0).value &= ~((uint32_t)FILE_FLAG_EOF);
     }

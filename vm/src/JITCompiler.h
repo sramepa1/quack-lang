@@ -87,13 +87,16 @@ private:
 		uint16_t sigIndex;
 		QuaSignature* sig;
 	} CallDestination;
-	void translateCall(	std::map<uint16_t, MachineRegister> allocation, std::vector<unsigned char>& buffer,
-						CallDestination destination, bool directCall, MachineRegister destReg,
+	void translateCall(std::map<uint16_t, MachineRegister> allocation, std::vector<unsigned char>& buffer,
+						CallDestination destination, bool directCall,
 						MachineRegister thatMoveRegRM, unsigned char thatMoveOpcode,
 						bool thatMoveDirectAddressing, int32_t thatMoveDisplacement);
 
 	void translateA3REG(std::map<uint16_t, MachineRegister> allocation, std::vector<unsigned char>& buffer,
 					unsigned char quackSop, MachineRegister destReg, MachineRegister leftReg, MachineRegister rightReg);
+
+	void translateCNVT(std::map<uint16_t, MachineRegister> allocation, std::vector<unsigned char>& buffer,
+									unsigned char quackSop, MachineRegister destReg, MachineRegister srcReg);
 
 	void translateStackOp(Instruction* insn, unsigned char opcode,
 						std::map<uint16_t, MachineRegister> allocation, std::vector<unsigned char>& buffer);

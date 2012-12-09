@@ -43,7 +43,7 @@ public:
     static QuaValue _opLAndNativeImpl();                // native fun _opLAndN(secOperand)
     static QuaValue _opLOrNativeImpl();                 // native fun _opLOrN(secOperand)
 
-    static QuaValue _opLNotNativeImpl();               // native fun _opLNot()
+    static QuaValue _opLNotNativeImpl();                // native fun _opLNot()
 };
 
 #endif // BOOLNATIVE_H
