@@ -16,6 +16,7 @@ extern "C" {
 // this is for the type field
 #define TYPE_UNRESOLVED 0x8000
 
+#define FLAG_REF_VOLATILE  0x00
 #define FLAG_REF_PERMANENT 0x01
 
 #pragma pack(1)
@@ -30,7 +31,9 @@ struct QuaValue {
     QuaValue() : value(0), type(0), tag(0), flags(0) {}
 
     // constructs a user-defined QuaValue with default flags
-    QuaValue(uint32_t value, uint16_t type, uint8_t tag, uint8_t flags = 0) : value(value), type(type), tag(tag), flags(flags) {}
+    QuaValue(uint32_t value, uint16_t type, uint8_t tag, uint8_t flags = FLAG_REF_VOLATILE) 
+            : value(value), type(type), tag(tag), flags(flags) {}
+    
 };
 
 #pragma pack()

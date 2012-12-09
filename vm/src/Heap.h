@@ -14,6 +14,14 @@ extern "C" {
 #include "QuaObject.h"
 
 
+#define COLLECTION_MASK            0x0003
+
+#define FLAG_COLLECTION_NONE       0x0000
+#define FLAG_COLLECTION_INTITIAL   0x0001
+#define FLAG_COLLECTION_ODD        0x0002
+#define FLAG_COLLECTION_EVEN       0x0003
+
+
 #pragma pack(1)
 
 struct ObjRecord
@@ -51,6 +59,7 @@ protected:
     void* freeTablePtr;
     
     uint8_t qValueFlags;
+    uint16_t currentRecordFlags;
     
     virtual void prepareFreeTableEtry() = 0;
     virtual void collectGarbage() = 0;
@@ -61,8 +70,8 @@ protected:
         tableSize += sizeof(ObjRecord);
     }
 
-    const ObjRecord* getRecord(uint32_t index) {
-        return ((const ObjRecord*) tableBase - index - 1);
+    ObjRecord* getRecord(uint32_t index) {
+        return ((ObjRecord*) tableBase - index - 1);
     }
     
 };
@@ -95,7 +104,13 @@ protected:
     virtual void prepareFreeTableEtry();
     virtual void collectGarbage();
  
-    void saveRootsetObject(QuaValue& qval);
+    ObjRecord* _getRecord(uint32_t index) {
+        return ((ObjRecord*) _tableBase - index - 1);
+    }
+    
+    void saveReachableObject(QuaValue& qval);
+    void saveFields(const ObjRecord* source);
+    
 };
 
 

@@ -129,7 +129,8 @@ void* AbstractHeap::getEnd() {
 ////////////////////////////// Baker
 
 BakerHeap::BakerHeap(size_t size) : AbstractHeap::AbstractHeap(size / 2) {
-    qValueFlags = 0;
+    qValueFlags = FLAG_REF_VOLATILE;
+    currentRecordFlags = FLAG_COLLECTION_INTITIAL;
     
     firstGeneration = true;
     
@@ -148,6 +149,8 @@ void BakerHeap::prepareFreeTableEtry() {
     // TODO search for free index
 }
 
+
+
 void BakerHeap::collectGarbage() {
     
 #ifdef DEBUG
@@ -155,6 +158,7 @@ void BakerHeap::collectGarbage() {
 #endif
     
     firstGeneration = false;
+    currentRecordFlags = (currentRecordFlags + 1) & COLLECTION_MASK; 
     
     // create the second heap part
     _allocatedSize = allocatedSize;
@@ -176,43 +180,75 @@ void BakerHeap::collectGarbage() {
 #ifdef DEBUG
     cout << "Copying object table of size " << size << " from " << src << " to " << dest << endl;
     cout << "Table base position check is " << (void*) ((char*) dest + size) << endl;
+    cout << "Searching permanent heap root set" << endl;
 #endif
     
     // copy objects from the root set
     // TODO manualy add null
     for(uint32_t i = 1; i <= permHeap->freeTableIndex; ++i) {
+        
         const ObjRecord* record = permHeap->getRecord(i);
-        
-        for(uint32_t j = 0; j < record->fieldCount; j++) {
-            QuaValue& qval = record->field->fields[j];
-            if(qval.tag == TAG_REF && qval.flags == 0) {
-                saveRootsetObject(qval);
-            }
-        }
-        
+        saveFields(record);
+
     }
-                
+     
+#ifdef DEBUG
+    cout << "TODO Searching stack root set" << endl;
+#endif
+    
+#ifdef DEBUG
+    cout << "TODO Searching registry root set" << endl;
+#endif
+    
     // TODO free unused end of object table
     
     // TODO implement
-    throw runtime_error("TODO impement GC - volatile heap run out of memory. Teporal fix can be done by creating bigger heap.");
+    throw runtime_error("TODO impement GC - volatile heap run out of memory. Temporal fix can be done by creating bigger heap.");
 }
 
-void BakerHeap::saveRootsetObject(QuaValue& qval) {
-    //copy
-
+void BakerHeap::saveReachableObject(QuaValue& qval) {
+    
+#ifdef DEBUG
+    cout << "GC saving object " << qval.value << endl;
+#endif
+    
+    ObjRecord* record = getRecord(qval.value);
+    ObjRecord* _record = _getRecord(qval.value);
+    
+    size_t size = record->fieldCount * sizeof(QuaValue);
+    
+    // copy data and update record
+    _record->field = (QuaObject*) memcpy(_freeHeapPtr, record->field, size);
+    _record->flags = currentRecordFlags;
+    _freeHeapPtr = (void*) ((char*) _freeHeapPtr + size);
+    _heapSize += size;
+    
     //recursion
+    saveFields(record);
 
-    //update table
 }
 
-
-
+void BakerHeap::saveFields(const ObjRecord* source) {
+    for(uint32_t i = 0; i < source->fieldCount; i++) {
+        
+        QuaValue qval = source->field->fields[i];
+        
+        if(qval.tag == TAG_REF && qval.flags == FLAG_REF_VOLATILE) {
+            ObjRecord* target = _getRecord(qval.value);
+            
+            if(target->flags != currentRecordFlags) {
+                saveReachableObject(qval);
+            }  
+        }
+        
+    }
+}
 
 ////////////////////////////// Permanent
 
 PermanentHeap::PermanentHeap(size_t size) : AbstractHeap::AbstractHeap(size) {
     qValueFlags = FLAG_REF_PERMANENT;
+    currentRecordFlags = FLAG_COLLECTION_NONE;
     
     // null
     ObjRecord null;
