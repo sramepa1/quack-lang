@@ -14,6 +14,12 @@ using namespace std;
 
 static PermanentHeap* permHeap;
 
+template< typename T>
+void mySwap(T* a, T* b) {
+    T c = *a;
+    *a = *b;
+    *b = c;
+}
 
 Heap::Heap(size_t volatileSize, size_t permanentSize) : volatileHeap(volatileSize), permanentHeap(permanentSize) {
     permHeap = &permanentHeap;
@@ -88,11 +94,16 @@ const ObjRecord& AbstractHeap::dereference(QuaValue ref) {
 
 
 QuaValue AbstractHeap::allocateNew(uint16_t type, uint32_t fieldCount) {
-  
+
     size_t size = fieldCount * sizeof(QuaValue);
     
     if(heapSize + tableSize + size + sizeof(ObjRecord) > allocatedSize) {
         collectGarbage();
+        
+        // control test
+        if(heapSize + tableSize + size + sizeof(ObjRecord) > allocatedSize) {
+            throw runtime_error("Volatile heap run out of memory and can not be freed.");
+        }
     }
     
     ObjRecord record;
@@ -100,8 +111,8 @@ QuaValue AbstractHeap::allocateNew(uint16_t type, uint32_t fieldCount) {
     // create object
     if(fieldCount == 0) {
         record.field = NULL;
-    } else {
-        record.field = (QuaObject*) memset(freeHeapPtr, 0, size);  // will be null references to _Null (guaranteed zero)
+    } else {   
+        record.field = (QuaObject*) memset(freeHeapPtr, 0, size);  // will be null references to _Null (guaranteed zero)  
         freeHeapPtr = (void*) ((char*) freeHeapPtr + size);
         heapSize += size;
     }
@@ -130,9 +141,13 @@ void* AbstractHeap::getEnd() {
 
 BakerHeap::BakerHeap(size_t size) : AbstractHeap::AbstractHeap(size / 2) {
     qValueFlags = FLAG_REF_VOLATILE;
-    currentRecordFlags = FLAG_COLLECTION_INTITIAL;
+    currentRecordFlags = FLAG_COLLECTION_ODD;
     
     firstGeneration = true;
+    
+    // epty second part of the heap
+    _heapBase = NULL;
+    _tableBase = NULL;
     
     // null
     ObjRecord null;
@@ -142,11 +157,24 @@ BakerHeap::BakerHeap(size_t size) : AbstractHeap::AbstractHeap(size / 2) {
 void BakerHeap::prepareFreeTableEtry() {
     if(firstGeneration) {
         freeTablePtr = (void*) ((ObjRecord*) freeTablePtr - 1);
-        _topTablePtr = freeTablePtr; // remember start(end) of the table
-        _topTableIndex = ++freeTableIndex;
+        topTablePtr = freeTablePtr; // remember start(end) of the table
+        topTableIndex = ++freeTableIndex;
+        return;
     }
-
-    // TODO search for free index
+    
+    // search for free index and reuse
+    for(uint32_t i = maxUsedTableIndex; i <= topTableIndex; ++i) {
+        if(getRecord(i)->flags != currentRecordFlags) {
+            freeTableIndex = i;
+            freeTablePtr = (void*) getRecord(i);
+            return;
+        }
+    }
+    
+    freeTablePtr = (void*) ((ObjRecord*) topTablePtr - 1);
+    topTablePtr = freeTablePtr;
+    freeTableIndex = ++topTableIndex;
+    
 }
 
 
@@ -158,62 +186,109 @@ void BakerHeap::collectGarbage() {
 #endif
     
     firstGeneration = false;
-    currentRecordFlags = (currentRecordFlags + 1) & COLLECTION_MASK; 
+    currentRecordFlags = (currentRecordFlags + 1) & COLLECTION_MASK;
+    maxUsedTableIndex = 0;
     
     // create the second heap part
-    _allocatedSize = allocatedSize;
-    allocateHeap(&_allocatedSize, &_heapBase, &_tableBase);
+    if(_heapBase == NULL) {
+        _allocatedSize = allocatedSize;
+        allocateHeap(&_allocatedSize, &_heapBase, &_tableBase);
+    } else {
+#ifdef DEBUG
+	cout << "Using heap number " << currentRecordFlags << " of size " << allocatedSize << " at " << _heapBase << " with object table at " << _tableBase << endl;
+#endif
+    }
 
     _freeHeapPtr = _heapBase;
     _freeTablePtr = _tableBase;
-    _freeTableIndex = (uint32_t) -1;
     
     _heapSize = 0;
     _tableSize = 0;
-    
+ 
     // copy class table
-    void* src = _topTablePtr;
-    void* dest = ((ObjRecord*) _tableBase - _topTableIndex - 1);
-    size_t size = sizeof(ObjRecord) * (_topTableIndex + 1);
-    memcpy(src, dest, size);
+    void* src = topTablePtr;
+    void* dest = ((ObjRecord*) _tableBase - topTableIndex - 1);
+    size_t size = sizeof(ObjRecord) * (topTableIndex + 1);
     
 #ifdef DEBUG
     cout << "Copying object table of size " << size << " from " << src << " to " << dest << endl;
     cout << "Table base position check is " << (void*) ((char*) dest + size) << endl;
+#endif
+    
+    memcpy(src, dest, size);
+    
+    // manualy save null
+    ObjRecord* _null = _getRecord(0);
+    _null->flags = currentRecordFlags;
+    
+#ifdef DEBUG
     cout << "Searching permanent heap root set" << endl;
 #endif
     
-    // copy objects from the root set
-    // TODO manualy add null
+    // copy objects from the root set  
     for(uint32_t i = 1; i <= permHeap->freeTableIndex; ++i) {
-        
         const ObjRecord* record = permHeap->getRecord(i);
-        saveFields(record);
-
+        trySaveFields(record);
     }
-     
-#ifdef DEBUG
-    cout << "TODO Searching stack root set" << endl;
-#endif
     
 #ifdef DEBUG
-    cout << "TODO Searching registry root set" << endl;
+    cout << "Searching stack root set" << endl;
 #endif
     
-    // TODO free unused end of object table
+    for(QuaValue* qvptr = VMSP; (void*) qvptr < (void*) valStackHigh ; ++qvptr) {
+        trySaveObject(*qvptr);
+    }
     
-    // TODO implement
-    throw runtime_error("TODO impement GC - volatile heap run out of memory. Temporal fix can be done by creating bigger heap.");
+#ifdef DEBUG
+    cout << "Searching registry root set" << endl;
+#endif
+ 
+    /* BUG caused by interpreter->getMaxRegCount()
+    for(uint16_t i = 0; i < interpreter->getMaxRegCount(); ++i) {
+        QuaValue qval = interpreter->readRegister(i);
+        trySaveObject(qval);
+    }
+    */
+    
+    for(uint16_t i = 0; i < 0xFFFF; ++i) {
+        QuaValue qval = interpreter->readRegister(i);
+        trySaveObject(qval);
+    }
+    
+    
+    // free unused end of object table
+    _tableSize = maxUsedTableIndex * sizeof(ObjRecord);
+    topTablePtr = (void*) ((ObjRecord*) topTablePtr + (topTableIndex - maxUsedTableIndex));
+    topTableIndex = maxUsedTableIndex;
+    
+#ifdef DEBUG
+    cout << "Freeing " << (topTableIndex - maxUsedTableIndex) << " unused recods from object table" << endl;
+#endif
+    
+    maxUsedTableIndex = 1; // 1 is for null
+    
+    // swaping space pointers
+    mySwap((char**) &heapBase, (char**) &_heapBase);
+    mySwap((char**) &tableBase, (char**) &_tableBase);
+    mySwap(&heapSize, &_heapSize);
+    mySwap(&tableSize, &_tableSize);
+    mySwap(&freeHeapPtr, &_freeHeapPtr);
+    mySwap(&freeTablePtr, &_freeHeapPtr);
+    
+#ifdef DEBUG
+    cout << "Garbage collection complete, heap is running on part " << currentRecordFlags << endl;
+#endif
+    
 }
 
-void BakerHeap::saveReachableObject(QuaValue& qval) {
+void BakerHeap::saveReachableObject(uint32_t index) {
     
 #ifdef DEBUG
-    cout << "GC saving object " << qval.value << endl;
+    cout << "GC saving object of index " << index << endl;
 #endif
     
-    ObjRecord* record = getRecord(qval.value);
-    ObjRecord* _record = _getRecord(qval.value);
+    ObjRecord* record = getRecord(index);
+    ObjRecord* _record = _getRecord(index);
     
     size_t size = record->fieldCount * sizeof(QuaValue);
     
@@ -223,32 +298,39 @@ void BakerHeap::saveReachableObject(QuaValue& qval) {
     _freeHeapPtr = (void*) ((char*) _freeHeapPtr + size);
     _heapSize += size;
     
+    maxUsedTableIndex = maxUsedTableIndex < index ? index : maxUsedTableIndex;
+    
     //recursion
-    saveFields(record);
+    trySaveFields(record);
 
 }
 
-void BakerHeap::saveFields(const ObjRecord* source) {
+void BakerHeap::trySaveFields(const ObjRecord* source) {
     for(uint32_t i = 0; i < source->fieldCount; i++) {
         
         QuaValue qval = source->field->fields[i];
         
-        if(qval.tag == TAG_REF && qval.flags == FLAG_REF_VOLATILE) {
-            ObjRecord* target = _getRecord(qval.value);
-            
-            if(target->flags != currentRecordFlags) {
-                saveReachableObject(qval);
-            }  
-        }
+        trySaveObject(qval);
         
     }
 }
+
+void BakerHeap::trySaveObject(QuaValue qval) {
+    if(qval.tag == TAG_REF && qval.flags == FLAG_REF_VOLATILE) {
+        ObjRecord* target = _getRecord(qval.value);
+
+        if(target->flags != currentRecordFlags) {
+            saveReachableObject(qval.value);
+        }  
+    }
+}
+
 
 ////////////////////////////// Permanent
 
 PermanentHeap::PermanentHeap(size_t size) : AbstractHeap::AbstractHeap(size) {
     qValueFlags = FLAG_REF_PERMANENT;
-    currentRecordFlags = FLAG_COLLECTION_NONE;
+    currentRecordFlags = FLAG_COLLECTION_ODD;
     
     // null
     ObjRecord null;

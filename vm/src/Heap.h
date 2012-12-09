@@ -14,12 +14,10 @@ extern "C" {
 #include "QuaObject.h"
 
 
-#define COLLECTION_MASK            0x0003
+#define COLLECTION_MASK            0x0001
 
-#define FLAG_COLLECTION_NONE       0x0000
-#define FLAG_COLLECTION_INTITIAL   0x0001
-#define FLAG_COLLECTION_ODD        0x0002
-#define FLAG_COLLECTION_EVEN       0x0003
+#define FLAG_COLLECTION_ODD        0x0000
+#define FLAG_COLLECTION_EVEN       0x0001
 
 
 #pragma pack(1)
@@ -93,14 +91,13 @@ protected:
     size_t _heapSize;
     size_t _tableSize;
     
-    uint32_t _freeTableIndex;
-    
     void* _freeHeapPtr;
     void* _freeTablePtr;
     
-    void* _topTablePtr;
-    uint32_t _topTableIndex;
-    
+    void* topTablePtr;
+    uint32_t topTableIndex;
+    uint32_t maxUsedTableIndex;
+
     virtual void prepareFreeTableEtry();
     virtual void collectGarbage();
  
@@ -108,9 +105,9 @@ protected:
         return ((ObjRecord*) _tableBase - index - 1);
     }
     
-    void saveReachableObject(QuaValue& qval);
-    void saveFields(const ObjRecord* source);
-    
+    void saveReachableObject(uint32_t index);
+    void trySaveFields(const ObjRecord* source);
+    void trySaveObject(QuaValue qval);
 };
 
 
