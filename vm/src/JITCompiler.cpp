@@ -25,7 +25,6 @@ void* JITCompiler::returnLabel;
 void* JITCompiler::throwLabel;
 void* JITCompiler::whatLabel;
 
-void* JITCompiler::ptrToASP;
 void* JITCompiler::ptrToVMBP;
 void* JITCompiler::ptrToVMSP;
 
@@ -34,7 +33,7 @@ void* JITCompiler::ptrToVMSP;
 
 #define MACHINE_MAX_REG 11
 // Means allocating to 12 registers.
-// RCX, RDX, RSI, RDI, R8 ~ R15
+// RBX, RCX, RSI, RDI, R8 ~ R15
 
 
 bool JITCompiler::compile(QuaMethod* method) {
@@ -241,7 +240,7 @@ map<uint16_t, JITCompiler::MachineRegister> JITCompiler::allocateRegisters(list<
 
 	// TODO: Use Linear Scan's output to map unspilled virtual registers to those 12 machine ones
 
-	MachineRegister regOrder[] = { REG_RCX, REG_RDX, REG_RSI, REG_RDI,
+	MachineRegister regOrder[] = { REG_RBX, REG_RCX, REG_RSI, REG_RDI,
 								   REG_R8, REG_R9, REG_R10, REG_R11, REG_R12, REG_R13, REG_R14, REG_R15 };
 	for(int i = 0; i <= maxReg; i++) {
 		allocation[i] = regOrder[i];
@@ -266,10 +265,11 @@ void JITCompiler::emitOneByteInsn(MachineRegister reg, unsigned char machineOp, 
 	buffer.push_back(machineOp);
 }
 
-void JITCompiler::emitTwoRegInsn(MachineRegister regRM, MachineRegister regR, // usually Dest and Src, depends on opcode
-				unsigned char opcode, vector<unsigned char>& buffer, bool directAddressing, int32_t displacement) {
+void JITCompiler::emitModRMInsn(MachineRegister regRM, MachineRegister regR, // usually Dest and Src, depends on opcode
+									const char* opcode, int opLength, vector<unsigned char>& buffer,
+									bool directAddressing, int32_t displacement, bool longMode) {
 
-	unsigned char REX = 0x48;
+	unsigned char REX = longMode ? 0x48 : 0x40;
 	if(regRM >= REG_R8) {
 		REX |= 0x1;
 	}
@@ -278,7 +278,7 @@ void JITCompiler::emitTwoRegInsn(MachineRegister regRM, MachineRegister regR, //
 	}
 
 	buffer.push_back(REX);
-	buffer.push_back(opcode);
+	append(buffer, opcode, opLength);
 
 	unsigned char modRM;
 	bool useDisplacement = false;
@@ -321,10 +321,6 @@ void JITCompiler::emitSwitchPointersToC(vector<unsigned char>& buffer) {
 	append(buffer, "\x48\xB8", 2);								// mov rax, qword VMSP
 	append(buffer, (char*)&ptrToVMSP, sizeof(void*));
 	append(buffer, "\x48\x87\x20", 3);							// xchg rsp, [rax]
-
-	append(buffer, "\x48\xB8", 2);								// mov rax, qword ASP
-	append(buffer, (char*)&ptrToASP, sizeof(void*));
-	append(buffer, "\x48\x89\x18", 3);							// mov [rax], rbx
 }
 
 
@@ -362,7 +358,7 @@ inline void JITCompiler::setupLeave(vector<unsigned char>& buffer) {
 }
 
 inline void JITCompiler::finishLeaveReg(MachineRegister reg, void* destinationLabel, vector<unsigned char>& buffer) {
-	emitTwoRegInsn(REG_RAX, reg, 0x89, buffer, false);	// mov qword [rax], r??
+	emitModRMInsn(REG_RAX, reg, "\x89", 1, buffer, false);	// mov qword [rax], r??
 	emitJumpToLabel(destinationLabel, buffer);	// Leave JITted code
 }
 
@@ -370,14 +366,14 @@ inline void JITCompiler::emitPrepareContext(map<uint16_t, MachineRegister> alloc
 
 	// make room for saving context if needed (de facto local variable space)
 	append(buffer, "\x48\x83\xEC", 3); // sub rsp, imm8
-	buffer.push_back((unsigned char)(allocation.size()*8));
+	buffer.push_back((unsigned char)( (allocation.size() - 1 /*REG_DEV_NULL*/ )*8));
 
 	// set registers to _Null to avoid confusing GC if unused context is saved
 	for(map<uint16_t, JITCompiler::MachineRegister>::iterator it = allocation.begin(); it != allocation.end(); ++it) {
 		if(it->first == REG_DEV_NULL) {
 			continue;
 		}
-		emitTwoRegInsn(it->second, it->second, 0x31, buffer, true); // xor reg, reg
+		emitModRMInsn(it->second, it->second, "\x31", 1, buffer, true); // xor reg, reg
 	}
 	// slightly suoptimal for the first 4 regs (redundant prefix), but works correctly
 }
@@ -392,14 +388,12 @@ inline void JITCompiler::emitContextOperation(bool save,
 		if(it->first == REG_DEV_NULL) {
 			continue;
 		}
-		emitTwoRegInsn(REG_RBP, it->second, opcode, buffer, false, displacement);
+		emitModRMInsn(REG_RBP, it->second, (char*)&opcode, 1, buffer, false, displacement);
 		displacement -= 8;
 	}
 }
 
-
-void* jitcall(void* retaddr, uint64_t that, uint64_t sigindex) {
-	QuaSignature* sig = (QuaSignature*)getCurrentCPEntry((uint16_t)sigindex);
+inline void* jitCallDirect(void* retaddr, uint64_t that, QuaSignature* sig) {
 	try {
 		QuaMethod* method = getClassFromValue(*(QuaValue*)&that)->lookupMethod(sig);
 		interpreter->functionPrologue(*(QuaValue*)&that, method, retaddr, false, 0 /*ignored*/);
@@ -412,35 +406,46 @@ void* jitcall(void* retaddr, uint64_t that, uint64_t sigindex) {
 	}
 }
 
-inline void JITCompiler::emitCall(	map<uint16_t, MachineRegister> allocation, vector<unsigned char>& buffer,
-									uint16_t sigIndex, MachineRegister destReg,
-									MachineRegister thatMoveRegRM, unsigned char thatMoveOpcode,
-									bool thatMoveDirectAddressing, int32_t thatMoveDisplacement) {
+
+void* jitCallIndirect(void* retaddr, uint64_t that, uint64_t sigindex) {
+	return jitCallDirect(retaddr, that, (QuaSignature*)getCurrentCPEntry((uint16_t)sigindex));
+}
+
+
+inline void JITCompiler::translateCall(	map<uint16_t, MachineRegister> allocation, vector<unsigned char>& buffer,
+										CallDestination destination, bool directCall, MachineRegister destReg,
+										MachineRegister thatMoveRegRM, unsigned char thatMoveOpcode,
+										bool thatMoveDirectAddressing, int32_t thatMoveDisplacement) {
 
 	emitContextOperation(true, allocation, buffer);
 
 	// For some reason unknown to me, g++ uses some kind of register-call convention on x86_64
 	// without a way to turn it off
-	// (extern "C", __attribute((cdecl)) and __attribute((regparm(0))) all do nothing.
+	// (extern "C", __attribute((cdecl)) and __attribute((regparm(0))) all do nothing).
 	// This means my JIT will play ball and pass the 3 params to jitcall() in rdi, rsi and rdx.
 
-	// This part sets up rdx, next is bytecode-instruction dependent rsi,
+	if(directCall) {
+		append(buffer, "\x48\xBA", 2);								// mov rdx, imm64; param 3 (sig)
+		void* imm64 = destination.sig;
+		append(buffer, (const char*)&imm64, 8);
 
-	buffer.push_back(0xBA);											// mov edx, imm32; param 3 (sigIdx)
-	uint32_t imm32 = sigIndex;
-	append(buffer, (const char*)&imm32, 4);
+	} else {
+		buffer.push_back(0xBA);										// mov edx, imm32; param 3 (sigIdx)
+		uint32_t imm32 = destination.sigIndex;
+		append(buffer, (const char*)&imm32, 4);
+	}
 
-	emitTwoRegInsn(thatMoveRegRM, REG_RSI, thatMoveOpcode, buffer, thatMoveDirectAddressing, thatMoveDisplacement);
+	emitModRMInsn(thatMoveRegRM,REG_RSI,(char*)&thatMoveOpcode,1,buffer,thatMoveDirectAddressing,thatMoveDisplacement);
 																	// mov rsi, [whatever + ?] ; param 2 (that)
 
 	append(buffer, "\x48\x8D\x3D", 3);								// lea rdi, [rip + disp32]
-	int32_t disp32 = 53; // VOLATILE! Count of bytes from the end of this instruction to landing zone.
+	int32_t disp32 = 40; // VOLATILE! Count of bytes from the end of this instruction to landing zone.
 	append(buffer, (const char*)&disp32, 4);						//		param 1 (retAddr)
 
 	emitSwitchPointersToC(buffer);
 
 	append(buffer, "\x48\xB8", 2);									// mov rax, imm64
-	void* ptrToJitCall = __extension__ (void*)jitcall;
+	void* ptrToJitCall = directCall ? __extension__ (void*)jitCallDirect : __extension__ (void*)jitCallIndirect;
 	append(buffer, (const char*)&ptrToJitCall, sizeof(void*));
 	append(buffer, "\xFF\xD0", 2);									// call rax ( jitcall() )
 
@@ -448,7 +453,109 @@ inline void JITCompiler::emitCall(	map<uint16_t, MachineRegister> allocation, ve
 
 	// Post-call RET landing zone. RAX contains return value.
 	emitContextOperation(false, allocation, buffer);
-	emitTwoRegInsn(destReg, REG_RAX, 0x89, buffer, true);
+}
+
+
+void JITCompiler::translateA3REG(map<uint16_t, MachineRegister> allocation, vector<unsigned char>& buffer,
+				unsigned char quackSop, MachineRegister destReg, MachineRegister leftReg, MachineRegister rightReg) {
+
+	CallDestination destination;
+	const char* opcode = NULL;
+	int opLength = 1;
+	bool normOrder = true;
+	switch(quackSop) {
+		case SOP_ADD:
+			destination.sig = (QuaSignature*)"\1_opPlus";
+			opcode = "\x01";
+			break;
+		case SOP_SUB:
+			destination.sig = (QuaSignature*)"\1_opMinus";
+			opcode = "\x29";
+			break;
+		case SOP_MUL:
+			destination.sig = (QuaSignature*)"\1_opMul";
+			opcode = "\x0F\xAF";
+			opLength = 2;
+			normOrder = false;
+			break;
+#if PIGS_CAN_FLY
+		case SOP_DIV:
+			destination.sig = (QuaSignature*)"\1_opDiv";
+			opcode = 0x01;
+			throw GiveUpException();
+			break;
+		case SOP_MOD:
+			destination.sig = (QuaSignature*)"\1_opMod";
+			opcode = 0x01;
+			throw GiveUpException();
+			break;
+		case SOP_EQ:
+			destination.sig = (QuaSignature*)"\1_opEq";
+			opcode = 0x01;
+			throw GiveUpException();
+			break;
+		case SOP_LT:
+			destination.sig = (QuaSignature*)"\1_opLt";
+			opcode = 0x01;
+			throw GiveUpException();
+			break;
+#endif
+		default:
+			#ifdef TRACE
+			cout << "can't translate A3REG subop 0x" << hex << (int)quackSop << dec << ", ";
+			#endif
+			throw GiveUpException();
+	}
+
+
+	emitModRMInsn(REG_RAX, leftReg, "\x89", 1, buffer, true);				// mov rax, r?
+	emitModRMInsn(REG_RDX, rightReg, "\x89", 1, buffer, true);				// mov rdx, r??
+
+	// Tag test
+	append(buffer, "\x48\xC1\xE8\x30\x48\xC1\xEA\x30\x83\xE0\xFF\x83\xE2\xFF\x3C", 15);
+	buffer.push_back((unsigned char)TAG_INT);
+	append(buffer, "\x75\x00\x38\xD0\x75\x00", 6);
+	/*	shr rax, 48
+		shr rdx, 48
+		and eax, byte 0xFF
+		and edx, byte 0xFF
+		cmp al, byte TAG_INT
+		jnz short nontagged
+		cmp al, dl
+		jnz short nontagged
+	 */
+	unsigned int shortjump1 = buffer.size() - 5;
+	unsigned int shortjump2 = buffer.size() - 1;
+
+	// Actual arithmetic operation
+	emitModRMInsn(REG_RDX, leftReg, "\x89", 1, buffer, true, 0, false);		// mov *E*dx, r?d
+
+	emitModRMInsn(normOrder ? REG_RDX : rightReg,
+				  normOrder ? rightReg : REG_RDX,
+				  opcode, opLength, buffer, true, 0 , false); // (op) edx, r??d
+
+	// QuaValue upper part rebuild
+	emitModRMInsn(REG_RAX, leftReg, "\x89", 1, buffer, true);				// mov rax, r?
+	append(buffer, "\x48\xC1\xE8\x20\x48\xC1\xE0\x20\x48\x09\xD0\xEB\x00", 13);
+	/*	shr rax, 32
+		shl rax, 32
+		or rax, rdx
+		jmp short finished
+		nontagged:
+	 */
+	unsigned int shortjump3 = buffer.size() - 1;
+	buffer[shortjump1] = (unsigned char)(buffer.size() - shortjump1 - 1);
+	buffer[shortjump2] = (unsigned char)(buffer.size() - shortjump2 - 1);
+
+	emitOneByteInsn(rightReg, 0x50, buffer);							// push r??
+	translateCall(allocation, buffer, destination, true, destReg, leftReg, 0x8B, true, 0);
+
+	buffer[shortjump3] = (unsigned char)(buffer.size() - shortjump3 - 1);;
+
+	/*	finished:
+	 *	mov r?, rax
+	 */
+	emitModRMInsn(destReg, REG_RAX, "\x89", 1, buffer, true);
 }
 
 
@@ -465,11 +572,11 @@ void JITCompiler::generate(list<Instruction*> insns, map<uint16_t, MachineRegist
 				break;
 
 			case OP_MOV:
-				emitTwoRegInsn(allocation[(*it)->ARG0], allocation[(*it)->ARG1], 0x89, buffer, true);
+				emitModRMInsn(allocation[(*it)->ARG0], allocation[(*it)->ARG1], "\x89", 1, buffer, true);
 				break;
 
 			case OP_XCHG:
-				emitTwoRegInsn(allocation[(*it)->ARG1], allocation[(*it)->ARG0], 0x87, buffer, true);
+				emitModRMInsn(allocation[(*it)->ARG1], allocation[(*it)->ARG0], "\x87", 1, buffer, true);
 				break;
 
 			case OP_PUSH:
@@ -481,15 +588,31 @@ void JITCompiler::generate(list<Instruction*> insns, map<uint16_t, MachineRegist
 				break;
 
 			case OP_LDS:
-				emitTwoRegInsn(REG_RBP, allocation[(*it)->ARG0], 0x8B, buffer, false, ((int16_t)(*it)->ARG1) * 8);
+				emitModRMInsn(REG_RBP, allocation[(*it)->ARG0], "\x8B", 1, buffer, false, ((int16_t)(*it)->ARG1) * 8);
+				break;
+
+			case OP_A3REG:
+				translateA3REG(allocation, buffer, (*it)->subop,
+								allocation[(*it)->ARG0], allocation[(*it)->ARG1], allocation[(*it)->ARG2]);
 				break;
 
 			case OP_CALL:
-				emitCall(allocation, buffer,(*it)->ARG2,allocation[(*it)->ARG0],allocation[(*it)->ARG1],0x8B,true,0);
+				{
+					CallDestination dest;
+					dest.sigIndex = (*it)->ARG2;
+					translateCall(allocation, buffer, dest, false, allocation[(*it)->ARG0],
+								allocation[(*it)->ARG1], 0x8B, true, 0);
+					emitModRMInsn(allocation[(*it)->ARG0], REG_RAX, "\x89", 1, buffer, true);
+				}
 				break;
 
 			case OP_CALLMY:
-				emitCall(allocation, buffer, (*it)->ARG1, allocation[(*it)->ARG0], REG_RBP, 0x8B, false, 0);
+				{
+					CallDestination dest;
+					dest.sigIndex = (*it)->ARG2;
+					translateCall(allocation, buffer, dest, false, allocation[(*it)->ARG0], REG_RBP, 0x8B, false, 0);
+					emitModRMInsn(allocation[(*it)->ARG0], REG_RAX, "\x89", 1, buffer, true);
+				}
 				break;
 
 			case OP_RET:

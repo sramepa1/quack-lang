@@ -33,7 +33,7 @@ private:
 	std::multiset<uint16_t> methodRegCounts;
 
 	JITCompiler* compiler;
-	friend void* jitcall(void* retaddr, uint64_t that, uint64_t sigindex);
+	friend void* jitCallDirect(void* retaddr, uint64_t that, QuaSignature* sig);
 
 	Instruction* performCall(QuaMethod* method);
 	Instruction* performReturn(QuaValue retVal);
@@ -48,6 +48,7 @@ private:
 
 	void functionPrologue(QuaValue that, QuaMethod* method, void* retAddr, bool interpretedOrigin, uint16_t destReg);
 	void functionEpilogue();
+	void clearContext(int32_t regCnt);
 
 	Instruction* directCall(uint16_t destReg, QuaValue& that, QuaSignature* sig, Instruction* retAddr);
 	Instruction* commonCall(uint16_t destReg, QuaValue& that, uint16_t sigIndex, Instruction* retAddr);
