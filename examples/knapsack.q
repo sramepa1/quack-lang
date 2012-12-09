@@ -127,7 +127,7 @@ statclass Main {
         cout = @System.out;
 
         try {
-            in = new InstanceFile("./knap_15.inst.dat");
+            in = new InstanceFile("./knap_10.inst.dat");
             in->computeSolution();
         } catch e as IOException {
             cout->writeLine("Input file cannot be opened!");
