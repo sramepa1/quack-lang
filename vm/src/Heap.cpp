@@ -91,7 +91,8 @@ const ObjRecord& AbstractHeap::dereference(QuaValue ref) {
         throw NullReferenceException(string("Dereferenced a null value of class ") + getClassFromValue(ref)->getName());
     }
 
-    return *getRecord(ref.value);
+    ObjRecord* rec = getRecord(ref.value);
+    return *rec;
 }
 
 
@@ -119,7 +120,7 @@ QuaValue AbstractHeap::allocateNew(uint16_t type, uint32_t fieldCount) {
         heapSize += size;
     }
     
-    record.flags = 0;
+    record.flags = 1;
     record.fieldCount = fieldCount;
     record.type = type;
     
@@ -157,6 +158,8 @@ BakerHeap::BakerHeap(size_t size) : AbstractHeap::AbstractHeap(size / 2) {
 }
 
 void BakerHeap::prepareFreeTableEtry() {
+    bool flag = true;
+    
     if(firstGeneration) {
         freeTablePtr = (void*) ((ObjRecord*) freeTablePtr - 1);
         topTablePtr = freeTablePtr; // remember start(end) of the table
@@ -167,13 +170,22 @@ void BakerHeap::prepareFreeTableEtry() {
         return;
     }
     
+    search:
+    
     // search for free index and reuse
     for(uint32_t i = maxUsedTableIndex; i <= topTableIndex; ++i) {
-        if(getRecord(i)->flags != currentRecordFlags) {
+        if(getRecord(i)->flags == 0) {
             freeTableIndex = i;
             freeTablePtr = (void*) getRecord(i);
+            maxUsedTableIndex = i;
             return;
         }
+    }
+    
+    if(flag) {
+        flag = false;
+        collectGarbage();
+        goto search;
     }
     
     freeTablePtr = (void*) ((ObjRecord*) topTablePtr - 1);
@@ -210,6 +222,7 @@ void BakerHeap::collectGarbage() {
     _heapSize = 0;
  
     // copy class table
+    /*
     void* src = topTablePtr;
     void* dest = ((ObjRecord*) _tableBase - topTableIndex - 1);
     size_t size = sizeof(ObjRecord) * (topTableIndex + 1);
@@ -220,7 +233,9 @@ void BakerHeap::collectGarbage() {
     cout << "Table base position check is " << (void*) ((char*) dest + size) << endl;
 #endif
     
-    memcpy(src, dest, size);
+    memcpy(dest, src, size);
+    
+     */
     
     // manualy save null
     ObjRecord* _null = _getRecord(0);
@@ -286,7 +301,8 @@ void BakerHeap::collectGarbage() {
     _tableBase = swap;
     
     mySwap(&heapSize, &_heapSize);
-    mySwap(&freeHeapPtr, &_freeHeapPtr);
+    
+    freeHeapPtr = _freeHeapPtr;
     
 #ifdef DEBUG
     cout << "Garbage collection complete, heap is running on part " << currentRecordFlags << endl;
@@ -307,7 +323,9 @@ void BakerHeap::saveReachableObject(uint32_t index) {
     
     // copy data and update record
     _record->field = (QuaObject*) memcpy(_freeHeapPtr, record->field->fields, size);
-    _record->flags = currentRecordFlags;
+    _record->flags = 1;
+    _record->type = record->type;
+    _record->fieldCount = record->fieldCount;
         
     _freeHeapPtr = (void*) ((char*) _freeHeapPtr + size);
     _heapSize += size;
