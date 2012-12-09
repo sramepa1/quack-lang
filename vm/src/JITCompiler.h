@@ -30,7 +30,6 @@ private:
 
 	static void* ptrToVMBP;
 	static void* ptrToVMSP;
-	static void* ptrToASP;
 
 	static void* callLabel;
 	static void* returnLabel;
@@ -38,7 +37,7 @@ private:
 
 	static void* whatLabel;
 
-	friend void* jitcall(void* retaddr, uint64_t that, uint64_t sigindex);
+	friend void* jitCallDirect(void* retaddr, uint64_t that, QuaSignature* sig);
 
 	// in encoding order (bit 3 in enum = REX required)
 	enum MachineRegister {
@@ -74,7 +73,8 @@ private:
 
 	void emitOneByteInsn(MachineRegister reg, unsigned char machineOp, std::vector<unsigned char>& buffer);
 	void emitTwoRegInsn(MachineRegister regRM, MachineRegister regR, unsigned char opcode,
-						std::vector<unsigned char>& buffer, bool directAddressing, int32_t displacement = 0);
+						std::vector<unsigned char>& buffer, bool directAddressing,
+						int32_t displacement = 0, bool longMode = true);
 
 	void emitPrepareContext(std::map<uint16_t, MachineRegister> allocation, std::vector<unsigned char>& buffer);
 	void emitContextOperation(bool save, std::map<uint16_t, MachineRegister> allocation,
@@ -83,10 +83,17 @@ private:
 	void emitLoadLabelToRax(void* labelPtr, std::vector<unsigned char>& buffer);
 	void emitJumpToLabel(void* labelPtr, std::vector<unsigned char>& buffer);
 
-	void emitCall(	std::map<uint16_t, MachineRegister> allocation, std::vector<unsigned char>& buffer,
-					uint16_t sigIndex, MachineRegister destReg,
-					MachineRegister thatMoveRegRM, unsigned char thatMoveOpcode,
-					bool thatMoveDirectAddressing, int32_t thatMoveDisplacement);
+	typedef union {
+		uint16_t sigIndex;
+		QuaSignature* sig;
+	} CallDestination;
+	void translateCall(	std::map<uint16_t, MachineRegister> allocation, std::vector<unsigned char>& buffer,
+						CallDestination destination, bool directCall, MachineRegister destReg,
+						MachineRegister thatMoveRegRM, unsigned char thatMoveOpcode,
+						bool thatMoveDirectAddressing, int32_t thatMoveDisplacement);
+
+	void translateA3REG(std::map<uint16_t, MachineRegister> allocation, std::vector<unsigned char>& buffer,
+					unsigned char quackSop, MachineRegister destReg, MachineRegister leftReg, MachineRegister rightReg);
 
 	void translateStackOp(Instruction* insn, unsigned char opcode,
 						std::map<uint16_t, MachineRegister> allocation, std::vector<unsigned char>& buffer);

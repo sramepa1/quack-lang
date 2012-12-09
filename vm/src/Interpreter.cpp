@@ -92,7 +92,7 @@ void Interpreter::functionPrologue(QuaValue that, QuaMethod* method,
 		// note how many registers this says it may use (for GC)
 		methodRegCounts.insert(method->regCount);
 
-		// save context depending on the callee
+		// save context depending on the callee and null-out his registers
 		int32_t regCnt = method->regCount;
 		for(int32_t i = 0; i < regCnt; i++) {
 			*(--VMSP) = regs[i];
@@ -122,6 +122,12 @@ inline void Interpreter::functionEpilogue() {
 
 	VMSP = VMBP + (ASP->ARG_COUNT + 1 /*this*/);													// mov esp, ebp
 	VMBP = (QuaValue*)valStackHigh - ASP->BP_OFFSET;												// pop ebp
+}
+
+inline void Interpreter::clearContext(int32_t regCnt) {
+	for(int32_t i = 0; i < regCnt; i++) {
+		regs[i] = QuaValue();
+	}
 }
 
 // inline wrappers for the JIT-friendly monstrosity
@@ -163,8 +169,6 @@ inline Instruction* Interpreter::performCall(QuaMethod* method) {
 									"xchgq %%rsp, (%%rbx)\n\t"					\
 									"leaq VMBP, %%rbx\n\t"						\
 									"xchgq %%rbp, (%%rbx)\n\t"					\
-									"leaq ASP, %%rbx\n\t"						\
-									"movq (%%rbx), %%rbx\n\t"					\
 									"jmp *%%rdx"								\
 						:	/* no output */										\
 						:	"a" (value), "d" (destination)						\
@@ -183,7 +187,6 @@ JITCompiler::JITCompiler(bool enabled) : enabled(enabled)
 	asm("mov $transfer_throw, %%rax" : "=a" (throwLabel) : : );
 	asm("mov $transfer_what, %%rax" : "=a" (whatLabel) : : );
 
-	ptrToASP = &ASP;
 	ptrToVMBP = &VMBP;
 	ptrToVMSP = &VMSP;
 }
@@ -222,6 +225,7 @@ __attribute((noinline)) Instruction* Interpreter::transferControl(TransferReason
 						cout << "interpreting]" << endl;
 					#endif
 					method->action = QuaMethod::COMPILE; // next time
+					clearContext(method->regCount);
 					return (Instruction*) method->code;
 
 				case QuaMethod::COMPILE:
@@ -244,6 +248,7 @@ __attribute((noinline)) Instruction* Interpreter::transferControl(TransferReason
 						cout << "giving up]" << endl;
 					#endif
 						method->action = QuaMethod::ALWAYS_INTERPRET;
+						clearContext(method->regCount);
 						return (Instruction*) method->code; // No further setting of compile flag
 					}
 
@@ -289,7 +294,8 @@ __attribute((noinline)) Instruction* Interpreter::transferControl(TransferReason
 					#ifdef TRACE
 						cout << "interpreting - forced]" << endl;
 					#endif
-					return (Instruction*) method->code; // No further setting of compile flag
+					clearContext(method->regCount);
+					return (Instruction*) method->code;
 
 				default:
 					ostringstream os;
