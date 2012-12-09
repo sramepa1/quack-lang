@@ -1,6 +1,6 @@
 # Debug mode
 CFLAGS = -pedantic -Wall -O0 -g3
-#DEFINE = DEBUG TRACE
+DEFINE = DEBUG TRACE
 
 # Release mode
 #CFLAGS = -O3 -g

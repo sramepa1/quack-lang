@@ -79,6 +79,10 @@ bool JITCompiler::compile(QuaMethod* method) {
 			#endif
 			throw GiveUpException();
 		}
+		#ifdef TRACE
+		cout << "OK " << buffer.size() << "B, ";
+		#endif
+
 
 	} catch(GiveUpException) {
 		return false;
@@ -257,9 +261,15 @@ inline void JITCompiler::append(vector<unsigned char>& buffer, const char* data,
 	buffer.insert(buffer.end(), (const unsigned char*)data, (const unsigned char*)data + count);
 }
 
-void JITCompiler::emitOneByteInsn(MachineRegister reg, unsigned char machineOp, vector<unsigned char>& buffer) {
+void JITCompiler::emitOneByteInsn(MachineRegister reg, unsigned char machineOp, vector<unsigned char>& buffer,
+								  bool longMode) {
+
+	unsigned char REX = longMode ? 0x48 : 0x40;
 	if(reg >= REG_R8) {
-		buffer.push_back(0x41); // REX
+		REX |= 0x1;
+	}
+	if(REX != 0x40) {
+		buffer.push_back(REX);
 	}
 	machineOp |= (reg % 8);
 	buffer.push_back(machineOp);
@@ -341,7 +351,7 @@ void JITCompiler::translateStackOp(Instruction* insn, unsigned char opcode,
 						map<uint16_t, JITCompiler::MachineRegister> allocation, vector<unsigned char> & buffer) {
 	switch(insn->subop) {
 		case SOP_STACK_1:
-			emitOneByteInsn(allocation[insn->ARG0], opcode, buffer);
+			emitOneByteInsn(allocation[insn->ARG0], opcode, buffer, false);
 			break;
 
 		// TODO: P2, P3, PA
@@ -462,7 +472,6 @@ enum OperationMode {
 	MODE_DIV,
 	MODE_RELATIONAL
 };
-
 
 void JITCompiler::translateA3REG(map<uint16_t, MachineRegister> allocation, vector<unsigned char>& buffer,
 				unsigned char quackSop, MachineRegister destReg, MachineRegister leftReg, MachineRegister rightReg) {
@@ -617,7 +626,7 @@ void JITCompiler::translateA3REG(map<uint16_t, MachineRegister> allocation, vect
 	buffer[shortjump1] = (unsigned char)(buffer.size() - shortjump1 - 1);
 	buffer[shortjump2] = (unsigned char)(buffer.size() - shortjump2 - 1);
 
-	emitOneByteInsn(rightReg, 0x50, buffer);							// push r??
+	emitOneByteInsn(rightReg, 0x50, buffer, false);							// push r??
 	translateCall(allocation, buffer, destination, true, leftReg, 0x8B, true, 0);
 
 	int32_t jump = buffer.size() - nearjump3 - 4;
@@ -629,6 +638,52 @@ void JITCompiler::translateA3REG(map<uint16_t, MachineRegister> allocation, vect
 	 *	mov r?, rax
 	 */
 	emitModRMInsn(destReg, REG_RAX, "\x89", 1, buffer, true);
+}
+
+
+void JITCompiler::translateLNOT(map<uint16_t, MachineRegister> allocation, vector<unsigned char>& buffer,
+								MachineRegister destReg, MachineRegister srcReg) {
+
+	CallDestination destination;
+	destination.sig = (QuaSignature*)"\0_opLNot";
+
+	emitModRMInsn(REG_RAX, srcReg, "\x89", 1, buffer, true);				// mov rax, r??
+
+	append(buffer, "\x48\xC1\xE8\x30\x83\xE0\xFF\x3C", 8);
+	buffer.push_back((unsigned char)TAG_BOOL);
+	append(buffer, "\x75\x00", 2);
+	/*																			shr rax, 48
+																				and eax, byte 0xFF
+																				cmp al, byte TAG_INT
+																				jnz short nontagged
+	 */
+	unsigned int shortjump = buffer.size() - 1;
+
+	QuaValue imm = createBool(false);
+	append(buffer, "\x48\xB8", 2);
+	append(buffer, (char*)&imm, 8);											// mov rax, imm64
+
+	emitModRMInsn(srcReg, srcReg, "\x85", 1, buffer, true, 0 , false);		// test r?d, r?d
+
+	append(buffer, "\x0F\x85\x00\x00\x00\x00", 6);							// jnz takevalue
+	unsigned int nearjump1 = buffer.size() - 4;
+
+	append(buffer, "\x48\x83\xC8\x01\xE9\x00\x00\x00\x00", 9);				// or rax, byte 1
+	unsigned int nearjump2 = buffer.size() - 4;								// jmp takevalue
+
+	buffer[shortjump] = (unsigned char)(buffer.size() - shortjump - 1);		// nontagged:
+
+
+	translateCall(allocation, buffer, destination, true, srcReg, 0x8B, true, 0); // call _opLNot
+
+	int32_t jump1 = buffer.size() - nearjump1 - 4;
+	int32_t jump2 = buffer.size() - nearjump2 - 4;
+	for(int i = 0; i < 4; i++) {
+		buffer[nearjump1 + i] = *(((unsigned char*)&jump1) + i);
+		buffer[nearjump2 + i] = *(((unsigned char*)&jump2) + i) ;
+	}																		// takevalue:
+
+	emitModRMInsn(destReg, REG_RAX, "\x89", 1, buffer, true);				// mov r?, rax
 }
 
 
@@ -689,13 +744,54 @@ void JITCompiler::translateCNVT(map<uint16_t, MachineRegister> allocation, vecto
 }
 
 
+void JITCompiler::translateISTYPE(vector<unsigned char>& buffer,
+								  MachineRegister destReg, MachineRegister srcReg, uint16_t type) {
+	uint32_t quaValueUpper = 0;
+	quaValueUpper = typeCache.typeBool;
+	quaValueUpper |= TAG_BOOL << 16;
+	buffer.push_back(0xB8);
+	append(buffer, (const char*)&quaValueUpper, 4);								// mov eax, imm32
+	emitModRMInsn(REG_RDX, srcReg, "\x89", 1, buffer, true);					// mov rdx, r??
+	append(buffer, "\x48\xC1\xE0\x20\x48\xC1\xEA\x20\x48\x81\xE2\xFF\xFF\x00\x00\x48\x81\xFA", 18);
+	int32_t imm32 = type;
+	append(buffer, (const char*)&imm32, 4);
+	append(buffer, "\x75\x04\x48\x83\xC8\x01", 6);								/*	shl rax, 32
+																					shr rdx, 32
+																					and rdx, 0xffff
+																					cmp rdx, type
+																					jnz keepfalse
+																					or rax, byte 1	*/
+	emitModRMInsn(destReg, REG_RAX, "\x89", 1, buffer, true);					// mov r?, rax
+}
+
+
 
 void JITCompiler::generate(list<Instruction*> insns, map<uint16_t, MachineRegister> allocation,
 						   vector<unsigned char>& buffer ) {
 
 	emitPrepareContext(allocation, buffer);
 
-	for(list<Instruction*>::iterator it = insns.begin(); it != insns.end(); ++it) {
+	// for jumps
+	vector<size_t> insnStarts(insns.size());
+	multimap<int32_t, size_t> backPatchOffsets;
+
+	int32_t i = 0;
+	for(list<Instruction*>::iterator it = insns.begin(); it != insns.end(); ++it, ++i) {
+
+		// note where this instruction starts for future backward jumps
+		insnStarts[i] = buffer.size();
+
+		// backpatch all previously seen forward jumps leading to this instruction
+		pair<multimap<int32_t, size_t>::iterator, multimap<int32_t, size_t>::iterator> range;
+		range = backPatchOffsets.equal_range(i);
+		for(multimap<int32_t, size_t>::iterator rit = range.first; rit != range.second; ++rit) {
+			size_t jumpAddress = rit->second;
+			int32_t jump = buffer.size() - jumpAddress - 4;
+			for(int i = 0; i < 4; i++) {
+				buffer[jumpAddress + i] = *(((unsigned char*)&jump) + i) ;
+			}
+		}
+
 
 
 		/*
@@ -726,6 +822,14 @@ void JITCompiler::generate(list<Instruction*> insns, map<uint16_t, MachineRegist
 				//buffer.push_back(0x90); // only used for testing, otherwise not necessary
 				break;
 
+			case OP_LDCT:
+				{
+					QuaValue imm = extractTaggedValue(*it);
+					emitOneByteInsn(allocation[(*it)->REG], 0xB8, buffer, true);	// mov r?, imm64
+					append(buffer, (char*)&imm, 8);
+				}
+				break;
+
 			case OP_MOV:
 				emitModRMInsn(allocation[(*it)->ARG0], allocation[(*it)->ARG1], "\x89", 1, buffer, true);
 				break;
@@ -749,6 +853,41 @@ void JITCompiler::generate(list<Instruction*> insns, map<uint16_t, MachineRegist
 			case OP_A3REG:
 				translateA3REG(allocation, buffer, (*it)->subop,
 								allocation[(*it)->ARG0], allocation[(*it)->ARG1], allocation[(*it)->ARG2]);
+				break;
+
+			case OP_LNOT:
+				translateLNOT(allocation, buffer, allocation[(*it)->ARG0], allocation[(*it)->ARG1]);
+				break;
+
+			case OP_JMP:
+				{
+					switch((*it)->subop) {
+						case SOP_UNCONDITIONAL:
+							buffer.push_back(0xE9);											// jmp
+							break;
+						case SOP_CC_TRUE:
+						case SOP_CC_FALSE:
+							emitModRMInsn(allocation[(*it)->ARG1], allocation[(*it)->ARG1],
+										  "\x85", 1, buffer, true, 0 , false);				// test r?d, r?d
+							buffer.push_back(0x0F);
+							buffer.push_back((*it)->subop == SOP_CC_FALSE ? 0x84 : 0x85);	// jz ~ jnz
+							break;
+						default:
+							#ifdef TRACE
+							cout << "can't translate JMP subop 0x" << hex << (int)(*it)->subop << dec << ", ";
+							#endif
+							throw GiveUpException();
+					}
+					int32_t imm32 = 0;
+					int32_t qOffset = (int16_t)((*it)->ARG0);
+					if(qOffset < 0) {
+						imm32 = insnStarts[i + qOffset + 1] - buffer.size() - 4;
+					} else {
+						backPatchOffsets.insert(make_pair(i + qOffset + 1, buffer.size()));
+					}
+					append(buffer, (const char*)&imm32, 4);									// imm32 jump offset
+				}
+
 				break;
 
 			case OP_CALL:
@@ -783,6 +922,10 @@ void JITCompiler::generate(list<Instruction*> insns, map<uint16_t, MachineRegist
 			case OP_THROW:
 				setupLeave(buffer);
 				finishLeaveReg(allocation[(*it)->ARG0], throwLabel, buffer);
+				break;
+
+			case OP_ISTYPE:
+				translateISTYPE(buffer, allocation[(*it)->ARG0], allocation[(*it)->ARG1], (*it)->ARG2);
 				break;
 
 			case OP_CNVT:

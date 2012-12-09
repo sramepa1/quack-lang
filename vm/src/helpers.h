@@ -136,6 +136,10 @@ inline uint16_t getTaggedType(uint8_t tag) {
 	}
 }
 
+inline QuaValue extractTaggedValue(Instruction* insn) {
+	return QuaValue(insn->IMM, getTaggedType(insn->subop), insn->subop);
+}
+
 // These are not actual QuaValue constructors to avoid including globals.h in QuaValue.h (dependency on typeCache)
 
 inline QuaValue createBool(bool value) {

@@ -163,6 +163,8 @@ inline Instruction* Interpreter::performCall(QuaMethod* method) {
 // and may clobber any register, and the compiler can arrange things around this.
 
 // local macro only, #undef'd at the end of the method
+// exchange RSP ~ VMSP and RBP ~ VMBP, then jump to "code" with "value" in rax,
+// emerge back with restored RSP and RBP at one of the 3 labels.
 #define MACHINE_JUMP(value, code) {												\
 						volatile void* destination = (volatile void*)(code);	\
 						asm goto (	"leaq VMSP, %%rbx\n\t"						\
@@ -514,11 +516,6 @@ Instruction* Interpreter::unhandledException(QuaValue qex) {
 	}
 
 	throw runtime_error(os.str());
-}
-
-
-inline QuaValue Interpreter::extractTaggedValue(Instruction* insn) {
-	return QuaValue(insn->IMM, getTaggedType(insn->subop), insn->subop);
 }
 
 
@@ -1395,24 +1392,24 @@ void Interpreter::start(vector<char*>& args) {
 		throw runtime_error("Main class is not static!");
 	}
 
-    QuaValue argCnt = createInteger(args.size());
-    *(--VMSP) = argCnt;
-    QuaValue qargs = newRawInstance(typeCache.typeArray);
-    nativeCall(qargs, (QuaSignature*)"\1initN");
+	QuaValue argCnt = createInteger(args.size());
+	*(--VMSP) = argCnt;
+	QuaValue qargs = newRawInstance(typeCache.typeArray);
+	nativeCall(qargs, (QuaSignature*)"\1initN");
 
 	#ifdef DEBUG
 		cout << "Preparing value stack, argument count for main method is: " << args.size() << endl;
 	#endif
-    uint32_t index = 0;
+	uint32_t index = 0;
 	for(vector<char*>::iterator it = args.begin(); it != args.end(); ++it) {
 		QuaValue argString = stringDeserializer(*it);
-        *(--VMSP) = argString;
+		*(--VMSP) = argString;
 
-        QuaValue indexRef = createInteger(index);
-        *(--VMSP) = indexRef;
+		QuaValue indexRef = createInteger(index);
+		*(--VMSP) = indexRef;
 
-        nativeCall(qargs, (QuaSignature*)"\2_opIndexWN");
-        index++;
+		nativeCall(qargs, (QuaSignature*)"\2_opIndexWN");
+		index++;
 	}
 
 	// push args and This pointer

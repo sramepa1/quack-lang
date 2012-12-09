@@ -23,7 +23,7 @@ bool testPointer(void* ptr, void* low, void* high, const char* message) {
 	return false;
 }
 
-void handler(int sig, siginfo_t *si, void *unused)
+void handlerSEGV(int sig, siginfo_t *si, void *unused)
 {
 	cerr << "SIGSEGV - attempted to access protected address: " << si->si_addr << endl;
 	if( !(  testPointer(si->si_addr, valStackLow, valStackHigh, "That is on the VM value stack!")
@@ -36,16 +36,25 @@ void handler(int sig, siginfo_t *si, void *unused)
 	// wheeeeeee!
 }
 
+void handlerFPE(int sig) {
+    siglongjmp(jmpEnvFPE, 1);
+}
+
 void initSigsegv() {
 	struct sigaction sa;
-	sa.sa_sigaction = handler;
+    sa.sa_sigaction = handlerSEGV;
 	sa.sa_flags = SA_SIGINFO;
 	sigemptyset(&sa.sa_mask);
 	if(sigaction(SIGSEGV, &sa, NULL) != 0) {
-		cerr << "Warning: Unable to correctly install signal handler!" << endl;
+        cerr << "Warning: Unable to correctly install signal handler for SIGSEGV!" << endl;
 	}
 }
 
+void initSigfpe() {
+    if (signal(SIGFPE, handlerFPE) == SIG_ERR) {
+        cerr << "Warning: Unable to correctly install signal handler for SIGFPE!" << endl;
+    }
+}
 
 
 int main(int argc, char* argv[]) {
@@ -60,7 +69,13 @@ int main(int argc, char* argv[]) {
 			throw invalid_argument("Not enough command line arguments.");
 		}
 
-		if(sigsetjmp(jmpEnv,1) == 0) {
+        if(sigsetjmp(jmpEnvFPE, 1) != 0) {
+            // SIGFPE handler long jump landing
+            throw runtime_error("Handling division by zero is not yet implemented!");
+        }
+        initSigfpe();
+
+        if(sigsetjmp(jmpEnv, 1) == 0) {
 			initSigsegv();
 
 			int i;

@@ -71,7 +71,9 @@ private:
 
 	void append(std::vector<unsigned char>& buffer, const char* data, size_t count);
 
-	void emitOneByteInsn(MachineRegister reg, unsigned char machineOp, std::vector<unsigned char>& buffer);
+	void emitOneByteInsn(MachineRegister reg, unsigned char machineOp, std::vector<unsigned char>& buffer,
+						 bool longMode = true);
+
 	void emitModRMInsn(MachineRegister regRM, MachineRegister regR, const char *opcode, int opLength,
 						std::vector<unsigned char>& buffer, bool directAddressing,
 						int32_t displacement = 0, bool longMode = true);
@@ -94,6 +96,12 @@ private:
 
 	void translateA3REG(std::map<uint16_t, MachineRegister> allocation, std::vector<unsigned char>& buffer,
 					unsigned char quackSop, MachineRegister destReg, MachineRegister leftReg, MachineRegister rightReg);
+
+	void translateLNOT(std::map<uint16_t, MachineRegister> allocation, std::vector<unsigned char>& buffer,
+							MachineRegister destReg, MachineRegister srcReg);
+
+	void translateISTYPE(std::vector<unsigned char>& buffer,
+							MachineRegister destReg, MachineRegister srcReg, uint16_t type);
 
 	void translateCNVT(std::map<uint16_t, MachineRegister> allocation, std::vector<unsigned char>& buffer,
 									unsigned char quackSop, MachineRegister destReg, MachineRegister srcReg);
