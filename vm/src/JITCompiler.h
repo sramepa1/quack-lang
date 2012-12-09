@@ -72,7 +72,7 @@ private:
 	void append(std::vector<unsigned char>& buffer, const char* data, size_t count);
 
 	void emitOneByteInsn(MachineRegister reg, unsigned char machineOp, std::vector<unsigned char>& buffer);
-	void emitTwoRegInsn(MachineRegister regRM, MachineRegister regR, unsigned char opcode,
+	void emitModRMInsn(MachineRegister regRM, MachineRegister regR, const char *opcode, int opLength,
 						std::vector<unsigned char>& buffer, bool directAddressing,
 						int32_t displacement = 0, bool longMode = true);
 

@@ -265,8 +265,8 @@ void JITCompiler::emitOneByteInsn(MachineRegister reg, unsigned char machineOp, 
 	buffer.push_back(machineOp);
 }
 
-void JITCompiler::emitTwoRegInsn(MachineRegister regRM, MachineRegister regR, // usually Dest and Src, depends on opcode
-									unsigned char opcode, vector<unsigned char>& buffer,
+void JITCompiler::emitModRMInsn(MachineRegister regRM, MachineRegister regR, // usually Dest and Src, depends on opcode
+									const char* opcode, int opLength, vector<unsigned char>& buffer,
 									bool directAddressing, int32_t displacement, bool longMode) {
 
 	unsigned char REX = longMode ? 0x48 : 0x40;
@@ -278,7 +278,7 @@ void JITCompiler::emitTwoRegInsn(MachineRegister regRM, MachineRegister regR, //
 	}
 
 	buffer.push_back(REX);
-	buffer.push_back(opcode);
+	append(buffer, opcode, opLength);
 
 	unsigned char modRM;
 	bool useDisplacement = false;
@@ -358,7 +358,7 @@ inline void JITCompiler::setupLeave(vector<unsigned char>& buffer) {
 }
 
 inline void JITCompiler::finishLeaveReg(MachineRegister reg, void* destinationLabel, vector<unsigned char>& buffer) {
-	emitTwoRegInsn(REG_RAX, reg, 0x89, buffer, false);	// mov qword [rax], r??
+	emitModRMInsn(REG_RAX, reg, "\x89", 1, buffer, false);	// mov qword [rax], r??
 	emitJumpToLabel(destinationLabel, buffer);	// Leave JITted code
 }
 
@@ -373,7 +373,7 @@ inline void JITCompiler::emitPrepareContext(map<uint16_t, MachineRegister> alloc
 		if(it->first == REG_DEV_NULL) {
 			continue;
 		}
-		emitTwoRegInsn(it->second, it->second, 0x31, buffer, true); // xor reg, reg
+		emitModRMInsn(it->second, it->second, "\x31", 1, buffer, true); // xor reg, reg
 	}
 	// slightly suoptimal for the first 4 regs (redundant prefix), but works correctly
 }
@@ -388,7 +388,7 @@ inline void JITCompiler::emitContextOperation(bool save,
 		if(it->first == REG_DEV_NULL) {
 			continue;
 		}
-		emitTwoRegInsn(REG_RBP, it->second, opcode, buffer, false, displacement);
+		emitModRMInsn(REG_RBP, it->second, (char*)&opcode, 1, buffer, false, displacement);
 		displacement -= 8;
 	}
 }
@@ -435,7 +435,7 @@ inline void JITCompiler::translateCall(	map<uint16_t, MachineRegister> allocatio
 		append(buffer, (const char*)&imm32, 4);
 	}
 
-	emitTwoRegInsn(thatMoveRegRM, REG_RSI, thatMoveOpcode, buffer, thatMoveDirectAddressing, thatMoveDisplacement);
+	emitModRMInsn(thatMoveRegRM,REG_RSI,(char*)&thatMoveOpcode,1,buffer,thatMoveDirectAddressing,thatMoveDisplacement);
 																	// mov rsi, [whatever + ?] ; param 2 (that)
 
 	append(buffer, "\x48\x8D\x3D", 3);								// lea rdi, [rip + disp32]
@@ -460,22 +460,25 @@ void JITCompiler::translateA3REG(map<uint16_t, MachineRegister> allocation, vect
 				unsigned char quackSop, MachineRegister destReg, MachineRegister leftReg, MachineRegister rightReg) {
 
 	CallDestination destination;
-	unsigned char opcode;
+	const char* opcode = NULL;
+	int opLength = 1;
+	bool normOrder = true;
 	switch(quackSop) {
 		case SOP_ADD:
 			destination.sig = (QuaSignature*)"\1_opPlus";
-			opcode = 0x01;
+			opcode = "\x01";
 			break;
 		case SOP_SUB:
 			destination.sig = (QuaSignature*)"\1_opMinus";
-			opcode = 0x29;
+			opcode = "\x29";
 			break;
-#if PIGS_CAN_FLY
 		case SOP_MUL:
 			destination.sig = (QuaSignature*)"\1_opMul";
-			opcode = 0x01;
-			throw GiveUpException();
+			opcode = "\x0F\xAF";
+			opLength = 2;
+			normOrder = false;
 			break;
+#if PIGS_CAN_FLY
 		case SOP_DIV:
 			destination.sig = (QuaSignature*)"\1_opDiv";
 			opcode = 0x01;
@@ -505,8 +508,8 @@ void JITCompiler::translateA3REG(map<uint16_t, MachineRegister> allocation, vect
 	}
 
 
-	emitTwoRegInsn(REG_RAX, leftReg, 0x89, buffer, true);				// mov rax, r?
-	emitTwoRegInsn(REG_RDX, rightReg, 0x89, buffer, true);				// mov rdx, r??
+	emitModRMInsn(REG_RAX, leftReg, "\x89", 1, buffer, true);				// mov rax, r?
+	emitModRMInsn(REG_RDX, rightReg, "\x89", 1, buffer, true);				// mov rdx, r??
 
 	// Tag test
 	append(buffer, "\x48\xC1\xE8\x30\x48\xC1\xEA\x30\x83\xE0\xFF\x83\xE2\xFF\x3C", 15);
@@ -525,11 +528,14 @@ void JITCompiler::translateA3REG(map<uint16_t, MachineRegister> allocation, vect
 	unsigned int shortjump2 = buffer.size() - 1;
 
 	// Actual arithmetic operation
-	emitTwoRegInsn(REG_RDX, leftReg, 0x89, buffer, true, 0, false);		// mov *E*dx, r?d
-	emitTwoRegInsn(REG_RDX, rightReg, opcode, buffer, true, 0 , false); // (op) edx, r??d
+	emitModRMInsn(REG_RDX, leftReg, "\x89", 1, buffer, true, 0, false);		// mov *E*dx, r?d
+
+	emitModRMInsn(normOrder ? REG_RDX : rightReg,
+				  normOrder ? rightReg : REG_RDX,
+				  opcode, opLength, buffer, true, 0 , false); // (op) edx, r??d
 
 	// QuaValue upper part rebuild
-	emitTwoRegInsn(REG_RAX, leftReg, 0x89, buffer, true);				// mov rax, r?
+	emitModRMInsn(REG_RAX, leftReg, "\x89", 1, buffer, true);				// mov rax, r?
 	append(buffer, "\x48\xC1\xE8\x20\x48\xC1\xE0\x20\x48\x09\xD0\xEB\x00", 13);
 	/*	shr rax, 32
 		shl rax, 32
@@ -549,7 +555,7 @@ void JITCompiler::translateA3REG(map<uint16_t, MachineRegister> allocation, vect
 	/*	finished:
 	 *	mov r?, rax
 	 */
-	emitTwoRegInsn(destReg, REG_RAX, 0x89, buffer, true);
+	emitModRMInsn(destReg, REG_RAX, "\x89", 1, buffer, true);
 }
 
 
@@ -566,11 +572,11 @@ void JITCompiler::generate(list<Instruction*> insns, map<uint16_t, MachineRegist
 				break;
 
 			case OP_MOV:
-				emitTwoRegInsn(allocation[(*it)->ARG0], allocation[(*it)->ARG1], 0x89, buffer, true);
+				emitModRMInsn(allocation[(*it)->ARG0], allocation[(*it)->ARG1], "\x89", 1, buffer, true);
 				break;
 
 			case OP_XCHG:
-				emitTwoRegInsn(allocation[(*it)->ARG1], allocation[(*it)->ARG0], 0x87, buffer, true);
+				emitModRMInsn(allocation[(*it)->ARG1], allocation[(*it)->ARG0], "\x87", 1, buffer, true);
 				break;
 
 			case OP_PUSH:
@@ -582,7 +588,7 @@ void JITCompiler::generate(list<Instruction*> insns, map<uint16_t, MachineRegist
 				break;
 
 			case OP_LDS:
-				emitTwoRegInsn(REG_RBP, allocation[(*it)->ARG0], 0x8B, buffer, false, ((int16_t)(*it)->ARG1) * 8);
+				emitModRMInsn(REG_RBP, allocation[(*it)->ARG0], "\x8B", 1, buffer, false, ((int16_t)(*it)->ARG1) * 8);
 				break;
 
 			case OP_A3REG:
@@ -596,7 +602,7 @@ void JITCompiler::generate(list<Instruction*> insns, map<uint16_t, MachineRegist
 					dest.sigIndex = (*it)->ARG2;
 					translateCall(allocation, buffer, dest, false, allocation[(*it)->ARG0],
 								allocation[(*it)->ARG1], 0x8B, true, 0);
-					emitTwoRegInsn(allocation[(*it)->ARG0], REG_RAX, 0x89, buffer, true);
+					emitModRMInsn(allocation[(*it)->ARG0], REG_RAX, "\x89", 1, buffer, true);
 				}
 				break;
 
@@ -605,7 +611,7 @@ void JITCompiler::generate(list<Instruction*> insns, map<uint16_t, MachineRegist
 					CallDestination dest;
 					dest.sigIndex = (*it)->ARG2;
 					translateCall(allocation, buffer, dest, false, allocation[(*it)->ARG0], REG_RBP, 0x8B, false, 0);
-					emitTwoRegInsn(allocation[(*it)->ARG0], REG_RAX, 0x89, buffer, true);
+					emitModRMInsn(allocation[(*it)->ARG0], REG_RAX, "\x89", 1, buffer, true);
 				}
 				break;
 
