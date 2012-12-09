@@ -414,8 +414,8 @@ void* jitCallIndirect(void* retaddr, uint64_t that, uint64_t sigindex) {
 }
 
 
-inline void JITCompiler::translateCall(	map<uint16_t, MachineRegister> allocation, vector<unsigned char>& buffer,
-										CallDestination destination, bool directCall, MachineRegister destReg,
+void JITCompiler::translateCall(	map<uint16_t, MachineRegister> allocation, vector<unsigned char>& buffer,
+										CallDestination destination, bool directCall,
 										MachineRegister thatMoveRegRM, unsigned char thatMoveOpcode,
 										bool thatMoveDirectAddressing, int32_t thatMoveDisplacement) {
 
@@ -496,21 +496,25 @@ void JITCompiler::translateA3REG(map<uint16_t, MachineRegister> allocation, vect
 			destination.sig = (QuaSignature*)"\1_opMod";
 			mode = MODE_DIV;
 			break;
-#if PIGS_CAN_FLY
-		case SOP_EQ:
-			destination.sig = (QuaSignature*)"\1_opEq";
-			opcode = 0x01;
-			throw GiveUpException();
-			break;
-		case SOP_NEQ:
-			destination.sig = (QuaSignature*)"\1_opNeq";
-			opcode = 0x01;
-			throw GiveUpException();
-			break;
-#endif
+
 			// all relational operators are implemented as a fixed jump over a 3-byte instruction.
 			// the 3-byte instruction makes the result true, so if the jump is on the opposite condition
 			// to the quack operator, false is kept.
+
+			// TODO: Implement a MODE_EQUALITY for EQ and NEQ, because they should also work on Bools
+			//			and in a slightly different way than direct CMP-J(N)Z.
+
+		case SOP_EQ:
+			destination.sig = (QuaSignature*)"\1_opEq";
+			opcode = "\x75\x03"; // jnz
+			mode = MODE_RELATIONAL;
+			break;
+		case SOP_NEQ:
+			destination.sig = (QuaSignature*)"\1_opNeq";
+			opcode = "\x74\x03"; // jz
+			mode = MODE_RELATIONAL;
+			break;
+
 		case SOP_GT:
 			destination.sig = (QuaSignature*)"\1_opGt";
 			opcode = "\x7E\x03"; // jng
@@ -602,21 +606,24 @@ void JITCompiler::translateA3REG(map<uint16_t, MachineRegister> allocation, vect
 	buffer.push_back(0xB8);
 	append(buffer, (const char*)&quaValueUpper, 4);
 	// mov eax, imm32
-	append(buffer, "\x48\xC1\xE0\x20\x48\x09\xD0\xEB\x00", 9);
+	append(buffer, "\x48\xC1\xE0\x20\x48\x09\xD0\xEB\x00\x00\x00\x00", 12);
 	/*	shl rax, 32
 		or rax, rdx
-		jmp short finished
+		jmp near finished
 		nontagged:
 	*/
 
-	unsigned int shortjump3 = buffer.size() - 1;
+	unsigned int nearjump3 = buffer.size() - 4;
 	buffer[shortjump1] = (unsigned char)(buffer.size() - shortjump1 - 1);
 	buffer[shortjump2] = (unsigned char)(buffer.size() - shortjump2 - 1);
 
 	emitOneByteInsn(rightReg, 0x50, buffer);							// push r??
-	translateCall(allocation, buffer, destination, true, destReg, leftReg, 0x8B, true, 0);
+	translateCall(allocation, buffer, destination, true, leftReg, 0x8B, true, 0);
 
-	buffer[shortjump3] = (unsigned char)(buffer.size() - shortjump3 - 1);;
+	int32_t jump = buffer.size() - nearjump3 - 4;
+	for(int i = 0; i < 4; i++) {
+		buffer[nearjump3 + i] = *(((unsigned char*)&jump) + i) ;
+	}
 
 	/*	finished:
 	 *	mov r?, rax
@@ -625,12 +632,94 @@ void JITCompiler::translateA3REG(map<uint16_t, MachineRegister> allocation, vect
 }
 
 
+void JITCompiler::translateCNVT(map<uint16_t, MachineRegister> allocation, vector<unsigned char>& buffer,
+								unsigned char quackSop, MachineRegister destReg, MachineRegister srcReg) {
+
+	emitModRMInsn(REG_RAX, srcReg, "\x89", 1, buffer, true);				// mov rax, r??
+
+	int32_t nearjumpback = buffer.size();									// typecheck:
+
+	CallDestination destination;
+	int32_t type;
+	switch(quackSop) {
+		case SOP_TAG_BOOL:
+			type = typeCache.typeBool;
+			destination.sig = (QuaSignature*)"\0_boolValue";
+			break;
+		case SOP_TAG_INT:
+			type = typeCache.typeInteger;
+			destination.sig = (QuaSignature*)"\0_intValue";
+			break;
+		case SOP_TAG_FLOAT:
+			type = typeCache.typeFloat;
+			destination.sig = (QuaSignature*)"\0_floatValue";
+			break;
+		default:
+			#ifdef TRACE
+			cout << "unknown CNVT tag 0x" << hex << (int)quackSop << dec << ", ";
+			#endif
+			throw GiveUpException();
+	}
+
+	append(buffer, "\x48\x89\xC2\x48\xC1\xEA\x20\x81\xE2\xFF\xFF\x00\x00\x81\xFA", 15);
+	append(buffer, (const char*)&type, 4);
+	/*
+																				mov rdx, rax
+																				shr rdx, 32
+																				and edx, 0xffff
+																				cmp edx, type
+	 */
+
+	append(buffer, "\x0F\x84\x00\x00\x00\x00", 6);							// jz near end
+	int32_t nearjumpfwd = buffer.size() - 4;
+
+	translateCall(allocation, buffer, destination, true, srcReg, 0x8B, true, 0);
+
+	buffer.push_back(0xE9);													// jmp near typecheck
+	int32_t imm32 = nearjumpback - buffer.size() - 4;
+	append(buffer, (const char*)&imm32, 4);
+
+	// backpatch forward jump
+	int32_t jump = buffer.size() - nearjumpfwd - 4;
+	for(int i = 0; i < 4; i++) {
+		buffer[nearjumpfwd + i] = *(((unsigned char*)&jump) + i) ;
+	}
+																			// end:
+	emitModRMInsn(destReg, REG_RAX, "\x89", 1, buffer, true);				// mov r??, rax
+}
+
+
+
 void JITCompiler::generate(list<Instruction*> insns, map<uint16_t, MachineRegister> allocation,
 						   vector<unsigned char>& buffer ) {
 
 	emitPrepareContext(allocation, buffer);
 
 	for(list<Instruction*>::iterator it = insns.begin(); it != insns.end(); ++it) {
+
+
+		/*
+
+				   *******************
+				   *    --TURBO--    *
+				   *                 *
+				   *  [===========]  *
+				   *   |    |    |   *
+				   *   |    |    |   *
+				   *   +    +    +   *
+				   *                 *
+				   *                 *
+				   *                 *
+				   *                 *
+				   *     REGULAR     *
+				   *******************
+
+			  +--------------------------+
+			  | THE BIG SWITCH (TM) No.2 |
+			  +--------------------------+
+
+		*/
+
 
 		switch((*it)->op) {
 			case OP_NOP:
@@ -666,8 +755,7 @@ void JITCompiler::generate(list<Instruction*> insns, map<uint16_t, MachineRegist
 				{
 					CallDestination dest;
 					dest.sigIndex = (*it)->ARG2;
-					translateCall(allocation, buffer, dest, false, allocation[(*it)->ARG0],
-								allocation[(*it)->ARG1], 0x8B, true, 0);
+					translateCall(allocation, buffer, dest, false, allocation[(*it)->ARG1], 0x8B, true, 0);
 					emitModRMInsn(allocation[(*it)->ARG0], REG_RAX, "\x89", 1, buffer, true);
 				}
 				break;
@@ -675,8 +763,8 @@ void JITCompiler::generate(list<Instruction*> insns, map<uint16_t, MachineRegist
 			case OP_CALLMY:
 				{
 					CallDestination dest;
-					dest.sigIndex = (*it)->ARG2;
-					translateCall(allocation, buffer, dest, false, allocation[(*it)->ARG0], REG_RBP, 0x8B, false, 0);
+					dest.sigIndex = (*it)->ARG1;
+					translateCall(allocation, buffer, dest, false, REG_RBP, 0x8B, false, 0);
 					emitModRMInsn(allocation[(*it)->ARG0], REG_RAX, "\x89", 1, buffer, true);
 				}
 				break;
@@ -697,6 +785,13 @@ void JITCompiler::generate(list<Instruction*> insns, map<uint16_t, MachineRegist
 				finishLeaveReg(allocation[(*it)->ARG0], throwLabel, buffer);
 				break;
 
+			case OP_CNVT:
+				if((*it)->subop == SOP_TAG_NONE) {
+					emitModRMInsn(allocation[(*it)->ARG0], allocation[(*it)->ARG1], "\x89", 1, buffer, true); // mov
+				} else {
+					translateCNVT(allocation, buffer, (*it)->subop, allocation[(*it)->ARG0], allocation[(*it)->ARG1]);
+				}
+				break;
 
 			default:
 				#ifdef TRACE

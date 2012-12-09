@@ -36,6 +36,14 @@ statclass Main {
 		return a >= b;
 	}
 	
+	fun eq(a, b) {
+		return a == b;
+	}
+	
+	fun neq(a, b) {
+		return a != b;
+	}
+	
 	fun boolstr(a) {
 		if(a) {
 			return "true";
@@ -47,7 +55,7 @@ statclass Main {
 	fun main(args) {
 		cout = @System.out;
 		for(i = 0; i < 3; i = i+1) {
-			cout->writeLine("The best number is: " + add(20, 22));
+			cout->writeLine("The answer to life is: " + add(20, 22));
 			cout->writeLine(add("Quack, ", "quack..."));
 			cout->writeLine(add("Habala's constant is: ", sub(20, 7)));
 			cout->writeLine(mul(42, sub(0,13))); // 42 * -13 = -546
@@ -58,6 +66,8 @@ statclass Main {
 				cout->writeLine("" + i + " <= " + j + "  =  " + boolstr(le(i,j)));
 				cout->writeLine("" + i + " > " + j + "  =  " + boolstr(gt(i,j)));
 				cout->writeLine("" + i + " >= " + j + "  =  " + boolstr(ge(i,j)));
+				cout->writeLine("" + i + " == " + j + "  =  " + boolstr(eq(i,j)));
+				cout->writeLine("" + i + " != " + j + "  =  " + boolstr(neq(i,j)));
 			}
 		}	
 	}
