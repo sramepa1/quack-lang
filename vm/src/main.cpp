@@ -75,7 +75,7 @@ int main(int argc, char* argv[]) {
 				throw invalid_argument("Expected class file name.");
 			}
 
-               initGlobals(jit, 2*getpagesize(), 2*getpagesize(), 100*getpagesize(), 20*getpagesize()); // super-tight for testing
+               initGlobals(jit, 2*getpagesize(), 2*getpagesize(), 1000*getpagesize(), 20*getpagesize()); // super-tight for testing
 			for( ; i < argc && strcmp(argv[i], "-args") != 0; i++) {
 				loader->loadClassFile(argv[i]);	// TODO: Are we fully ready for this? What about cross-CF inheritance?
 			}

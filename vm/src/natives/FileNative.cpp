@@ -17,7 +17,7 @@ QuaValue fileConstructor() {
 
         streamType* newFile = new streamType(fileName.c_str());
 
-        if(newFile->bad() || newFile->fail()) {
+        if(newFile->fail()) {
             throw createException(typeCache.typeIOException, string("File " + fileName + " cannot be opened!").c_str());
         }
 
@@ -38,8 +38,14 @@ void testClosed() {
     }
 }
 
-void testFailAndBad(ios* stream, const char* errStr) {
-    if(stream->bad() || stream->fail()) {
+void testFlags(ios* stream, const char* errStr) {
+    if(stream->eof()) {
+        getFieldByIndex(*VMBP, 0).value |= FILE_FLAG_EOF;
+    } else {
+        getFieldByIndex(*VMBP, 0).value &= ~((uint32_t)FILE_FLAG_EOF);
+    }
+
+    if(stream->fail()) {
         throw createException(typeCache.typeIOException, errStr);
     }
 }
@@ -59,18 +65,19 @@ QuaValue FileNative::readLineNativeImpl() {
     istream* thisStream = getIStream();
     string loadedString;
     std::getline(*thisStream, loadedString);
-    testFailAndBad(thisStream, "Reading operation failed!");
+    testFlags(thisStream, "Reading operation failed!");
 
     return stringDeserializer(loadedString.c_str());
 }
 
 
 QuaValue FileNative::readIntNativeImpl() {
+
     istream* thisStream = getIStream();
     int32_t loadedInt;
     (*thisStream) >> loadedInt;
-    cout << "Loaded int: " << loadedInt << endl;
-    testFailAndBad(thisStream, "Reading operation failed!");
+    testFlags(thisStream, "Reading operation failed!");
+
     return createInteger(loadedInt);
 }
 
@@ -91,19 +98,16 @@ QuaValue FileNative::writeLineNativeImpl() {
                               "Attempt to call with argument which is not an instance of String!");
     }
 
-    testFailAndBad(thisStream, "Writing operation failed!");
+    testFlags(thisStream, "Writing operation failed!");
 	return QuaValue();
 }
 
 
 QuaValue FileNative::eofNativeImpl() {
     testClosed();
-    ios* thisStream = (ios*)ptrFromQuaValues(getFieldByIndex(*VMBP, 1), getFieldByIndex(*VMBP, 2));
-    if(thisStream->eof()) {
-        cout << "EOF found" << endl;
+    if(getFieldByIndex(*VMBP, 0).value & FILE_FLAG_EOF) {
         return createBool(true);
     } else {
-        cout << "EOF not found" << endl;
         return createBool(false);
     }
 }

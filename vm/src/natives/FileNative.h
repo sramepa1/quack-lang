@@ -4,8 +4,9 @@
 #include "NativeLoader.h"
 
 // Flags for File instances
-#define FILE_FLAG_CLOSED 1
-#define FILE_FLAG_UNCLOSEABLE 2
+#define FILE_FLAG_CLOSED        0x1
+#define FILE_FLAG_UNCLOSEABLE   0x2
+#define FILE_FLAG_EOF           0x100
 
 class FileNative
 {

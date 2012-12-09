@@ -50,6 +50,7 @@ class InstanceFile {
     fun bruteForce(n, M, itemsArr) {
 
         cout = @System.out;
+        outField = this.out;
 
         currentMaxCost = 0;
 
@@ -75,7 +76,10 @@ class InstanceFile {
 
         }
 
-        cout->writeLine("The best cost is " + currentMaxCost);
+        outputString = "The best cost is " + currentMaxCost;
+
+        cout->writeLine(outputString);
+        outField->writeLine(outputString);
     }
 
 
@@ -88,12 +92,12 @@ class InstanceFile {
         id = inField->readInt();
         n = inField->readInt();
         M = inField->readInt();
-
-                
+        
         items = new Array(n);
-        //cout->writeLine("Instance ID " + id + " - n = " + n + "; M = " + M);
-
+        
         while(!(inField->eof())) {
+
+            cout->writeLine("Instance ID " + id + " - n = " + n + "; M = " + M);
             
             for(i = 0; i < n; i = i + 1) {
                 newItem = new Item();
@@ -106,8 +110,6 @@ class InstanceFile {
             
             cout->writeLine("Instance successfuly loaded!");
             this->bruteForce(n, M, items);
-
-            //////////////////////////////////////
 
             id = inField->readInt();
             n = inField->readInt();
