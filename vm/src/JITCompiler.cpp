@@ -459,7 +459,8 @@ inline void JITCompiler::translateCall(	map<uint16_t, MachineRegister> allocatio
 
 enum OperationMode {
 	MODE_BASIC,
-	MODE_DIV
+	MODE_DIV,
+	MODE_RELATIONAL
 };
 
 
@@ -501,12 +502,36 @@ void JITCompiler::translateA3REG(map<uint16_t, MachineRegister> allocation, vect
 			opcode = 0x01;
 			throw GiveUpException();
 			break;
-		case SOP_LT:
-			destination.sig = (QuaSignature*)"\1_opLt";
+		case SOP_NEQ:
+			destination.sig = (QuaSignature*)"\1_opNeq";
 			opcode = 0x01;
 			throw GiveUpException();
 			break;
 #endif
+			// all relational operators are implemented as a fixed jump over a 3-byte instruction.
+			// the 3-byte instruction makes the result true, so if the jump is on the opposite condition
+			// to the quack operator, false is kept.
+		case SOP_GT:
+			destination.sig = (QuaSignature*)"\1_opGt";
+			opcode = "\x7E\x03"; // jng
+			mode = MODE_RELATIONAL;
+			break;
+		case SOP_GE:
+			destination.sig = (QuaSignature*)"\1_opGe";
+			opcode = "\x7C\x03"; // jl
+			mode = MODE_RELATIONAL;
+			break;
+		case SOP_LT:
+			destination.sig = (QuaSignature*)"\1_opLt";
+			opcode = "\x7D\x03"; // jnl
+			mode = MODE_RELATIONAL;
+			break;
+		case SOP_LE:
+			destination.sig = (QuaSignature*)"\1_opLe";
+			opcode = "\x7F\x03"; // jg
+			mode = MODE_RELATIONAL;
+			break;
+
 		default:
 			#ifdef TRACE
 			cout << "can't translate A3REG subop 0x" << hex << (int)quackSop << dec << ", ";
@@ -519,6 +544,8 @@ void JITCompiler::translateA3REG(map<uint16_t, MachineRegister> allocation, vect
 	emitModRMInsn(REG_RDX, rightReg, "\x89", 1, buffer, true);				// mov rdx, r??
 
 	// Tag test
+	// JITted code currently only operates on Integers. TODO: Support for Bool and Float where appropriate.
+
 	append(buffer, "\x48\xC1\xE8\x30\x48\xC1\xEA\x30\x83\xE0\xFF\x83\xE2\xFF\x3C", 15);
 	buffer.push_back((unsigned char)TAG_INT);
 	append(buffer, "\x75\x00\x38\xD0\x75\x00", 6);
@@ -535,8 +562,8 @@ void JITCompiler::translateA3REG(map<uint16_t, MachineRegister> allocation, vect
 	unsigned int shortjump2 = buffer.size() - 1;
 
 
-	// Actual arithmetic operation (result in edx)
-	switch(mode){
+	// Actual arithmetic operation
+	switch(mode) {
 		case MODE_BASIC:
 			emitModRMInsn(REG_RDX, leftReg, "\x89", 1, buffer, true, 0, false);					// mov *E*dx, r?d
 			if(quackSop == SOP_MUL) {
@@ -553,17 +580,35 @@ void JITCompiler::translateA3REG(map<uint16_t, MachineRegister> allocation, vect
 				buffer.push_back(0x92);															// xchg eax, edx
 			}
 			break;
+		case MODE_RELATIONAL:
+			//buffer.push_back(0xCC); // debug
+			append(buffer, "\x31\xD2", 2);														// xor edx, edx
+			emitModRMInsn(leftReg, rightReg, "\x39", 1, buffer, true, 0, false);				// cmp r?d, r??d
+			append(buffer, opcode, 2);															// jcc keepfalse
+			append(buffer, "\x83\xC2\x01", 3);													// add edx, byte 1
+			break;																				// keepfalse:
 	}
 
 	// QuaValue upper part rebuild
-	emitModRMInsn(REG_RAX, leftReg, "\x89", 1, buffer, true);				// mov rax, r?
-	append(buffer, "\x48\xC1\xE8\x20\x48\xC1\xE0\x20\x48\x09\xD0\xEB\x00", 13);
-	/*	shr rax, 32
-		shl rax, 32
+	uint32_t quaValueUpper = 0;
+	if(mode == MODE_RELATIONAL) {
+		quaValueUpper = typeCache.typeBool;
+		quaValueUpper |= TAG_BOOL << 16;
+	} else {
+		quaValueUpper = typeCache.typeInteger;
+		quaValueUpper |= TAG_INT << 16;
+	}
+
+	buffer.push_back(0xB8);
+	append(buffer, (const char*)&quaValueUpper, 4);
+	// mov eax, imm32
+	append(buffer, "\x48\xC1\xE0\x20\x48\x09\xD0\xEB\x00", 9);
+	/*	shl rax, 32
 		or rax, rdx
 		jmp short finished
 		nontagged:
-	 */
+	*/
+
 	unsigned int shortjump3 = buffer.size() - 1;
 	buffer[shortjump1] = (unsigned char)(buffer.size() - shortjump1 - 1);
 	buffer[shortjump2] = (unsigned char)(buffer.size() - shortjump2 - 1);
