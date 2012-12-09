@@ -4,6 +4,8 @@
 #include <sstream>
 
 #include "helpers.h"
+#include "ExceptionNative.h"
+#include "StringNative.h"
 
 using namespace std;
 
