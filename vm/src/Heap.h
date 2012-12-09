@@ -65,7 +65,6 @@ protected:
     void addRecord(ObjRecord* record) {
         prepareFreeTableEtry();
         memcpy(freeTablePtr, record, sizeof(ObjRecord));
-        tableSize += sizeof(ObjRecord);
     }
 
     ObjRecord* getRecord(uint32_t index) {
@@ -89,11 +88,8 @@ protected:
     
     size_t _allocatedSize; 
     size_t _heapSize;
-    size_t _tableSize;
-    
     void* _freeHeapPtr;
-    void* _freeTablePtr;
-    
+  
     void* topTablePtr;
     uint32_t topTableIndex;
     uint32_t maxUsedTableIndex;

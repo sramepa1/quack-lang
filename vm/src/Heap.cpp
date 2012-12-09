@@ -86,6 +86,8 @@ const ObjRecord& AbstractHeap::dereference(QuaValue ref) {
     }
 
     if(ref.type == typeCache.typeNull || ref.value == 0) {
+        cout << "error at " << ref.value << endl;
+        
         throw NullReferenceException(string("Dereferenced a null value of class ") + getClassFromValue(ref)->getName());
     }
 
@@ -111,7 +113,7 @@ QuaValue AbstractHeap::allocateNew(uint16_t type, uint32_t fieldCount) {
     // create object
     if(fieldCount == 0) {
         record.field = NULL;
-    } else {   
+    } else {
         record.field = (QuaObject*) memset(freeHeapPtr, 0, size);  // will be null references to _Null (guaranteed zero)  
         freeHeapPtr = (void*) ((char*) freeHeapPtr + size);
         heapSize += size;
@@ -159,6 +161,9 @@ void BakerHeap::prepareFreeTableEtry() {
         freeTablePtr = (void*) ((ObjRecord*) freeTablePtr - 1);
         topTablePtr = freeTablePtr; // remember start(end) of the table
         topTableIndex = ++freeTableIndex;
+        
+        tableSize += sizeof(ObjRecord);
+        
         return;
     }
     
@@ -175,6 +180,7 @@ void BakerHeap::prepareFreeTableEtry() {
     topTablePtr = freeTablePtr;
     freeTableIndex = ++topTableIndex;
     
+    tableSize += sizeof(ObjRecord);
 }
 
 
@@ -200,15 +206,14 @@ void BakerHeap::collectGarbage() {
     }
 
     _freeHeapPtr = _heapBase;
-    _freeTablePtr = _tableBase;
     
     _heapSize = 0;
-    _tableSize = 0;
  
     // copy class table
     void* src = topTablePtr;
     void* dest = ((ObjRecord*) _tableBase - topTableIndex - 1);
     size_t size = sizeof(ObjRecord) * (topTableIndex + 1);
+    topTablePtr = dest;
     
 #ifdef DEBUG
     cout << "Copying object table of size " << size << " from " << src << " to " << dest << endl;
@@ -257,6 +262,8 @@ void BakerHeap::collectGarbage() {
     
     
     // free unused end of object table
+    // TODO buggy and not needed
+    /*
     _tableSize = maxUsedTableIndex * sizeof(ObjRecord);
     topTablePtr = (void*) ((ObjRecord*) topTablePtr + (topTableIndex - maxUsedTableIndex));
     topTableIndex = maxUsedTableIndex;
@@ -264,16 +271,22 @@ void BakerHeap::collectGarbage() {
 #ifdef DEBUG
     cout << "Freeing " << (topTableIndex - maxUsedTableIndex) << " unused recods from object table" << endl;
 #endif
-    
+    */
+     
     maxUsedTableIndex = 1; // 1 is for null
     
     // swaping space pointers
-    mySwap((char**) &heapBase, (char**) &_heapBase);
-    mySwap((char**) &tableBase, (char**) &_tableBase);
+    void* swap;
+    swap = heapBase;
+    heapBase = _heapBase;
+    _heapBase = swap;
+    
+    swap = tableBase;
+    tableBase = _tableBase;
+    _tableBase = swap;
+    
     mySwap(&heapSize, &_heapSize);
-    mySwap(&tableSize, &_tableSize);
     mySwap(&freeHeapPtr, &_freeHeapPtr);
-    mySwap(&freeTablePtr, &_freeHeapPtr);
     
 #ifdef DEBUG
     cout << "Garbage collection complete, heap is running on part " << currentRecordFlags << endl;
@@ -293,8 +306,9 @@ void BakerHeap::saveReachableObject(uint32_t index) {
     size_t size = record->fieldCount * sizeof(QuaValue);
     
     // copy data and update record
-    _record->field = (QuaObject*) memcpy(_freeHeapPtr, record->field, size);
+    _record->field = (QuaObject*) memcpy(_freeHeapPtr, record->field->fields, size);
     _record->flags = currentRecordFlags;
+        
     _freeHeapPtr = (void*) ((char*) _freeHeapPtr + size);
     _heapSize += size;
     
@@ -340,6 +354,7 @@ PermanentHeap::PermanentHeap(size_t size) : AbstractHeap::AbstractHeap(size) {
 void PermanentHeap::prepareFreeTableEtry() {
     freeTablePtr = (void*) ((ObjRecord*) freeTablePtr - 1);
     freeTableIndex++;
+    tableSize += sizeof(ObjRecord);
 }
 
 void PermanentHeap::collectGarbage() {
