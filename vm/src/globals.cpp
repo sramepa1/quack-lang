@@ -40,6 +40,8 @@ extern "C" {
 	Interpreter* interpreter;
 
 	sigjmp_buf jmpEnv;
+    sigjmp_buf jmpEnvFPE;
+
 	TypeCache typeCache;
 
 

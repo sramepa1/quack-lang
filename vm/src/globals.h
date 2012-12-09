@@ -49,6 +49,7 @@ extern "C" {
 	void initGlobals(bool jit, size_t valStackSize, size_t addrStackSize, size_t volHeapSize, size_t permHeapSize);
 
 	extern sigjmp_buf jmpEnv;
+    extern sigjmp_buf jmpEnvFPE;
 
 	// Chache for popular types
 	// Loader is responsible to fill it
