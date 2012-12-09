@@ -79,6 +79,10 @@ bool JITCompiler::compile(QuaMethod* method) {
 			#endif
 			throw GiveUpException();
 		}
+		#ifdef TRACE
+		cout << "OK " << buffer.size() << "B, ";
+		#endif
+
 
 	} catch(GiveUpException) {
 		return false;
@@ -767,7 +771,27 @@ void JITCompiler::generate(list<Instruction*> insns, map<uint16_t, MachineRegist
 
 	emitPrepareContext(allocation, buffer);
 
-	for(list<Instruction*>::iterator it = insns.begin(); it != insns.end(); ++it) {
+	// for jumps
+	vector<size_t> insnStarts(insns.size());
+	multimap<int32_t, size_t> backPatchOffsets;
+
+	int32_t i = 0;
+	for(list<Instruction*>::iterator it = insns.begin(); it != insns.end(); ++it, ++i) {
+
+		// note where this instruction starts for future backward jumps
+		insnStarts[i] = buffer.size();
+
+		// backpatch all previously seen forward jumps leading to this instruction
+		pair<multimap<int32_t, size_t>::iterator, multimap<int32_t, size_t>::iterator> range;
+		range = backPatchOffsets.equal_range(i);
+		for(multimap<int32_t, size_t>::iterator rit = range.first; rit != range.second; ++rit) {
+			size_t jumpAddress = rit->second;
+			int32_t jump = buffer.size() - jumpAddress - 4;
+			for(int i = 0; i < 4; i++) {
+				buffer[jumpAddress + i] = *(((unsigned char*)&jump) + i) ;
+			}
+		}
+
 
 
 		/*
@@ -833,6 +857,37 @@ void JITCompiler::generate(list<Instruction*> insns, map<uint16_t, MachineRegist
 
 			case OP_LNOT:
 				translateLNOT(allocation, buffer, allocation[(*it)->ARG0], allocation[(*it)->ARG1]);
+				break;
+
+			case OP_JMP:
+				{
+					switch((*it)->subop) {
+						case SOP_UNCONDITIONAL:
+							buffer.push_back(0xE9);											// jmp
+							break;
+						case SOP_CC_TRUE:
+						case SOP_CC_FALSE:
+							emitModRMInsn(allocation[(*it)->ARG1], allocation[(*it)->ARG1],
+										  "\x85", 1, buffer, true, 0 , false);				// test r?d, r?d
+							buffer.push_back(0x0F);
+							buffer.push_back((*it)->subop == SOP_CC_FALSE ? 0x84 : 0x85);	// jz ~ jnz
+							break;
+						default:
+							#ifdef TRACE
+							cout << "can't translate JMP subop 0x" << hex << (int)(*it)->subop << dec << ", ";
+							#endif
+							throw GiveUpException();
+					}
+					int32_t imm32 = 0;
+					int32_t qOffset = (int16_t)((*it)->ARG0);
+					if(qOffset < 0) {
+						imm32 = insnStarts[i + qOffset + 1] - buffer.size() - 4;
+					} else {
+						backPatchOffsets.insert(make_pair(i + qOffset + 1, buffer.size()));
+					}
+					append(buffer, (const char*)&imm32, 4);									// imm32 jump offset
+				}
+
 				break;
 
 			case OP_CALL:

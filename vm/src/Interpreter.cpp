@@ -163,6 +163,8 @@ inline Instruction* Interpreter::performCall(QuaMethod* method) {
 // and may clobber any register, and the compiler can arrange things around this.
 
 // local macro only, #undef'd at the end of the method
+// exchange RSP ~ VMSP and RBP ~ VMBP, then jump to "code" with "value" in rax,
+// emerge back with restored RSP and RBP at one of the 3 labels.
 #define MACHINE_JUMP(value, code) {												\
 						volatile void* destination = (volatile void*)(code);	\
 						asm goto (	"leaq VMSP, %%rbx\n\t"						\
