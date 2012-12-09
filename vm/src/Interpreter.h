@@ -65,8 +65,6 @@ private:
 	static bool isNull(QuaValue v);
 	static bool parseTaggedBool(QuaValue v);
 
-	static QuaValue extractTaggedValue(Instruction* insn);
-
 	Instruction* handleNOP(Instruction* insn);
 	Instruction* handleLDC(Instruction* insn);
 	Instruction* handleLDF(Instruction* insn);

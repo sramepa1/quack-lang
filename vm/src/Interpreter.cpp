@@ -517,11 +517,6 @@ Instruction* Interpreter::unhandledException(QuaValue qex) {
 }
 
 
-inline QuaValue Interpreter::extractTaggedValue(Instruction* insn) {
-	return QuaValue(insn->IMM, getTaggedType(insn->subop), insn->subop);
-}
-
-
 
 // ------------- Instruction handlers -----------------
 
@@ -1395,24 +1390,24 @@ void Interpreter::start(vector<char*>& args) {
 		throw runtime_error("Main class is not static!");
 	}
 
-    QuaValue argCnt = createInteger(args.size());
-    *(--VMSP) = argCnt;
-    QuaValue qargs = newRawInstance(typeCache.typeArray);
-    nativeCall(qargs, (QuaSignature*)"\1initN");
+	QuaValue argCnt = createInteger(args.size());
+	*(--VMSP) = argCnt;
+	QuaValue qargs = newRawInstance(typeCache.typeArray);
+	nativeCall(qargs, (QuaSignature*)"\1initN");
 
 	#ifdef DEBUG
 		cout << "Preparing value stack, argument count for main method is: " << args.size() << endl;
 	#endif
-    uint32_t index = 0;
+	uint32_t index = 0;
 	for(vector<char*>::iterator it = args.begin(); it != args.end(); ++it) {
 		QuaValue argString = stringDeserializer(*it);
-        *(--VMSP) = argString;
+		*(--VMSP) = argString;
 
-        QuaValue indexRef = createInteger(index);
-        *(--VMSP) = indexRef;
+		QuaValue indexRef = createInteger(index);
+		*(--VMSP) = indexRef;
 
-        nativeCall(qargs, (QuaSignature*)"\2_opIndexWN");
-        index++;
+		nativeCall(qargs, (QuaSignature*)"\2_opIndexWN");
+		index++;
 	}
 
 	// push args and This pointer
