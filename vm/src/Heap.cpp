@@ -100,7 +100,7 @@ QuaValue AbstractHeap::allocateNew(uint16_t type, uint32_t fieldCount) {
 
     size_t size = fieldCount * sizeof(QuaValue);
     
-    if(heapSize + tableSize + size + sizeof(ObjRecord) > allocatedSize) {
+    if(heapSize + tableSize + size + sizeof(ObjRecord) > allocatedSize || testGCNeed()) {
         collectGarbage();
         
         // control test
@@ -139,8 +139,14 @@ void* AbstractHeap::getEnd() {
     return (void*) ((char*) heapBase + allocatedSize);
 }
 
+bool AbstractHeap::testGCNeed() {
+    return false;
+}
+
 
 ////////////////////////////// Baker
+
+
 
 BakerHeap::BakerHeap(size_t size) : AbstractHeap::AbstractHeap(size / 2) {
     qValueFlags = FLAG_REF_VOLATILE;
@@ -157,6 +163,10 @@ BakerHeap::BakerHeap(size_t size) : AbstractHeap::AbstractHeap(size / 2) {
     addRecord(&null);
 }
 
+bool BakerHeap::testGCNeed() {
+    return maxUsedTableIndex >= topTableIndex;
+}
+
 void BakerHeap::prepareFreeTableEtry() {
     bool flag = true;
     
@@ -169,9 +179,7 @@ void BakerHeap::prepareFreeTableEtry() {
         
         return;
     }
-    
-    search:
-    
+      
     // search for free index and reuse
     for(uint32_t i = maxUsedTableIndex; i <= topTableIndex; ++i) {
         if(getRecord(i)->flags == 0) {
@@ -180,12 +188,6 @@ void BakerHeap::prepareFreeTableEtry() {
             maxUsedTableIndex = i;
             return;
         }
-    }
-    
-    if(flag) {
-        flag = false;
-        collectGarbage();
-        goto search;
     }
     
     freeTablePtr = (void*) ((ObjRecord*) topTablePtr - 1);
@@ -218,7 +220,6 @@ void BakerHeap::collectGarbage() {
     }
 
     _freeHeapPtr = _heapBase;
-    
     _heapSize = 0;
  
     // copy class table
@@ -318,7 +319,7 @@ void BakerHeap::saveReachableObject(uint32_t index) {
     
     ObjRecord* record = getRecord(index);
     ObjRecord* _record = _getRecord(index);
-    
+
     size_t size = record->fieldCount * sizeof(QuaValue);
     
     // copy data and update record

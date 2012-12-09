@@ -61,6 +61,7 @@ protected:
     
     virtual void prepareFreeTableEtry() = 0;
     virtual void collectGarbage() = 0;
+    virtual bool testGCNeed();
     
     void addRecord(ObjRecord* record) {
         prepareFreeTableEtry();
@@ -96,7 +97,8 @@ protected:
 
     virtual void prepareFreeTableEtry();
     virtual void collectGarbage();
- 
+    virtual bool testGCNeed();
+    
     ObjRecord* _getRecord(uint32_t index) {
         return ((ObjRecord*) _tableBase - index - 1);
     }
