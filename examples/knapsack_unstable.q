@@ -1,4 +1,5 @@
 
+
 class Item {
     field weight;
     field cost;
@@ -49,6 +50,7 @@ class InstanceFile {
     fun bruteForce(n, M, itemsArr) {
 
         cout = @System.out;
+        outField = this.out;
 
         currentMaxCost = 0;
 
@@ -74,7 +76,10 @@ class InstanceFile {
 
         }
 
-        cout->writeLine("The best cost is " + currentMaxCost);
+        outputString = "The best cost is " + currentMaxCost;
+
+        cout->writeLine(outputString);
+        outField->writeLine(outputString);
     }
 
 
@@ -87,12 +92,12 @@ class InstanceFile {
         id = inField->readInt();
         n = inField->readInt();
         M = inField->readInt();
-
-                
+        
         items = new Array(n);
-        //cout->writeLine("Instance ID " + id + " - n = " + n + "; M = " + M);
-
+        
         while(!(inField->eof())) {
+
+            cout->writeLine("Instance ID " + id + " - n = " + n + "; M = " + M);
             
             for(i = 0; i < n; i = i + 1) {
                 newItem = new Item();
@@ -106,12 +111,11 @@ class InstanceFile {
             cout->writeLine("Instance successfuly loaded!");
             this->bruteForce(n, M, items);
 
-            //////////////////////////////////////
-
-            id = inField->readInt();
-            n = inField->readInt();
-            M = inField->readInt();
-        
+            if(!(inField->eof())) {
+                id = inField->readInt();
+                n = inField->readInt();
+                M = inField->readInt();
+            }
         }
 
         inField->close();
@@ -125,14 +129,20 @@ statclass Main {
     fun main(args) {
         
         cout = @System.out;
+        cerr = @System.err;
 
+        if(args.length == 0) {
+            cerr->writeLine("Need the input filename as first argument!");
+            return;
+        }
+        cout->writeLine("Input filename: " + args->getElem(0));
+        
         try {
-            in = new InstanceFile("./knap_15.inst.dat");
+            in = new InstanceFile(args->getElem(0));
             in->computeSolution();
         } catch e as IOException {
-            cout->writeLine("Input file cannot be opened!");
-            cout->writeLine("Reason: " + e.what);
+            cerr->writeLine("Input file cannot be opened!");
+            cerr->writeLine("Reason: " + e.what);
         }
     }
 }
-
