@@ -1395,6 +1395,7 @@ void Interpreter::start(vector<char*>& args) {
 	QuaValue argCnt = createInteger(args.size());
 	*(--VMSP) = argCnt;
 	QuaValue qargs = newRawInstance(typeCache.typeArray);
+    qargs = newRawInstance(typeCache.typeArray);
 	nativeCall(qargs, (QuaSignature*)"\1initN");
 
 	#ifdef DEBUG
