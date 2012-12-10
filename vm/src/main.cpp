@@ -16,6 +16,8 @@ extern "C" {
 using namespace std;
 
 bool testPointer(void* ptr, void* low, void* high, const char* message) {
+	// Calling printf-like things from signal handlers is POSIX non-compliant, but works on our platform and we're
+	// highly non-portable anyway, so who cares.
 	if(ptr >= low && ptr < high) {
 		cerr << message << endl;
 		return true;
@@ -29,7 +31,7 @@ void handlerSEGV(int sig, siginfo_t *si, void *unused)
 	if( !(  testPointer(si->si_addr, valStackLow, valStackHigh, "That is on the VM value stack!")
 		||  testPointer(si->si_addr, addrStackLow, addrStackHigh, "That is on the VM address stack!")
 		||  testPointer(si->si_addr, heap->getVolatileBase(), heap->getVolatileEnd(), "That is on the VM volatile heap!")
-				||  testPointer(si->si_addr, heap->getPermanentBase(), heap->getPermanentEnd(), "That is on the VM permanent heap!"))) {
+		||  testPointer(si->si_addr, heap->getPermanentBase(), heap->getPermanentEnd(), "That is on the VM permanent heap!"))) {
 		cerr << "That is not in any mmapped region, must be a bug in the VM itself!" << endl;
 	}
 	siglongjmp(jmpEnv, 1);

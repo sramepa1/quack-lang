@@ -1,9 +1,9 @@
 # Debug mode
-CFLAGS = -pedantic -Wall -O0 -g3
+#CFLAGS = -pedantic -Wall -O0 -g3
 #DEFINE = DEBUG TRACE
 
 # Release mode
-#CFLAGS = -O3 -g
+CFLAGS = -O2 -g
 
 
 INCLUDE = ../common/include src/natives src

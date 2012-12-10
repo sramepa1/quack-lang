@@ -64,8 +64,8 @@ class InstanceFile {
         
         while(currentConfig < mask) {
 
-            configWeight = computeWeight(currentConfig, n, itemsArr);
-            configCost = computeCost(currentConfig, n, itemsArr);
+            configWeight = computeWeight(new Integer(currentConfig), n, itemsArr);
+            configCost = computeCost(new Integer(currentConfig), n, itemsArr);
             
             if(configWeight <= M && configCost > currentMaxCost) {
                 bestConfig = currentConfig;
